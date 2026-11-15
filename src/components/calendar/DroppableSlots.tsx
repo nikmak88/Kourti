@@ -1,5 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface DroppableTimeSlotProps {
   hour: number;
@@ -18,6 +19,7 @@ export function DroppableTimeSlot({
   style,
   onClick,
 }: DroppableTimeSlotProps) {
+  const { t } = useTranslation('calendar');
   const { isOver, setNodeRef } = useDroppable({
     id: `slot-${hour}-${minute}`,
     data: { type: 'day-slot', hour, minute },
@@ -38,7 +40,7 @@ export function DroppableTimeSlot({
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
-            Drop here
+            {t('dragDrop.dropHere')}
           </span>
         </div>
       )}
@@ -65,6 +67,7 @@ export function DroppableWorkWeekSlot({
   style,
   onClick,
 }: DroppableWorkWeekSlotProps) {
+  const { t } = useTranslation('calendar');
   const { isOver, setNodeRef } = useDroppable({
     id: `workweek-slot-${dayIndex}-${hour}-${minute}`,
     data: { type: 'workweek-slot', dayIndex, hour, minute },
@@ -85,7 +88,7 @@ export function DroppableWorkWeekSlot({
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
-            Drop
+            {t('dragDrop.drop')}
           </span>
         </div>
       )}
@@ -108,6 +111,7 @@ export function DroppableMonthDay({
   onClick,
   isCurrentMonth = true,
 }: DroppableMonthDayProps) {
+  const { t } = useTranslation('calendar');
   const { isOver, setNodeRef } = useDroppable({
     id: `month-day-${date.toISOString()}`,
     data: { type: 'month-day', date },
@@ -129,7 +133,7 @@ export function DroppableMonthDay({
       {isOver && isCurrentMonth && (
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-center pointer-events-none pb-1">
           <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
-            Move here
+            {t('dragDrop.moveHere')}
           </span>
         </div>
       )}

@@ -14,6 +14,7 @@ import {
 import { CalendarEventWithOwner } from '@/types/calendar-sharing';
 import { useUpdateCalendarEvent } from '@/hooks/useCalendar';
 import { format, parseISO, setHours, setMinutes, differenceInMinutes } from 'date-fns';
+import { dateLocale } from '@/i18n/dates';
 
 interface CalendarDragDropProviderProps {
   children: React.ReactNode;
@@ -119,8 +120,8 @@ export function CalendarDragDropProvider({ children, currentDate }: CalendarDrag
           >
             <div className="font-semibold">{activeEvent.title}</div>
             <div className="text-sm text-muted-foreground">
-              {format(parseISO(activeEvent.start_date), 'h:mm a')} -{' '}
-              {format(parseISO(activeEvent.end_date), 'h:mm a')}
+              {format(parseISO(activeEvent.start_date), 'p', { locale: dateLocale() })} -{' '}
+              {format(parseISO(activeEvent.end_date), 'p', { locale: dateLocale() })}
             </div>
           </div>
         ) : null}

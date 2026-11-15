@@ -1,0 +1,63 @@
+{
+  "add": "Προσθήκη εργασίας",
+  "loading": "Φόρτωση εργασιών…",
+  "progress": "{{done}} από {{total}} ολοκληρώθηκαν",
+  "unassigned": "Χωρίς ανάθεση",
+  "noDueDate": "Χωρίς προθεσμία",
+  "markDone": "Σήμανση ως ολοκληρωμένη",
+  "columns": {
+    "task": "Εργασία",
+    "type": "Τύπος",
+    "due": "Προθεσμία",
+    "assignee": "Υπεύθυνος",
+    "priority": "Προτεραιότητα",
+    "status": "Κατάσταση",
+    "actions": "Ενέργειες"
+  },
+  "types": {
+    "general": "Γενική εργασία",
+    "court_appearance": "Παράσταση στο δικαστήριο",
+    "client_visit": "Επίσκεψη πελάτη",
+    "document_review": "Επισκόπηση εγγράφων",
+    "research": "Νομική έρευνα",
+    "filing": "Κατάθεση δικογράφου",
+    "deposition": "Κατάθεση",
+    "meeting": "Συνάντηση",
+    "phone_call": "Τηλεφωνική κλήση",
+    "investigation": "Διερεύνηση",
+    "negotiation": "Διαπραγμάτευση",
+    "contract_draft": "Σύνταξη σύμβασης"
+  },
+  "typesShort": {
+    "general": "Γενική",
+    "court_appearance": "Δικαστήριο",
+    "client_visit": "Επίσκεψη",
+    "document_review": "Επισκόπηση εγγράφων",
+    "research": "Έρευνα",
+    "filing": "Κατάθεση δικογράφου",
+    "deposition": "Κατάθεση",
+    "meeting": "Συνάντηση",
+    "phone_call": "Κλήση",
+    "investigation": "Διερεύνηση",
+    "negotiation": "Διαπραγμάτευση",
+    "contract_draft": "Σύνταξη"
+  },
+  "dialog": {
+    "createTitle": "Δημιουργία νέας εργασίας",
+    "editTitle": "Επεξεργασία εργασίας",
+    "titleLabel": "Τίτλος εργασίας",
+    "titlePlaceholder": "Εισαγάγετε τον τίτλο της εργασίας",
+    "typeLabel": "Τύπος εργασίας",
+    "typePlaceholder": "Επιλέξτε τύπο εργασίας",
+    "priorityOption": {
+      "high": "Υψηλή προτεραιότητα",
+      "medium": "Μεσαία προτεραιότητα",
+      "low": "Χαμηλή προτεραιότητα"
+    },
+    "assignTo": "Ανάθεση σε",
+    "assigneePlaceholder": "Επιλέξτε υπεύθυνο",
+    "descriptionPlaceholder": "Εισαγάγετε περιγραφή της εργασίας (προαιρετικά)",
+    "saveChanges": "Αποθήκευση αλλαγών",
+    "submitCreate": "Δημιουργία εργασίας"
+  }
+}

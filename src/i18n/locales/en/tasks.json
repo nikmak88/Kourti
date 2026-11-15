@@ -1,0 +1,63 @@
+{
+  "add": "Add Task",
+  "loading": "Loading tasks…",
+  "progress": "{{done}} of {{total}} complete",
+  "unassigned": "Unassigned",
+  "noDueDate": "No due date",
+  "markDone": "Mark Done",
+  "columns": {
+    "task": "Task",
+    "type": "Type",
+    "due": "Due",
+    "assignee": "Assignee",
+    "priority": "Priority",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "types": {
+    "general": "General Task",
+    "court_appearance": "Court Appearance",
+    "client_visit": "Client Visit",
+    "document_review": "Document Review",
+    "research": "Legal Research",
+    "filing": "Court Filing",
+    "deposition": "Deposition",
+    "meeting": "Meeting",
+    "phone_call": "Phone Call",
+    "investigation": "Investigation",
+    "negotiation": "Negotiation",
+    "contract_draft": "Contract Drafting"
+  },
+  "typesShort": {
+    "general": "General",
+    "court_appearance": "Court",
+    "client_visit": "Visit",
+    "document_review": "Doc Review",
+    "research": "Research",
+    "filing": "Filing",
+    "deposition": "Deposition",
+    "meeting": "Meeting",
+    "phone_call": "Call",
+    "investigation": "Investigation",
+    "negotiation": "Negotiation",
+    "contract_draft": "Drafting"
+  },
+  "dialog": {
+    "createTitle": "Create New Task",
+    "editTitle": "Edit Task",
+    "titleLabel": "Task Title",
+    "titlePlaceholder": "Enter task title",
+    "typeLabel": "Task Type",
+    "typePlaceholder": "Select task type",
+    "priorityOption": {
+      "high": "High Priority",
+      "medium": "Medium Priority",
+      "low": "Low Priority"
+    },
+    "assignTo": "Assign To",
+    "assigneePlaceholder": "Select assignee",
+    "descriptionPlaceholder": "Enter task description (optional)",
+    "saveChanges": "Save Changes",
+    "submitCreate": "Create Task"
+  }
+}

@@ -20,6 +20,8 @@ import { useOrganizationMembersForSharing } from '@/hooks/useCalendarSharing';
 import { useCalendarEventsByDateRange } from '@/hooks/useCalendar';
 import { cn } from '@/lib/utils';
 import { EventCreateDialog } from './EventCreateDialog';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '@/i18n/dates';
 
 interface FindAvailableTimeDialogProps {
   open: boolean;
@@ -39,6 +41,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
+  const { t } = useTranslation('calendar');
 
   const { data: members, isLoading: isLoadingMembers } = useOrganizationMembersForSharing();
 
@@ -137,10 +140,10 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5" />
-              Find Available Time
+              {t('findTime.title')}
             </DialogTitle>
             <DialogDescription>
-              Find the best time to schedule a meeting with your team members.
+              {t('findTime.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -149,7 +152,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
             <div className="space-y-4 overflow-y-auto">
               {/* Date picker */}
               <div className="space-y-2">
-                <Label>Date</Label>
+                <Label>{t('common:time.date')}</Label>
                 <Input
                   type="date"
                   value={format(selectedDate, 'yyyy-MM-dd')}
@@ -165,7 +168,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
 
               {/* Duration */}
               <div className="space-y-2">
-                <Label>Meeting Duration</Label>
+                <Label>{t('findTime.duration')}</Label>
                 <div className="flex gap-2">
                   {[30, 60, 90, 120].map((duration) => (
                     <Button
@@ -175,7 +178,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
                       size="sm"
                       onClick={() => setSelectedDuration(duration)}
                     >
-                      {duration} min
+                      {t('findTime.minutes', { count: duration })}
                     </Button>
                   ))}
                 </div>
@@ -185,12 +188,12 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Attendees
+                  {t('form.attendees')}
                 </Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search team members..."
+                    placeholder={t('findTime.searchMembers')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -241,11 +244,11 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground text-sm">
-                      No team members found
+                      {t('findTime.noMembers')}
                     </div>
                   )}
                 </ScrollArea>
-                <div className="text-xs text-muted-foreground">{selectedUsers.length} selected</div>
+                <div className="text-xs text-muted-foreground">{t('findTime.selected', { count: selectedUsers.length })}</div>
               </div>
             </div>
 
@@ -253,7 +256,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Available Slots
+                {t('findTime.availableSlots')}
               </Label>
               <div className="border rounded-lg p-4">
                 {isLoading ? (
@@ -265,7 +268,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
                 ) : selectedUsers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Select attendees to see availability</p>
+                    <p>{t('findTime.selectAttendees')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -289,23 +292,23 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
                               <X className="h-4 w-4 text-red-600" />
                             )}
                             <span className="font-medium">
-                              {format(slot.time, 'h:mm a')} -{' '}
+                              {format(slot.time, 'p', { locale: dateLocale() })} -{' '}
                               {format(
                                 new Date(slot.time.getTime() + selectedDuration * 60000),
-                                'h:mm a'
+                                'p',
+                                { locale: dateLocale() }
                               )}
                             </span>
                           </div>
                           {!slot.available && (
                             <Badge variant="destructive" className="text-xs">
-                              {slot.conflictingUsers.length} conflict
-                              {slot.conflictingUsers.length > 1 ? 's' : ''}
+                              {t('findTime.conflicts', { count: slot.conflictingUsers.length })}
                             </Badge>
                           )}
                         </div>
                         {!slot.available && (
                           <div className="text-xs text-red-600 mt-1 pl-6">
-                            Conflicts with: {slot.conflictingUsers.join(', ')}
+                            {t('findTime.conflictsWith', { names: slot.conflictingUsers.join(', ') })}
                           </div>
                         )}
                       </button>
@@ -318,7 +321,7 @@ export function FindAvailableTimeDialog({ open, onOpenChange }: FindAvailableTim
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('common:actions.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>

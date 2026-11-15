@@ -23,6 +23,7 @@ import {
 } from '@/hooks/useCalendarSharing';
 
 import { EmptyState } from '@/components/ui/empty-state';
+import { useTranslation } from 'react-i18next';
 
 interface ManageCalendarSharesDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function ManageCalendarSharesDialog({
   const { mutate: updateShare } = useUpdateCalendarShare();
   const { mutate: revokeShare } = useRevokeCalendarShare();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { t } = useTranslation('calendar');
 
   const handlePermissionChange = (viewerId: string, newLevel: 'view' | 'edit') => {
     setUpdatingId(viewerId);
@@ -74,8 +76,8 @@ export function ManageCalendarSharesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Manage Calendar Access</DialogTitle>
-          <DialogDescription>View and manage who has access to your calendar.</DialogDescription>
+          <DialogTitle>{t('manageShares.title')}</DialogTitle>
+          <DialogDescription>{t('manageShares.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
@@ -120,12 +122,12 @@ export function ManageCalendarSharesDialog({
                       ) : viewer.permission_level === 'edit' ? (
                         <>
                           <Pencil className="h-3 w-3 mr-1" />
-                          Can edit
+                          {t('sharing.canEdit')}
                         </>
                       ) : (
                         <>
                           <Eye className="h-3 w-3 mr-1" />
-                          View only
+                          {t('sharing.viewOnly')}
                         </>
                       )}
                     </Badge>
@@ -148,12 +150,12 @@ export function ManageCalendarSharesDialog({
                           {viewer.permission_level === 'edit' ? (
                             <>
                               <Eye className="h-4 w-4 mr-2" />
-                              Change to view only
+                              {t('manageShares.changeToViewOnly')}
                             </>
                           ) : (
                             <>
                               <Pencil className="h-4 w-4 mr-2" />
-                              Allow editing
+                              {t('manageShares.allowEditing')}
                             </>
                           )}
                         </DropdownMenuItem>
@@ -162,7 +164,7 @@ export function ManageCalendarSharesDialog({
                           onClick={() => handleRevoke(viewer.shared_with_user_id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Revoke access
+                          {t('manageShares.revoke')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -173,10 +175,10 @@ export function ManageCalendarSharesDialog({
           ) : (
             <EmptyState
               icon={User}
-              title="No shared access"
-              description="You haven't shared your calendar with anyone yet."
+              title={t('manageShares.empty.title')}
+              description={t('manageShares.empty.description')}
               action={{
-                label: 'Share Calendar',
+                label: t('share.title'),
                 onClick: () => onOpenChange(false),
               }}
             />

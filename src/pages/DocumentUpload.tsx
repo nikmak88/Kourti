@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { logError } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,30 +38,37 @@ import { useCases } from '@/hooks/useCases';
 import { useUploadDocument } from '@/hooks/useDocuments';
 import { Case } from '@/types';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
+import { formatNumber } from '@/i18n/dates';
 
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: 'Document name must be at least 2 characters.',
-  }),
-  content: z.string().optional(),
-  summary: z.string().optional(),
-  metadata: z.any().optional(),
-  effective_date: z.string().optional(),
-  renewal_date: z.string().optional(),
-  termination_date: z.string().optional(),
-  value: z
-    .string()
-    .optional()
-    .refine((val) => !val || !Number.isNaN(Number(val)), {
-      message: 'Value must be a number',
+// Built inside the component so validation messages follow the UI language.
+const makeFormSchema = (t: TFunction) =>
+  z.object({
+    name: z.string().min(2, {
+      message: t('documents:upload.validation.nameMin'),
     }),
-  contract_type: z.string().optional(),
-  currency: z.string().optional(),
-  terms: z.string().optional(),
-});
+    content: z.string().optional(),
+    summary: z.string().optional(),
+    metadata: z.any().optional(),
+    effective_date: z.string().optional(),
+    renewal_date: z.string().optional(),
+    termination_date: z.string().optional(),
+    value: z
+      .string()
+      .optional()
+      .refine((val) => !val || !Number.isNaN(Number(val)), {
+        message: t('documents:upload.validation.valueNumber'),
+      }),
+    contract_type: z.string().optional(),
+    currency: z.string().optional(),
+    terms: z.string().optional(),
+  });
+
+type FormValues = z.infer<ReturnType<typeof makeFormSchema>>;
 
 export default function DocumentUpload() {
   const navigate = useNavigate();
+  const { t } = useTranslation('documents');
+  const formSchema = useMemo(() => makeFormSchema(t), [t]);
   const [selectedCase, setSelectedCase] = useState('');
   const [file, setFile] = useState<File | null>(null);
   // Merged state from both branches
@@ -76,7 +85,7 @@ export default function DocumentUpload() {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<z.infer<typeof formSchema>>({
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
 
@@ -86,22 +95,22 @@ export default function DocumentUpload() {
   const readinessSteps = useMemo(
     () => [
       {
-        title: 'Upload file',
-        description: 'Drop a contract, agreement, or supporting document.',
+        title: t('upload.steps.file.title'),
+        description: t('upload.steps.file.description'),
         completed: Boolean(file),
       },
       {
-        title: 'Add context',
-        description: 'Name the document and optionally tag a related case.',
+        title: t('upload.steps.context.title'),
+        description: t('upload.steps.context.description'),
         completed: Boolean(watchName) || Boolean(selectedCase),
       },
       {
-        title: 'Configure AI',
-        description: 'Choose if the AI should summarize and notify the team.',
+        title: t('upload.steps.ai.title'),
+        description: t('upload.steps.ai.description'),
         completed: autoSummarize || notifyTeam,
       },
     ],
-    [autoSummarize, file, notifyTeam, selectedCase, watchName]
+    [autoSummarize, file, notifyTeam, selectedCase, watchName, t]
   );
 
   const readinessProgress = useMemo(() => {
@@ -112,17 +121,20 @@ export default function DocumentUpload() {
   const handleGenerateSummary = useCallback(() => {
     // This logic seems a bit redundant as autoSummarize is already true by default,
     // but we'll keep it as it's part of the original logic in `main`.
-    toast.success(autoSummarize ? 'AI summary already enabled' : 'AI summary requested', {
-      description: file
-        ? "We'll include a generated summary when the upload completes."
-        : 'Add a document first so we know what to summarize.',
-    });
+    toast.success(
+      autoSummarize ? t('upload.toast.summaryAlreadyEnabled') : t('upload.toast.summaryRequested'),
+      {
+        description: file
+          ? t('upload.toast.summaryWillInclude')
+          : t('upload.toast.summaryNeedsFile'),
+      }
+    );
     setAutoSummarize(true);
-  }, [autoSummarize, file]);
+  }, [autoSummarize, file, t]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     if (!file) {
-      toast.error('Error', { description: 'Please select a file to upload.' });
+      toast.error(t('common:toast.error'), { description: t('upload.toast.selectFile') });
       return;
     }
 
@@ -156,13 +168,14 @@ export default function DocumentUpload() {
         },
       });
 
-      toast.success('Success', { description: 'Document uploaded successfully.' });
+      toast.success(t('common:toast.success'), { description: t('upload.toast.uploaded') });
 
       navigate('/documents');
     } catch (error: unknown) {
       logError('Error creating document', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create document.';
-      toast.error('Error', { description: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : t('upload.toast.createFailed');
+      toast.error(t('common:toast.error'), { description: errorMessage });
     }
   };
 
@@ -176,14 +189,16 @@ export default function DocumentUpload() {
           const { validateFile } = await import('@/lib/fileValidation');
           const validation = validateFile(file);
           if (!validation.valid) {
-            toast.error('Invalid File', {
-              description: validation.error || 'File validation failed',
+            toast.error(t('upload.toast.invalidFile'), {
+              description: validation.error || t('upload.toast.validationFailed'),
             });
             return;
           }
         } catch (error) {
           logError('File validation error', error);
-          toast.error('Validation Error', { description: 'Failed to validate file' });
+          toast.error(t('upload.toast.validationError'), {
+            description: t('upload.toast.validateFailed'),
+          });
           return;
         }
 
@@ -198,14 +213,14 @@ export default function DocumentUpload() {
 
   return (
     <PageContainer>
-      <PageHeader title="Upload Document" description="Upload a new document to the system" />
+      <PageHeader title={t('upload.title')} description={t('upload.description')} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <Card className="shadow-card">
           <CardHeader className="space-y-2">
-            <CardTitle className="text-xl font-semibold">Document details</CardTitle>
+            <CardTitle className="text-xl font-semibold">{t('upload.detailsTitle')}</CardTitle>
             <CardDescription>
-              Prepare a file, add the context our AI needs, and share it with your workspace.
+              {t('upload.detailsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -214,15 +229,17 @@ export default function DocumentUpload() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    Upload readiness
+                    {t('upload.readiness.label')}
                   </p>
                   <h2 className="text-lg font-semibold">
-                    {readinessProgress === 100 ? 'Ready to process' : 'Complete these steps'}
+                    {readinessProgress === 100
+                      ? t('upload.readiness.ready')
+                      : t('upload.readiness.incomplete')}
                   </h2>
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-semibold">{readinessProgress}%</span>
-                  <p className="text-xs text-muted-foreground">complete</p>
+                  <p className="text-xs text-muted-foreground">{t('upload.readiness.complete')}</p>
                 </div>
               </div>
               <Progress value={readinessProgress} className="h-2" />
@@ -238,7 +255,7 @@ export default function DocumentUpload() {
                         variant={step.completed ? 'default' : 'outline'}
                         className="text-[10px] uppercase tracking-wide"
                       >
-                        {step.completed ? 'Done' : 'Pending'}
+                        {step.completed ? t('upload.readiness.done') : t('common:status.pending')}
                       </Badge>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
@@ -252,18 +269,17 @@ export default function DocumentUpload() {
             <Alert className="border-primary/40 bg-primary/5">
               <AlertTitle className="flex items-center gap-2 text-sm font-semibold">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Boost AI accuracy
+                {t('upload.boost.title')}
               </AlertTitle>
               <AlertDescription className="text-xs text-muted-foreground">
-                Include case links, contract values, and renewal expectations so summaries highlight
-                the most relevant insights.
+                {t('upload.boost.description')}
               </AlertDescription>
             </Alert>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* File Upload (merged with isDragging class) */}
               <section className="space-y-3">
-                <Label htmlFor="file">Document file</Label>
+                <Label htmlFor="file">{t('upload.fields.file')}</Label>
                 <div
                   {...getRootProps()}
                   className={`group relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/40 bg-muted/60 p-6 text-center transition hover:border-primary hover:bg-primary/5 ${isDragging ? 'border-primary bg-primary/10' : ''}`}
@@ -274,14 +290,18 @@ export default function DocumentUpload() {
                   </span>
                   <div className="space-y-1">
                     <p className="text-sm font-medium">
-                      {file ? file.name : 'Click or drag file to upload'}
+                      {file ? file.name : t('upload.dropzone.prompt')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Supported: PDF, DOCX, TXT up to 10MB
+                      {t('upload.dropzone.supported')}
                     </p>
                     {file && (
                       <p className="text-xs text-muted-foreground/80 mt-1">
-                        {(file.size / 1024).toFixed(1)} KB • {file.type || 'Unknown type'}
+                        {formatNumber(file.size / 1024, {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })}{' '}
+                        KB • {file.type || t('upload.dropzone.unknownType')}
                       </p>
                     )}
                   </div>
@@ -295,7 +315,7 @@ export default function DocumentUpload() {
                         setFile(null);
                       }}
                     >
-                      Clear file
+                      {t('upload.dropzone.clear')}
                     </Button>
                   )}
                 </div>
@@ -304,10 +324,10 @@ export default function DocumentUpload() {
               {/* Document Name and Related Case (from main) */}
               <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Document name</Label>
+                  <Label htmlFor="name">{t('upload.fields.name')}</Label>
                   <Input
                     id="name"
-                    placeholder="e.g., Vendor agreement Q2"
+                    placeholder={t('upload.fields.namePlaceholder')}
                     type="text"
                     {...register('name')}
                   />
@@ -315,10 +335,10 @@ export default function DocumentUpload() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="case">Related case (optional)</Label>
+                  <Label htmlFor="case">{t('upload.fields.case')}</Label>
                   <Select value={selectedCase} onValueChange={setSelectedCase}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a case..." />
+                      <SelectValue placeholder={t('upload.fields.casePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {casesData.cases.map((case_: Case) => (
@@ -335,25 +355,25 @@ export default function DocumentUpload() {
 
               {/* Dates & Financial Details (from codex) */}
               <section className="space-y-4">
-                <p className="text-lg font-semibold">Contract & Financial Details (Optional)</p>
+                <p className="text-lg font-semibold">{t('upload.sections.contract')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="effective_date">Effective Date</Label>
+                    <Label htmlFor="effective_date">{t('upload.fields.effectiveDate')}</Label>
                     <Input type="date" id="effective_date" {...register('effective_date')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="renewal_date">Renewal Date</Label>
+                    <Label htmlFor="renewal_date">{t('upload.fields.renewalDate')}</Label>
                     <Input type="date" id="renewal_date" {...register('renewal_date')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="termination_date">Termination Date</Label>
+                    <Label htmlFor="termination_date">{t('upload.fields.terminationDate')}</Label>
                     <Input type="date" id="termination_date" {...register('termination_date')} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="value">Contract Value</Label>
+                    <Label htmlFor="value">{t('upload.fields.value')}</Label>
                     <div className="flex gap-2">
                       <Input
                         id="value"
@@ -364,7 +384,7 @@ export default function DocumentUpload() {
                       />
                       <Input
                         id="currency"
-                        placeholder="Currency"
+                        placeholder={t('upload.fields.currency')}
                         className="max-w-[120px]"
                         {...register('currency')}
                       />
@@ -374,10 +394,10 @@ export default function DocumentUpload() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contract_type">Document Type</Label>
+                    <Label htmlFor="contract_type">{t('upload.fields.documentType')}</Label>
                     <Input
                       id="contract_type"
-                      placeholder="e.g. Master Service Agreement"
+                      placeholder={t('upload.fields.documentTypePlaceholder')}
                       {...register('contract_type')}
                     />
                   </div>
@@ -388,22 +408,22 @@ export default function DocumentUpload() {
 
               {/* Summary and Key Terms */}
               <section className="space-y-4">
-                <p className="text-lg font-semibold">Context and Summary</p>
+                <p className="text-lg font-semibold">{t('upload.sections.context')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="summary">Summary (optional)</Label>
+                    <Label htmlFor="summary">{t('upload.fields.summary')}</Label>
                     <Textarea
                       id="summary"
-                      placeholder="Add any context or highlights you already know"
+                      placeholder={t('upload.fields.summaryPlaceholder')}
                       rows={4}
                       {...register('summary')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="terms">Key Terms (Optional)</Label>
+                    <Label htmlFor="terms">{t('upload.fields.terms')}</Label>
                     <Textarea
                       id="terms"
-                      placeholder="Notable clauses, parties, obligations..."
+                      placeholder={t('upload.fields.termsPlaceholder')}
                       rows={4}
                       {...register('terms')}
                     />
@@ -417,16 +437,16 @@ export default function DocumentUpload() {
               <section className="space-y-3 rounded-lg border bg-muted/40 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold">AI workflow</p>
+                    <p className="text-sm font-semibold">{t('upload.workflow.title')}</p>
                     <p className="text-xs text-muted-foreground">
-                      Choose what should happen once the file is processed.
+                      {t('upload.workflow.description')}
                     </p>
                   </div>
                   <Badge
                     variant={autoSummarize ? 'default' : 'secondary'}
                     className="text-[10px] uppercase"
                   >
-                    {autoSummarize ? 'AI enabled' : 'Manual'}
+                    {autoSummarize ? t('upload.workflow.aiEnabled') : t('upload.workflow.manual')}
                   </Badge>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -438,10 +458,10 @@ export default function DocumentUpload() {
                     <span>
                       <span className="flex items-center gap-2 font-medium">
                         <Bot className="h-4 w-4 text-primary" />
-                        Generate AI summary
+                        {t('upload.workflow.summarize')}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Receive a concise overview and key clauses within seconds.
+                        {t('upload.workflow.summarizeHelp')}
                       </span>
                     </span>
                   </label>
@@ -453,10 +473,10 @@ export default function DocumentUpload() {
                     <span>
                       <span className="flex items-center gap-2 font-medium">
                         <Bell className="h-4 w-4 text-primary" />
-                        Notify legal team
+                        {t('upload.workflow.notify')}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Send a digest to collaborators when the AI finishes processing.
+                        {t('upload.workflow.notifyHelp')}
                       </span>
                     </span>
                   </label>
@@ -469,7 +489,7 @@ export default function DocumentUpload() {
                   onClick={handleGenerateSummary}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Ask AI for a smarter summary
+                  {t('upload.workflow.askAi')}
                 </Button>
               </section>
 
@@ -479,10 +499,10 @@ export default function DocumentUpload() {
                   className="w-full shadow-md"
                   disabled={uploadDocument.isPending || !file}
                 >
-                  {uploadDocument.isPending ? 'Uploading…' : 'Upload document'}
+                  {uploadDocument.isPending ? t('upload.submitting') : t('upload.submit')}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  Files are encrypted at rest and automatically versioned.
+                  {t('upload.encryptionNote')}
                 </p>
               </CardFooter>
             </form>
@@ -493,38 +513,38 @@ export default function DocumentUpload() {
         <div className="space-y-4">
           <Card className="shadow-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">AI preview</CardTitle>
+              <CardTitle className="text-base">{t('upload.preview.title')}</CardTitle>
               <CardDescription>
-                Review what will be shared once processing is complete.
+                {t('upload.preview.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Document name</p>
+                <p className="text-xs uppercase text-muted-foreground">{t('upload.fields.name')}</p>
                 <p className="font-medium text-foreground">
-                  {watchName || (file ? file.name : 'Untitled document')}
+                  {watchName || (file ? file.name : t('untitledDocument'))}
                 </p>
               </div>
               <Separator />
               <div className="space-y-2">
-                <p className="text-xs uppercase text-muted-foreground">AI summary</p>
+                <p className="text-xs uppercase text-muted-foreground">{t('upload.preview.aiSummary')}</p>
                 <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
                   {watchSummary
                     ? watchSummary
                     : autoSummarize
-                      ? 'We will generate a short executive summary and highlight the top risks once the upload finishes.'
-                      : 'Enable AI summarization to get quick talking points for your team.'}
+                      ? t('upload.preview.summaryPending')
+                      : t('upload.preview.summaryDisabled')}
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-xs uppercase text-muted-foreground">Workflow</p>
+                <p className="text-xs uppercase text-muted-foreground">{t('upload.preview.workflow')}</p>
                 <div className="flex flex-wrap gap-2">
                   {autoSummarize && (
                     <Badge
                       variant="secondary"
                       className="flex items-center gap-1 text-[10px] uppercase"
                     >
-                      <Bot className="h-3 w-3" /> Summary
+                      <Bot className="h-3 w-3" /> {t('upload.preview.summaryBadge')}
                     </Badge>
                   )}
                   {notifyTeam && (
@@ -532,7 +552,7 @@ export default function DocumentUpload() {
                       variant="secondary"
                       className="flex items-center gap-1 text-[10px] uppercase"
                     >
-                      <Bell className="h-3 w-3" /> Notify team
+                      <Bell className="h-3 w-3" /> {t('upload.preview.notifyBadge')}
                     </Badge>
                   )}
                   {selectedCase && (
@@ -540,7 +560,7 @@ export default function DocumentUpload() {
                       variant="outline"
                       className="flex items-center gap-1 text-[10px] uppercase"
                     >
-                      <FileText className="h-3 w-3" /> Linked case
+                      <FileText className="h-3 w-3" /> {t('upload.preview.linkedCaseBadge')}
                     </Badge>
                   )}
                 </div>
@@ -550,28 +570,23 @@ export default function DocumentUpload() {
 
           <Card className="shadow-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Upload checklist</CardTitle>
+              <CardTitle className="text-base">{t('upload.checklist.title')}</CardTitle>
               <CardDescription>
-                Confirm these best practices before sharing with clients.
+                {t('upload.checklist.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-xs text-muted-foreground">
               <div className="flex items-start gap-3">
                 <ShieldCheck className="mt-0.5 h-4 w-4 text-primary" />
-                <span>
-                  Remove sensitive data or apply redactions if this file leaves your organization.
-                </span>
+                <span>{t('upload.checklist.redact')}</span>
               </div>
               <div className="flex items-start gap-3">
                 <FileText className="mt-0.5 h-4 w-4 text-primary" />
-                <span>
-                  Include renewal dates, contract values, and related matters so automated tracking
-                  stays accurate.
-                </span>
+                <span>{t('upload.checklist.dates')}</span>
               </div>
               <div className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-4 w-4 text-primary" />
-                <span>Turn on AI summaries to help stakeholders review documents faster.</span>
+                <span>{t('upload.checklist.summaries')}</span>
               </div>
             </CardContent>
           </Card>

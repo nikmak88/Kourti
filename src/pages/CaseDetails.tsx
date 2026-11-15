@@ -59,10 +59,13 @@ import { ClientPortalPanel } from '@/components/clientPortal/ClientPortalPanel';
 import { useHasFeature, FEATURE_META } from '@/hooks/useEntitlements';
 import { useSetPortalPrivate } from '@/features/clientPortal/api';
 import { Lock, ArrowUpRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { formatDate, formatNumber } from '@/i18n/dates';
 
 export default function CaseDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation('matters');
   const { data: caseData, isLoading, error } = useCase(id!);
   const updateCase = useUpdateCase();
   const setPortalPrivate = useSetPortalPrivate(id!);
@@ -73,8 +76,9 @@ export default function CaseDetails() {
   // Get case type and issue data
   const caseTypeId = (caseData as any)?.case_type_id || '';
   const caseIssueId = (caseData as any)?.case_issue_id || '';
-  const { data: caseTypes = [] } = useCaseTypes();
-  const { data: caseIssues = [] } = useCaseIssues(caseTypeId);
+  // includeRetired: the matter may use a type/issue the firm has since removed.
+  const { data: caseTypes = [] } = useCaseTypes({ includeRetired: true });
+  const { data: caseIssues = [] } = useCaseIssues(caseTypeId, { includeRetired: true });
 
   // Find the selected case type and issue names
   const caseType = caseTypes.find((type) => type.id === caseTypeId)?.name || '';
@@ -99,11 +103,11 @@ export default function CaseDetails() {
     return (
       <PageContainer>
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Matter Not Found</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{t('details.notFoundTitle')}</h2>
           <p className="text-muted-foreground mb-4">
-            The matter you're looking for doesn't exist or you don't have access to it.
+            {t('details.notFoundDescription')}
           </p>
-          <Button onClick={() => navigate('/matters')}>Back to Matters</Button>
+          <Button onClick={() => navigate('/matters')}>{t('details.backToMatters')}</Button>
         </div>
       </PageContainer>
     );
@@ -146,7 +150,7 @@ export default function CaseDetails() {
       {/* Header */}
       <PageHeader
         title={caseData.title}
-        description={`Matter #${caseData.case_number || caseData.id}`}
+        description={t('details.number', { number: caseData.case_number || caseData.id })}
         backHref="/matters"
         actions={<MatterReviewButton caseId={caseData.id} caseTitle={caseData.title} />}
       />
@@ -154,14 +158,18 @@ export default function CaseDetails() {
       {/* Status / meta bar */}
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={cn('capitalize', getStatusColor(caseData.status))}>
-          {caseData.status.replace('_', ' ')}
+          {t(`status.${caseData.status}`, { defaultValue: caseData.status.replace('_', ' ') })}
         </Badge>
         {caseData.priority && (
           <Badge
             className={cn('capitalize', getPriorityColor(caseData.priority))}
             variant="outline"
           >
-            {caseData.priority} Priority
+            {t('details.priorityBadge', {
+              priority: t(`common:priority.${caseData.priority.toLowerCase()}`, {
+                defaultValue: caseData.priority,
+              }),
+            })}
           </Badge>
         )}
         <Badge
@@ -174,7 +182,7 @@ export default function CaseDetails() {
           )}
         >
           {portalPrivate ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-          {portalPrivate ? 'Private — hidden from client portal' : 'Public — visible to client'}
+          {portalPrivate ? t('details.portal.privateBadge') : t('details.portal.publicBadge')}
         </Badge>
 
         <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -192,7 +200,7 @@ export default function CaseDetails() {
           {caseData.next_hearing_date && (
             <span className="inline-flex items-center gap-1.5">
               <CalendarClock className="h-4 w-4" />
-              Next hearing {new Date(caseData.next_hearing_date).toLocaleDateString()}
+              {t('details.nextHearingOn', { date: formatDate(caseData.next_hearing_date, 'PP') })}
             </span>
           )}
         </div>
@@ -206,7 +214,7 @@ export default function CaseDetails() {
           {caseData.description && (
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Description</CardTitle>
+                <CardTitle>{t('common:fields.description')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-foreground">{caseData.description}</p>
@@ -217,13 +225,15 @@ export default function CaseDetails() {
           {/* Progress Tracking */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Progress</CardTitle>
+              <CardTitle>{t('details.progress')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Progress value={pct} className="h-3" />
               <div className="flex items-center gap-4">
                 <span className="text-sm capitalize text-muted-foreground">
-                  {caseData.status.replace('_', ' ')}
+                  {t(`status.${caseData.status}`, {
+                    defaultValue: caseData.status.replace('_', ' '),
+                  })}
                 </span>
                 <Select
                   value={caseData.status}
@@ -235,7 +245,7 @@ export default function CaseDetails() {
                   <SelectContent>
                     {STAGES.map((s) => (
                       <SelectItem key={s} value={s}>
-                        {s.replace('_', ' ')}
+                        {t(`status.${s}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -247,9 +257,9 @@ export default function CaseDetails() {
           {/* Tasks Section */}
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Tasks</CardTitle>
+              <CardTitle>{t('common:entities.tasks')}</CardTitle>
               <Button size="sm" onClick={() => setShowTaskDialog(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Add Task
+                <Plus className="h-4 w-4 mr-1" /> {t('tasks:add')}
               </Button>
             </CardHeader>
             <CardContent>
@@ -260,9 +270,9 @@ export default function CaseDetails() {
           {/* Activities Section */}
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Activities</CardTitle>
+              <CardTitle>{t('activities.title')}</CardTitle>
               <Button size="sm" onClick={() => setShowActivityDialog(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Add Activity
+                <Plus className="h-4 w-4 mr-1" /> {t('activities.add')}
               </Button>
             </CardHeader>
             <CardContent>
@@ -273,9 +283,9 @@ export default function CaseDetails() {
           {/* Documents Section */}
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Matter Documents</CardTitle>
+              <CardTitle>{t('details.documents.title')}</CardTitle>
               <Button size="sm" onClick={() => setShowDocumentDialog(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Attach Document
+                <Plus className="h-4 w-4 mr-1" /> {t('details.documents.attach')}
               </Button>
             </CardHeader>
             <CardContent>
@@ -292,25 +302,25 @@ export default function CaseDetails() {
           {/* Quick Actions */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>{t('details.quickActions.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button className="w-full" onClick={() => navigate(`/matters/${caseData.id}/edit`)}>
-                <Edit2 className="mr-2 h-4 w-4" /> Edit Matter
+                <Edit2 className="mr-2 h-4 w-4" /> {t('list.actions.edit')}
               </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => navigate('/documents')}
               >
-                <FileText className="mr-2 h-4 w-4" /> View Documents
+                <FileText className="mr-2 h-4 w-4" /> {t('list.actions.viewDocuments')}
               </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => navigate('/calendar')}
               >
-                <Calendar className="mr-2 h-4 w-4" /> Schedule Event
+                <Calendar className="mr-2 h-4 w-4" /> {t('details.quickActions.scheduleEvent')}
               </Button>
 
               <Separator className="my-1" />
@@ -323,7 +333,7 @@ export default function CaseDetails() {
                   onClick={() => setPortalPrivate.mutate(false)}
                 >
                   <Globe className="mr-2 h-4 w-4" />
-                  {setPortalPrivate.isPending ? 'Publishing…' : 'Make Public'}
+                  {setPortalPrivate.isPending ? t('details.portal.publishing') : t('details.portal.makePublic')}
                 </Button>
               ) : (
                 <Button
@@ -333,13 +343,13 @@ export default function CaseDetails() {
                   onClick={() => setPortalPrivate.mutate(true)}
                 >
                   <Lock className="mr-2 h-4 w-4" />
-                  {setPortalPrivate.isPending ? 'Hiding…' : 'Make Private'}
+                  {setPortalPrivate.isPending ? t('details.portal.hiding') : t('details.portal.makePrivate')}
                 </Button>
               )}
               <p className="px-1 text-xs text-muted-foreground">
                 {portalPrivate
-                  ? 'This matter is hidden from the client portal. Make it public to share progress with the client.'
-                  : 'This matter is visible to the client in their portal.'}
+                  ? t('details.portal.privateHelp')
+                  : t('details.portal.publicHelp')}
               </p>
             </CardContent>
           </Card>
@@ -347,16 +357,16 @@ export default function CaseDetails() {
           {/* Matter Information */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Matter Information</CardTitle>
+              <CardTitle>{t('details.info.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <InfoRow icon={Gavel} label="Matter Type" value={caseType} />
-              <InfoRow icon={Gavel} label="Matter Issue" value={caseIssue} />
+              <InfoRow icon={Gavel} label={t('form.typeLabel')} value={caseType} />
+              <InfoRow icon={Gavel} label={t('form.issueLabel')} value={caseIssue} />
               {caseData.client && (
                 <div className="flex items-start gap-3">
                   <Building className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Client</p>
+                    <p className="text-xs text-muted-foreground">{t('common:entities.client')}</p>
                     {caseData.client_id ? (
                       <button
                         type="button"
@@ -372,17 +382,17 @@ export default function CaseDetails() {
                   </div>
                 </div>
               )}
-              <InfoRow icon={Gavel} label="Court" value={caseData.court} />
+              <InfoRow icon={Gavel} label={t('form.courtLabel')} value={caseData.court} />
               <InfoRow
                 icon={Calendar}
-                label="Created"
-                value={new Date(caseData.created_at).toLocaleDateString()}
+                label={t('common:fields.createdAt')}
+                value={formatDate(caseData.created_at, 'PP')}
               />
               {caseData.next_hearing_date && (
                 <InfoRow
                   icon={CalendarClock}
-                  label="Next Hearing"
-                  value={new Date(caseData.next_hearing_date).toLocaleDateString()}
+                  label={t('details.info.nextHearing')}
+                  value={formatDate(caseData.next_hearing_date, 'PP')}
                 />
               )}
             </CardContent>
@@ -435,6 +445,7 @@ function InfoRow({
 // --- Client Portal Section (entitlement-gated wrapper) ---
 function ClientPortalSection({ caseId, caseData }: { caseId: string; caseData: any }) {
   const navigate = useNavigate();
+  const { t } = useTranslation('matters');
   const { allowed, isLoading } = useHasFeature('client_portal');
 
   if (isLoading) {
@@ -450,7 +461,7 @@ function ClientPortalSection({ caseId, caseData }: { caseId: string; caseData: a
   return (
     <Card className="shadow-card">
       <CardHeader>
-        <CardTitle>Client Portal</CardTitle>
+        <CardTitle>{t('details.portal.title')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
@@ -458,59 +469,64 @@ function ClientPortalSection({ caseId, caseData }: { caseId: string; caseData: a
         </div>
         <div className="space-y-1">
           <h3 className="text-lg font-semibold">
-            {meta.label} is a {meta.requiredPlan} feature
+            {t('details.portal.planFeature', { feature: meta.label, plan: meta.requiredPlan })}
           </h3>
           <p className="max-w-md text-sm text-muted-foreground">
-            Upgrade your plan to give clients secure portal access, timelines, shared documents, and
-            AI-drafted progress updates.
+            {t('details.portal.upgradeDescription')}
           </p>
         </div>
         <Button onClick={() => navigate('/settings?tab=billing')}>
           <ArrowUpRight className="mr-2 h-4 w-4" />
-          Upgrade to {meta.requiredPlan}
+          {t('details.portal.upgradeTo', { plan: meta.requiredPlan })}
         </Button>
       </CardContent>
     </Card>
   );
 }
 
-const TASK_TYPE_LABELS: Record<string, string> = {
-  general: 'General',
-  court_appearance: 'Court',
-  client_visit: 'Visit',
-  document_review: 'Doc Review',
-  research: 'Research',
-  filing: 'Filing',
-  deposition: 'Deposition',
-  meeting: 'Meeting',
-  phone_call: 'Call',
-  investigation: 'Investigation',
-  negotiation: 'Negotiation',
-  contract_draft: 'Drafting',
-};
+// Task type values; short labels live in tasks:typesShort.<value>.
+const TASK_TYPES = [
+  'general',
+  'court_appearance',
+  'client_visit',
+  'document_review',
+  'research',
+  'filing',
+  'deposition',
+  'meeting',
+  'phone_call',
+  'investigation',
+  'negotiation',
+  'contract_draft',
+] as const;
+
+function taskTypeShortKey(type?: string) {
+  return `typesShort.${(TASK_TYPES as readonly string[]).includes(type ?? '') ? type : 'general'}`;
+}
 
 function priorityBadgeVariant(priority?: string) {
   return priority === 'high' ? 'destructive' : priority === 'medium' ? 'default' : 'outline';
 }
 
 function TasksSection({ caseId }: { caseId: string }) {
+  const { t } = useTranslation('tasks');
   const { data: tasks = [], isLoading } = useTasks(caseId);
   const { data: users = [] } = useOrganizationMembers();
   const total = tasks.length;
-  const done = tasks.filter((t) => t.completed).length;
+  const done = tasks.filter((task) => task.completed).length;
   const pct = total === 0 ? 0 : Math.round((100 * done) / total);
   const [editTask, setEditTask] = useState<any>(null);
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
-  if (isLoading) return <div>Loading tasks…</div>;
+  if (isLoading) return <div>{t('loading')}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 mb-2">
         <Progress value={pct} className="h-3 flex-1" />
         <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {done} of {total} complete
+          {t('progress', { done, total })}
         </span>
       </div>
       {/* Mobile: stacked task cards (a 7-col table is unusable on a phone) */}
@@ -518,8 +534,9 @@ function TasksSection({ caseId }: { caseId: string }) {
         {tasks.map((task) => {
           const assignee =
             task.assigned_to && task.assigned_to !== 'unassigned'
-              ? users.find((u: any) => u.user_id === task.assigned_to)?.first_name || 'Unknown'
-              : 'Unassigned';
+              ? users.find((u: any) => u.user_id === task.assigned_to)?.first_name ||
+                t('common:status.unknown')
+              : t('unassigned');
           return (
             <div
               key={task.id}
@@ -549,13 +566,13 @@ function TasksSection({ caseId }: { caseId: string }) {
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="secondary" className="text-xs">
-                  {TASK_TYPE_LABELS[(task as any).task_type] || 'General'}
+                  {t(taskTypeShortKey((task as any).task_type))}
                 </Badge>
                 <Badge variant={priorityBadgeVariant(task.priority)} className="text-xs capitalize">
-                  {task.priority || 'Medium'}
+                  {t(`common:priority.${task.priority || 'medium'}`, { defaultValue: task.priority })}
                 </Badge>
                 <span>
-                  {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
+                  {task.due_date ? formatDate(task.due_date, 'PP') : t('noDueDate')}
                 </span>
                 <span>· {assignee}</span>
               </div>
@@ -569,10 +586,10 @@ function TasksSection({ caseId }: { caseId: string }) {
               >
                 {task.completed ? (
                   <>
-                    <Check className="h-4 w-4 mr-1.5" /> Completed
+                    <Check className="h-4 w-4 mr-1.5" /> {t('common:status.completed')}
                   </>
                 ) : (
-                  'Mark Done'
+                  t('markDone')
                 )}
               </Button>
             </div>
@@ -585,13 +602,13 @@ function TasksSection({ caseId }: { caseId: string }) {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b">
-              <th className="text-left py-2">Task</th>
-              <th className="text-left py-2">Type</th>
-              <th className="text-left py-2">Due</th>
-              <th className="text-left py-2">Assignee</th>
-              <th className="text-left py-2">Priority</th>
-              <th className="text-left py-2">Status</th>
-              <th className="text-left py-2">Actions</th>
+              <th className="text-left py-2">{t('columns.task')}</th>
+              <th className="text-left py-2">{t('columns.type')}</th>
+              <th className="text-left py-2">{t('columns.due')}</th>
+              <th className="text-left py-2">{t('columns.assignee')}</th>
+              <th className="text-left py-2">{t('columns.priority')}</th>
+              <th className="text-left py-2">{t('columns.status')}</th>
+              <th className="text-left py-2">{t('columns.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -607,20 +624,20 @@ function TasksSection({ caseId }: { caseId: string }) {
                 </td>
                 <td className="py-2">
                   <Badge variant="secondary" className="text-xs">
-                    {TASK_TYPE_LABELS[(task as any).task_type] || 'General'}
+                    {t(taskTypeShortKey((task as any).task_type))}
                   </Badge>
                 </td>
                 <td className="py-2">
-                  {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
+                  {task.due_date ? formatDate(task.due_date, 'PP') : '-'}
                 </td>
                 <td className="py-2">
                   {task.assigned_to && task.assigned_to !== 'unassigned' ? (
                     <span className="text-sm">
                       {users.find((u: any) => u.user_id === task.assigned_to)?.first_name ||
-                        'Unknown'}
+                        t('common:status.unknown')}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-sm">Unassigned</span>
+                    <span className="text-muted-foreground text-sm">{t('unassigned')}</span>
                   )}
                 </td>
                 <td className="py-2">
@@ -628,7 +645,9 @@ function TasksSection({ caseId }: { caseId: string }) {
                     variant={priorityBadgeVariant(task.priority)}
                     className="text-xs capitalize"
                   >
-                    {task.priority || 'Medium'}
+                    {t(`common:priority.${task.priority || 'medium'}`, {
+                      defaultValue: task.priority,
+                    })}
                   </Badge>
                 </td>
                 <td className="py-2">
@@ -643,7 +662,7 @@ function TasksSection({ caseId }: { caseId: string }) {
                       })
                     }
                   >
-                    {task.completed ? <Check className="h-4 w-4" /> : 'Mark Done'}
+                    {task.completed ? <Check className="h-4 w-4" /> : t('markDone')}
                   </Button>
                 </td>
                 <td className="py-2">
@@ -691,6 +710,7 @@ function NewTaskDialog({
   existing?: any;
 }) {
   const isEdit = !!existing;
+  const { t } = useTranslation('tasks');
   const { data: users = [] } = useOrganizationMembers();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -709,20 +729,7 @@ function NewTaskDialog({
   const [submitting, setSubmitting] = useState(false);
 
   // Task types for legal practice
-  const taskTypes = [
-    { value: 'general', label: 'General Task' },
-    { value: 'court_appearance', label: 'Court Appearance' },
-    { value: 'client_visit', label: 'Client Visit' },
-    { value: 'document_review', label: 'Document Review' },
-    { value: 'research', label: 'Legal Research' },
-    { value: 'filing', label: 'Court Filing' },
-    { value: 'deposition', label: 'Deposition' },
-    { value: 'meeting', label: 'Meeting' },
-    { value: 'phone_call', label: 'Phone Call' },
-    { value: 'investigation', label: 'Investigation' },
-    { value: 'negotiation', label: 'Negotiation' },
-    { value: 'contract_draft', label: 'Contract Drafting' },
-  ];
+  const taskTypes = TASK_TYPES.map((value) => ({ value, label: t(`types.${value}`) }));
 
   function handleChange(e: any) {
     setForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -768,29 +775,29 @@ function NewTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+          <DialogTitle>{isEdit ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4" id="task-form">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Task Title *</label>
+              <label className="block text-sm font-medium mb-2">{t('dialog.titleLabel')} *</label>
               <Input
                 name="title"
                 value={form.title}
                 onChange={handleChange}
-                placeholder="Enter task title"
+                placeholder={t('dialog.titlePlaceholder')}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Task Type</label>
+              <label className="block text-sm font-medium mb-2">{t('dialog.typeLabel')}</label>
               <Select
                 value={form.task_type}
                 onValueChange={(value) => setForm((prev: any) => ({ ...prev, task_type: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select task type" />
+                  <SelectValue placeholder={t('dialog.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {taskTypes.map((type) => (
@@ -803,7 +810,7 @@ function NewTaskDialog({
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Due Date</label>
+              <label className="block text-sm font-medium mb-2">{t('common:time.dueDate')}</label>
               <Input
                 name="due_date"
                 type="date"
@@ -813,7 +820,7 @@ function NewTaskDialog({
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Priority</label>
+              <label className="block text-sm font-medium mb-2">{t('common:fields.priority')}</label>
               <Select
                 value={form.priority}
                 onValueChange={(value) => setForm((prev: any) => ({ ...prev, priority: value }))}
@@ -822,24 +829,24 @@ function NewTaskDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High Priority</SelectItem>
-                  <SelectItem value="medium">Medium Priority</SelectItem>
-                  <SelectItem value="low">Low Priority</SelectItem>
+                  <SelectItem value="high">{t('dialog.priorityOption.high')}</SelectItem>
+                  <SelectItem value="medium">{t('dialog.priorityOption.medium')}</SelectItem>
+                  <SelectItem value="low">{t('dialog.priorityOption.low')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Assign To</label>
+              <label className="block text-sm font-medium mb-2">{t('dialog.assignTo')}</label>
               <Select
                 value={form.assigned_to}
                 onValueChange={(value) => setForm((prev: any) => ({ ...prev, assigned_to: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select assignee" />
+                  <SelectValue placeholder={t('dialog.assigneePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">{t('unassigned')}</SelectItem>
                   {users.map((u: any) => (
                     <SelectItem key={u.user_id} value={u.user_id}>
                       {u.first_name} {u.last_name} ({u.email})
@@ -850,12 +857,12 @@ function NewTaskDialog({
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Description</label>
+              <label className="block text-sm font-medium mb-2">{t('common:fields.description')}</label>
               <Textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                placeholder="Enter task description (optional)"
+                placeholder={t('dialog.descriptionPlaceholder')}
                 rows={3}
               />
             </div>
@@ -863,10 +870,14 @@ function NewTaskDialog({
         </form>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)} variant="outline">
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button type="submit" form="task-form" disabled={submitting}>
-            {submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Task'}
+            {submitting
+              ? t('common:status.saving')
+              : isEdit
+                ? t('dialog.saveChanges')
+                : t('dialog.submitCreate')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -876,10 +887,11 @@ function NewTaskDialog({
 
 // --- Documents Section ---
 function DocumentsSection({ caseId }: { caseId: string }) {
+  const { t } = useTranslation('matters');
   const { data: caseDocuments = [], isLoading } = useDocumentsByCase(caseId);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
 
-  if (isLoading) return <div>Loading documents…</div>;
+  if (isLoading) return <div>{t('details.documents.loading')}</div>;
 
   const handleView = (doc: any) => {
     setSelectedDocument(doc);
@@ -917,7 +929,7 @@ function DocumentsSection({ caseId }: { caseId: string }) {
   return (
     <div className="space-y-4">
       {caseDocuments.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground">No documents attached to this case</p>
+        <p className="text-center py-8 text-muted-foreground">{t('details.documents.empty')}</p>
       ) : (
         <div className="grid grid-cols-1 gap-3">
           {caseDocuments.map((doc: any) => (
@@ -927,19 +939,20 @@ function DocumentsSection({ caseId }: { caseId: string }) {
                 <div>
                   <p className="font-medium">{doc.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Uploaded {new Date(doc.created_at).toLocaleDateString()}
-                    {doc.file_size && ` • ${Math.round(doc.file_size / 1024)} KB`}
+                    {t('details.documents.uploadedOn', { date: formatDate(doc.created_at, 'PP') })}
+                    {doc.file_size &&
+                      ` • ${t('details.documents.sizeKb', { size: formatNumber(Math.round(doc.file_size / 1024)) })}`}
                   </p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleView(doc)}>
                   <Eye className="h-4 w-4 mr-1" />
-                  View
+                  {t('common:actions.view')}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => handleDownload(doc)}>
                   <Download className="h-4 w-4 mr-1" />
-                  Download
+                  {t('common:actions.download')}
                 </Button>
               </div>
             </div>
@@ -959,17 +972,18 @@ function DocumentsSection({ caseId }: { caseId: string }) {
 }
 
 function ActivitiesSection({ caseId }: { caseId: string }) {
+  const { t } = useTranslation('matters');
   const { data: activities = [], isLoading } = useActivities(caseId);
   const { data: users = [] } = useOrganizationMembers();
   const deleteActivity = useDeleteActivity();
   const [editActivity, setEditActivity] = useState<any>(null);
 
-  if (isLoading) return <div>Loading activities…</div>;
+  if (isLoading) return <div>{t('activities.loading')}</div>;
 
   return (
     <div className="space-y-4">
       {activities.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground">No activities for this case</p>
+        <p className="text-center py-8 text-muted-foreground">{t('activities.empty')}</p>
       ) : (
         <div className="space-y-3">
           {activities.map((activity: any) => (
@@ -982,24 +996,30 @@ function ActivitiesSection({ caseId }: { caseId: string }) {
                 <div>
                   <h4 className="font-medium">{activity.title}</h4>
                   <p className="text-sm text-muted-foreground capitalize">
-                    {activity.activity_type.replace('_', ' ')}
+                    {t(`activities.types.${activity.activity_type}`, {
+                      defaultValue: activity.activity_type.replace('_', ' '),
+                    })}
                     {activity.due_date &&
-                      ` • Due: ${new Date(activity.due_date).toLocaleDateString()}`}
+                      ` • ${t('activities.dueOn', { date: formatDate(activity.due_date, 'PP') })}`}
                   </p>
                   {activity.description && (
                     <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
                   )}
                   {activity.assigned_to && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Assigned to:{' '}
-                      {users.find((u: any) => u.user_id === activity.assigned_to)?.first_name ||
-                        'Unknown'}
+                      {t('activities.assignedTo', {
+                        name:
+                          users.find((u: any) => u.user_id === activity.assigned_to)?.first_name ||
+                          t('common:status.unknown'),
+                      })}
                     </p>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={getActivityStatusColor(activity.status)}>{activity.status}</Badge>
+                <Badge className={getActivityStatusColor(activity.status)}>
+                  {t(`activities.status.${activity.status}`, { defaultValue: activity.status })}
+                </Badge>
                 <div className="flex gap-1">
                   <Button size="sm" variant="ghost" onClick={() => setEditActivity(activity)}>
                     <Edit2 className="h-4 w-4" />
@@ -1040,6 +1060,7 @@ function DocumentAttachDialog({
   onOpenChange: (b: boolean) => void;
   caseId: string;
 }) {
+  const { t } = useTranslation('matters');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const uploadDocument = useUploadDocument();
@@ -1093,7 +1114,7 @@ function DocumentAttachDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Attach Document to Case</DialogTitle>
+          <DialogTitle>{t('details.documents.attachTitle')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div
@@ -1110,21 +1131,23 @@ function DocumentAttachDialog({
                 <FileText className="h-12 w-12 mx-auto text-primary" />
                 <p className="font-medium">{selectedFile.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {Math.round(selectedFile.size / 1024)} KB
+                  {t('details.documents.sizeKb', {
+                    size: formatNumber(Math.round(selectedFile.size / 1024)),
+                  })}
                 </p>
                 <Button variant="outline" size="sm" onClick={() => setSelectedFile(null)}>
-                  Remove
+                  {t('common:actions.remove')}
                 </Button>
               </div>
             ) : (
               <div className="space-y-2">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-                <p>Drag and drop a file here, or</p>
+                <p>{t('details.documents.dropHint')}</p>
                 <Button
                   variant="outline"
                   onClick={() => document.getElementById('file-input')?.click()}
                 >
-                  Browse Files
+                  {t('details.documents.browse')}
                 </Button>
               </div>
             )}
@@ -1141,15 +1164,15 @@ function DocumentAttachDialog({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Supported formats: PDF, Word documents, images, and text files
+            {t('details.documents.supportedFormats')}
           </p>
         </div>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)} variant="outline">
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button onClick={handleAttach} disabled={!selectedFile || uploadDocument.isPending}>
-            {uploadDocument.isPending ? 'Uploading...' : 'Attach Document'}
+            {uploadDocument.isPending ? t('details.documents.uploading') : t('details.documents.attach')}
           </Button>
         </DialogFooter>
       </DialogContent>

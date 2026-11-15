@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ProfileTab from './ProfileTab';
 import OrgTab from './OrgTab';
 import RolesTab from './RolesTab';
@@ -15,12 +16,14 @@ import {
   KeyRound,
   Bell,
   ShieldAlert,
+  FolderTree,
 } from 'lucide-react';
 
 const PrivacyTab = lazy(() => import('./PrivacyTab'));
 
 const SSOTab = lazy(() => import('./SSOTab'));
 const BillingTab = lazy(() => import('./BillingTab'));
+const MatterTypesTab = lazy(() => import('./MatterTypesTab'));
 const AgentMonitors = lazy(() => import('@/pages/AgentMonitors'));
 
 const AVAILABLE_TABS = [
@@ -28,6 +31,7 @@ const AVAILABLE_TABS = [
   'organization',
   'billing',
   'roles',
+  'matter-types',
   'permissions',
   'sso',
   'monitoring',
@@ -51,6 +55,7 @@ interface NavItem {
 }
 
 export default function Settings() {
+  const { t } = useTranslation('settings');
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab');
   const initialTab = isValidTab(urlTab) ? urlTab : 'profile';
@@ -83,56 +88,63 @@ export default function Settings() {
     () => [
       {
         value: 'profile',
-        label: 'Profile',
-        description: 'Personal details & security',
+        label: t('nav.profile.label'),
+        description: t('nav.profile.description'),
         icon: User,
       },
       {
         value: 'organization',
-        label: 'Organization',
-        description: 'Workspace settings & branding',
+        label: t('nav.organization.label'),
+        description: t('nav.organization.description'),
         icon: Building2,
       },
       {
         value: 'billing',
-        label: 'Billing',
-        description: 'Plans & payment history',
+        label: t('nav.billing.label'),
+        description: t('nav.billing.description'),
         icon: CreditCard,
       },
       {
         value: 'roles',
-        label: 'Roles & Team',
-        description: 'Manage roles and members',
+        label: t('nav.roles.label'),
+        description: t('nav.roles.description'),
         icon: ShieldCheck,
       },
       {
+        value: 'matter-types',
+        label: t('nav.matterTypes.label'),
+        description: t('nav.matterTypes.description'),
+        icon: FolderTree,
+        adminOnly: true,
+      },
+      {
         value: 'permissions',
-        label: 'Permissions',
-        description: 'Granular access control',
+        label: t('nav.permissions.label'),
+        description: t('nav.permissions.description'),
         icon: Lock,
         adminOnly: true,
       },
       {
         value: 'sso',
-        label: 'Single Sign-On',
-        description: 'Identity provider setup',
+        label: t('nav.sso.label'),
+        description: t('nav.sso.description'),
         icon: KeyRound,
         superAdminOnly: true,
       },
       {
         value: 'monitoring',
-        label: 'Monitoring & Alerts',
-        description: 'Deadlines, expirations & changes',
+        label: t('nav.monitoring.label'),
+        description: t('nav.monitoring.description'),
         icon: Bell,
       },
       {
         value: 'privacy',
-        label: 'Privacy & Data',
-        description: 'Consent, export & deletion rights',
+        label: t('nav.privacy.label'),
+        description: t('nav.privacy.description'),
         icon: ShieldAlert,
       },
     ],
-    []
+    [t]
   );
 
   const filteredNavItems = navItems.filter((item) => {
@@ -148,7 +160,7 @@ export default function Settings() {
       {/* Vertical side nav */}
       <nav className="hidden md:flex w-[240px] flex-col shrink-0 border-r border-border/40 py-4 pr-0">
         <div className="px-4 mb-4">
-          <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('nav.title')}</h1>
         </div>
         <div className="flex-1 space-y-0.5 px-2">
           {filteredNavItems.map((item) => {
@@ -190,7 +202,7 @@ export default function Settings() {
       {/* Mobile tab selector */}
       <div className="md:hidden w-full">
         <div className="border-b border-border/40 px-4 py-3">
-          <h1 className="text-lg font-semibold text-foreground mb-3">Settings</h1>
+          <h1 className="text-lg font-semibold text-foreground mb-3">{t('nav.title')}</h1>
           <select
             value={tab}
             onChange={(e) => handleTabChange(e.target.value as TabValue)}
@@ -223,7 +235,10 @@ export default function Settings() {
 }
 
 function SettingsContent({ tab }: { tab: TabValue; activeItem?: NavItem }) {
-  const fallback = <div className="py-6 text-sm text-muted-foreground">Loading...</div>;
+  const { t } = useTranslation();
+  const fallback = (
+    <div className="py-6 text-sm text-muted-foreground">{t('common:status.loading')}</div>
+  );
 
   switch (tab) {
     case 'profile':
@@ -238,6 +253,12 @@ function SettingsContent({ tab }: { tab: TabValue; activeItem?: NavItem }) {
       );
     case 'roles':
       return <RolesTab />;
+    case 'matter-types':
+      return (
+        <Suspense fallback={fallback}>
+          <MatterTypesTab />
+        </Suspense>
+      );
     case 'permissions':
       return <PermissionsTab />;
     case 'sso':

@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,34 +18,41 @@ import { Input } from '@/components/ui/input';
 import { useProfile, useUpdateProfile, useChangePassword } from '@/hooks/useProfile';
 import { TwoFactorEmailCard } from '@/components/auth/TwoFactorEmailCard';
 import { logError } from '@/lib/logger';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
-const profileSchema = z.object({
-  first_name: z.string().min(2, 'First name must be at least 2 characters'),
-  last_name: z.string().min(2, 'Last name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  department: z.string().optional(),
-  title: z.string().optional(),
-});
-
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(6, 'Current password is required'),
-    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Confirm password is required'),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
+// Schemas are built inside the component so validation messages follow the UI language.
+const createProfileSchema = (t: TFunction) =>
+  z.object({
+    first_name: z.string().min(2, t('settings:profile.validation.firstNameMin')),
+    last_name: z.string().min(2, t('settings:profile.validation.lastNameMin')),
+    email: z.string().email(t('settings:profile.validation.emailInvalid')),
+    phone: z.string().optional(),
+    department: z.string().optional(),
+    title: z.string().optional(),
   });
 
-type ProfileData = z.infer<typeof profileSchema>;
-type PasswordChangeData = z.infer<typeof passwordSchema>;
+const createPasswordSchema = (t: TFunction) =>
+  z
+    .object({
+      currentPassword: z.string().min(6, t('settings:profile.validation.currentPasswordRequired')),
+      newPassword: z.string().min(6, t('settings:profile.validation.newPasswordMin')),
+      confirmPassword: z.string().min(6, t('settings:profile.validation.confirmPasswordRequired')),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t('settings:profile.validation.passwordsMismatch'),
+      path: ['confirmPassword'],
+    });
+
+type ProfileData = z.infer<ReturnType<typeof createProfileSchema>>;
+type PasswordChangeData = z.infer<ReturnType<typeof createPasswordSchema>>;
 
 export default function ProfileTab() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
+  const { t } = useTranslation('settings');
+  const profileSchema = useMemo(() => createProfileSchema(t), [t]);
+  const passwordSchema = useMemo(() => createPasswordSchema(t), [t]);
 
   const profileForm = useForm<ProfileData>({
     resolver: zodResolver(profileSchema),
@@ -81,15 +91,15 @@ export default function ProfileTab() {
   };
 
   if (profileLoading) {
-    return <div>Loading...</div>;
+    return <div>{t('common:status.loading')}</div>;
   }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your personal details and contact information.</CardDescription>
+          <CardTitle>{t('profile.personal.title')}</CardTitle>
+          <CardDescription>{t('profile.personal.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...profileForm}>
@@ -100,7 +110,7 @@ export default function ProfileTab() {
                   name="first_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>{t('profile.personal.firstName')}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -113,7 +123,7 @@ export default function ProfileTab() {
                   name="last_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>{t('profile.personal.lastName')}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -127,7 +137,7 @@ export default function ProfileTab() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t('common:fields.email')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -135,11 +145,11 @@ export default function ProfileTab() {
                         readOnly
                         disabled
                         className="cursor-not-allowed opacity-60"
-                        title="Email cannot be changed here. Contact support to update your email address."
+                        title={t('profile.personal.emailReadOnlyTitle')}
                       />
                     </FormControl>
                     <p className="text-[12px] text-muted-foreground">
-                      Email address cannot be changed. Contact support if you need to update it.
+                      {t('profile.personal.emailReadOnlyHelp')}
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -150,7 +160,7 @@ export default function ProfileTab() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>{t('common:fields.phone')}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -164,7 +174,7 @@ export default function ProfileTab() {
                   name="department"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Department</FormLabel>
+                      <FormLabel>{t('common:fields.department')}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -177,7 +187,7 @@ export default function ProfileTab() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Title</FormLabel>
+                      <FormLabel>{t('profile.personal.jobTitle')}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -187,7 +197,7 @@ export default function ProfileTab() {
                 />
               </div>
               <Button type="submit" disabled={updateProfile.isPending}>
-                {updateProfile.isPending ? 'Updating...' : 'Update Profile'}
+                {updateProfile.isPending ? t('profile.personal.updating') : t('profile.personal.submit')}
               </Button>
             </form>
           </Form>
@@ -196,8 +206,18 @@ export default function ProfileTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Change Password</CardTitle>
-          <CardDescription>Update your password to keep your account secure.</CardDescription>
+          <CardTitle>{t('common:language.label')}</CardTitle>
+          <CardDescription>{t('common:language.help')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LanguageSwitcher />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('profile.password.title')}</CardTitle>
+          <CardDescription>{t('profile.password.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...passwordForm}>
@@ -207,7 +227,7 @@ export default function ProfileTab() {
                 name="currentPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Password</FormLabel>
+                    <FormLabel>{t('profile.password.current')}</FormLabel>
                     <FormControl>
                       <Input {...field} type="password" />
                     </FormControl>
@@ -220,7 +240,7 @@ export default function ProfileTab() {
                 name="newPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>New Password</FormLabel>
+                    <FormLabel>{t('profile.password.new')}</FormLabel>
                     <FormControl>
                       <Input {...field} type="password" />
                     </FormControl>
@@ -233,7 +253,7 @@ export default function ProfileTab() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>{t('profile.password.confirm')}</FormLabel>
                     <FormControl>
                       <Input {...field} type="password" />
                     </FormControl>
@@ -242,7 +262,7 @@ export default function ProfileTab() {
                 )}
               />
               <Button type="submit" disabled={changePassword.isPending}>
-                {changePassword.isPending ? 'Changing...' : 'Change Password'}
+                {changePassword.isPending ? t('profile.password.changing') : t('profile.password.submit')}
               </Button>
             </form>
           </Form>

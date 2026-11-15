@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -29,6 +30,16 @@ export default function PermissionsTab() {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const { data: permissions = [] } = useRolePermissions(selectedRole);
   const updatePermission = useUpdatePermission();
+  const { t } = useTranslation('settings');
+  // Role, resource and action codes are API values: only their labels are translated.
+  const roleLabel = (code: string, fallback?: string) =>
+    t(`users:roles.${code}`, { defaultValue: fallback || code });
+  const resourceLabel = (resource: Resource) =>
+    t(`permissions.resources.${resource}`, {
+      defaultValue: resource.charAt(0).toUpperCase() + resource.slice(1),
+    });
+  const actionLabel = (action: Action) =>
+    t(`permissions.actions.${action}`, { defaultValue: action });
 
   // Track pending changes before saving
   const [pendingChanges, setPendingChanges] = useState<Map<string, boolean>>(new Map());
@@ -41,7 +52,10 @@ export default function PermissionsTab() {
   // Get available roles (global + custom)
   const availableRoles = allRoles.map((role) => ({
     value: role.role || role.role_name,
-    label: role.display_name || role.role_name || role.role,
+    label:
+      role.source === 'custom'
+        ? role.display_name || role.role_name || role.role
+        : roleLabel(role.role || role.role_name, role.display_name || role.role_name || role.role),
     source: role.source,
   }));
 
@@ -111,12 +125,12 @@ export default function PermissionsTab() {
       setPendingChanges(new Map());
       setHasUnsavedChanges(false);
 
-      toast.success('Permissions saved', {
-        description: 'All permission changes have been applied successfully.',
+      toast.success(t('permissions.toast.savedTitle'), {
+        description: t('permissions.toast.savedDescription'),
       });
     } catch {
-      toast.error('Failed to save permissions', {
-        description: 'Some changes could not be saved. Please try again.',
+      toast.error(t('permissions.toast.saveFailedTitle'), {
+        description: t('permissions.toast.saveFailedDescription'),
       });
     }
   };
@@ -124,8 +138,8 @@ export default function PermissionsTab() {
   const handleDiscardChanges = () => {
     setPendingChanges(new Map());
     setHasUnsavedChanges(false);
-    toast.success('Changes discarded', {
-      description: 'All unsaved changes have been discarded.',
+    toast.success(t('permissions.toast.discardedTitle'), {
+      description: t('permissions.toast.discardedDescription'),
     });
   };
 
@@ -163,8 +177,7 @@ export default function PermissionsTab() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Only super administrators can manage role permissions. Contact your organization super
-          administrator for access.
+          {t('permissions.superAdminOnly')}
         </AlertDescription>
       </Alert>
     );
@@ -178,12 +191,12 @@ export default function PermissionsTab() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Select Role
+                {t('permissions.selectRole')}
               </CardTitle>
             </div>
             <Select value={selectedRole} onValueChange={setSelectedRole}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Choose a role..." />
+                <SelectValue placeholder={t('permissions.chooseRole')} />
               </SelectTrigger>
               <SelectContent>
                 {availableRoles.map((role) => (
@@ -194,7 +207,7 @@ export default function PermissionsTab() {
                         variant={role.source === 'global' ? 'default' : 'secondary'}
                         className="text-xs"
                       >
-                        {role.source}
+                        {t(`permissions.source.${role.source}`, { defaultValue: role.source })}
                       </Badge>
                     </div>
                   </SelectItem>
@@ -209,18 +222,20 @@ export default function PermissionsTab() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Lock className="h-4 w-4" />
-                Configuring permissions for:
-                <Badge variant="outline">{selectedRole}</Badge>
+                {t('permissions.configuringFor')}
+                <Badge variant="outline">
+                  {availableRoles.find((r) => r.value === selectedRole)?.label || selectedRole}
+                </Badge>
                 {hasUnsavedChanges && (
                   <Badge variant="secondary" className="ml-2">
-                    Unsaved changes
+                    {t('permissions.unsavedChanges')}
                   </Badge>
                 )}
               </div>
               {hasUnsavedChanges && selectedRole !== 'superadmin' && (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={handleDiscardChanges}>
-                    Discard
+                    {t('permissions.discard')}
                   </Button>
                   <Button
                     size="sm"
@@ -228,7 +243,7 @@ export default function PermissionsTab() {
                     disabled={updatePermission.isPending}
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    Save Changes
+                    {t('permissions.saveChanges')}
                   </Button>
                 </div>
               )}
@@ -239,7 +254,7 @@ export default function PermissionsTab() {
               <table className="min-w-full text-sm">
                 <thead className="bg-muted/40 sticky top-0 z-10">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium">Resource</th>
+                    <th className="px-3 py-2 text-left font-medium">{t('permissions.resource')}</th>
                     {ACTIONS.map((action) => (
                       <th key={action} className="px-3 py-2 text-center font-medium">
                         <div className="flex items-center justify-center gap-1">
@@ -247,11 +262,11 @@ export default function PermissionsTab() {
                             variant="outline"
                             className={`${getActionColor(action)} text-xs capitalize`}
                           >
-                            {action}
+                            {actionLabel(action)}
                           </Badge>
                           {/* Toggle entire column */}
                           <Switch
-                            aria-label={`Toggle all ${action}`}
+                            aria-label={t('permissions.toggleColumn', { action: actionLabel(action) })}
                             disabled={selectedRole === 'superadmin'}
                             checked={RESOURCES.every((r) => getPermissionValue(r, action))}
                             onCheckedChange={(checked) => {
@@ -271,10 +286,10 @@ export default function PermissionsTab() {
                         <td className="px-3 py-2 whitespace-nowrap font-medium">
                           <div className="flex items-center gap-2">
                             <span className="text-lg">{getResourceIcon(resource)}</span>
-                            {resource.charAt(0).toUpperCase() + resource.slice(1)}
+                            {resourceLabel(resource)}
                             {/* Toggle entire row */}
                             <Switch
-                              aria-label={`Toggle all for ${resource}`}
+                              aria-label={t('permissions.toggleRow', { resource: resourceLabel(resource) })}
                               className="ml-auto"
                               disabled={selectedRole === 'superadmin'}
                               checked={allActionsGranted}
@@ -291,7 +306,10 @@ export default function PermissionsTab() {
                           return (
                             <td key={action} className="px-3 py-2 text-center">
                               <Switch
-                                aria-label={`${action} ${resource}`}
+                                aria-label={t('permissions.toggleCell', {
+                                  action: actionLabel(action),
+                                  resource: resourceLabel(resource),
+                                })}
                                 checked={hasPermission}
                                 disabled={selectedRole === 'superadmin'}
                                 onCheckedChange={(checked) =>
@@ -312,7 +330,7 @@ export default function PermissionsTab() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Super Administrator has all permissions by default and cannot be modified.
+                  {t('permissions.superAdminNote')}
                 </AlertDescription>
               </Alert>
             )}
@@ -321,8 +339,8 @@ export default function PermissionsTab() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   {selectedRole === 'admin'
-                    ? 'Administrator has full permissions by default. Toggle switches off to restrict specific access.'
-                    : 'User has create, read, and update permissions by default (no delete/manage). Adjust as needed.'}
+                    ? t('permissions.adminNote')
+                    : t('permissions.userNote')}
                 </AlertDescription>
               </Alert>
             )}

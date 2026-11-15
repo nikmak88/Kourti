@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useNotificationsDb,
   archiveNotification,
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Bell, Check, Trash2, Archive, ArchiveRestore, Search, X } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelative } from '@/i18n/dates';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -32,6 +33,7 @@ export function NotificationCenter() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const { t } = useTranslation('notifications');
 
   const { data: notifications = [], isLoading } = useNotificationsDb(organizationId || '', {
     status: statusFilter === 'all' ? undefined : statusFilter,
@@ -49,18 +51,18 @@ export function NotificationCenter() {
   const handleArchive = async (id: string) => {
     try {
       await archiveNotification(id);
-      toast.success('Success', { description: 'Notification archived' });
+      toast.success(t('common:toast.success'), { description: t('toast.archived') });
     } catch {
-      toast.error('Error', { description: 'Failed to archive notification' });
+      toast.error(t('common:toast.error'), { description: t('toast.archiveFailed') });
     }
   };
 
   const handleUnarchive = async (id: string) => {
     try {
       await unarchiveNotification(id);
-      toast.success('Success', { description: 'Notification unarchived' });
+      toast.success(t('common:toast.success'), { description: t('toast.unarchived') });
     } catch {
-      toast.error('Error', { description: 'Failed to unarchive notification' });
+      toast.error(t('common:toast.error'), { description: t('toast.unarchiveFailed') });
     }
   };
 
@@ -83,11 +85,11 @@ export function NotificationCenter() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Notifications</CardTitle>
+          <CardTitle>{t('page.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading notifications...</div>
+            <div className="text-muted-foreground">{t('center.loading')}</div>
           </div>
         </CardContent>
       </Card>
@@ -101,17 +103,17 @@ export function NotificationCenter() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Notifications
+              {t('page.title')}
             </CardTitle>
             <CardDescription>
               {unreadCount > 0
-                ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
-                : 'All caught up!'}
+                ? t('center.unreadCount', { count: unreadCount })
+                : t('center.allCaughtUp')}
             </CardDescription>
           </div>
           {unreadCount > 0 && (
             <Button size="sm" variant="outline" onClick={() => markAllAsRead.mutate()}>
-              Mark all as read
+              {t('actions.markAllRead')}
             </Button>
           )}
         </div>
@@ -123,7 +125,7 @@ export function NotificationCenter() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search notifications..."
+                placeholder={t('center.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -134,6 +136,7 @@ export function NotificationCenter() {
                   variant="ghost"
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                   onClick={() => setSearchTerm('')}
+                  aria-label={t('common:actions.clear')}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -147,9 +150,9 @@ export function NotificationCenter() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="unread">Unread</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="all">{t('center.allStatuses')}</SelectItem>
+                <SelectItem value="unread">{t('tabs.unread')}</SelectItem>
+                <SelectItem value="read">{t('tabs.read')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -157,13 +160,13 @@ export function NotificationCenter() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="case">Cases</SelectItem>
-                <SelectItem value="client">Clients</SelectItem>
-                <SelectItem value="document">Documents</SelectItem>
-                <SelectItem value="contract">Contracts</SelectItem>
-                <SelectItem value="calendar">Calendar</SelectItem>
-                <SelectItem value="info">Info</SelectItem>
+                <SelectItem value="all">{t('center.allTypes')}</SelectItem>
+                <SelectItem value="case">{t('common:entities.matters')}</SelectItem>
+                <SelectItem value="client">{t('common:entities.clients')}</SelectItem>
+                <SelectItem value="document">{t('common:entities.documents')}</SelectItem>
+                <SelectItem value="contract">{t('common:entities.contracts')}</SelectItem>
+                <SelectItem value="calendar">{t('types.calendar')}</SelectItem>
+                <SelectItem value="info">{t('types.info')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -176,12 +179,12 @@ export function NotificationCenter() {
               {showArchived ? (
                 <>
                   <ArchiveRestore className="h-4 w-4 mr-2" />
-                  Show Active
+                  {t('center.showActive')}
                 </>
               ) : (
                 <>
                   <Archive className="h-4 w-4 mr-2" />
-                  Show Archived
+                  {t('center.showArchived')}
                 </>
               )}
             </Button>
@@ -193,12 +196,10 @@ export function NotificationCenter() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Bell className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <p className="text-sm font-medium text-muted-foreground">
-              {showArchived ? 'No archived notifications' : 'No notifications'}
+              {showArchived ? t('empty.noArchived') : t('empty.title')}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              {showArchived
-                ? "You haven't archived any notifications yet"
-                : "You're all caught up!"}
+              {showArchived ? t('empty.noArchivedDescription') : t('empty.caughtUp')}
             </p>
           </div>
         ) : (
@@ -227,11 +228,11 @@ export function NotificationCenter() {
                         {notification.title}
                       </h4>
                       <Badge className={cn('text-xs', getTypeColor(notification.type))}>
-                        {notification.type}
+                        {t(`types.${notification.type}`, { defaultValue: notification.type })}
                       </Badge>
                       {notification.status === 'unread' && (
                         <Badge variant="default" className="text-xs">
-                          New
+                          {t('badges.new')}
                         </Badge>
                       )}
                     </div>
@@ -241,7 +242,7 @@ export function NotificationCenter() {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground/70">
-                      {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                      {formatRelative(notification.created_at)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -253,7 +254,8 @@ export function NotificationCenter() {
                         onClick={() =>
                           updateNotification.mutate({ id: notification.id, status: 'read' })
                         }
-                        title="Mark as read"
+                        title={t('actions.markAsRead')}
+                        aria-label={t('actions.markAsRead')}
                       >
                         <Check className="h-4 w-4" />
                       </Button>
@@ -264,7 +266,8 @@ export function NotificationCenter() {
                         variant="ghost"
                         className="h-8 w-8 p-0"
                         onClick={() => handleUnarchive(notification.id)}
-                        title="Unarchive"
+                        title={t('actions.unarchive')}
+                        aria-label={t('actions.unarchive')}
                       >
                         <ArchiveRestore className="h-4 w-4" />
                       </Button>
@@ -274,7 +277,8 @@ export function NotificationCenter() {
                         variant="ghost"
                         className="h-8 w-8 p-0"
                         onClick={() => handleArchive(notification.id)}
-                        title="Archive"
+                        title={t('actions.archive')}
+                        aria-label={t('actions.archive')}
                       >
                         <Archive className="h-4 w-4" />
                       </Button>
@@ -284,7 +288,8 @@ export function NotificationCenter() {
                       variant="ghost"
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                       onClick={() => deleteNotification.mutate(notification.id)}
-                      title="Delete"
+                      title={t('common:actions.delete')}
+                      aria-label={t('common:actions.delete')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

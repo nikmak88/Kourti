@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Plus,
   Building,
@@ -43,9 +44,11 @@ import type { Client } from '@/types';
 import { TableSkeleton } from '@/components/ui/loading-states';
 import { ErrorState } from '@/components/ui/error-state';
 import { EmptyState } from '@/components/ui/empty-state';
+import { formatDate } from '@/i18n/dates';
 
 export default function Clients() {
   const navigate = useNavigate();
+  const { t } = useTranslation('clients');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -56,7 +59,7 @@ export default function Clients() {
     return (
       <PageContainer>
         <Breadcrumbs />
-        <PageHeader title="Clients" description="Manage your client database and relationships" />
+        <PageHeader title={t('list.title')} description={t('list.description')} />
         <TableSkeleton rows={6} columns={4} />
       </PageContainer>
     );
@@ -67,11 +70,11 @@ export default function Clients() {
       <PageContainer>
         <Breadcrumbs />
         <ErrorState
-          title="Failed to load clients"
+          title={t('list.loadFailed')}
           message={
             error instanceof Error
               ? error.message
-              : 'An unexpected error occurred while loading clients.'
+              : t('list.loadFailedDescription')
           }
           error={error}
         />
@@ -117,13 +120,13 @@ export default function Clients() {
       <Breadcrumbs />
 
       <PageHeader
-        title="Clients"
-        description="Manage your client database and relationships"
+        title={t('list.title')}
+        description={t('list.description')}
         actions={
           <>
             <Button onClick={() => navigate('/clients/create')} className="shadow-md hover-scale">
               <Plus className="h-4 w-4 mr-2" />
-              New Client
+              {t('list.newClient')}
             </Button>
             <Button
               variant="outline"
@@ -131,7 +134,7 @@ export default function Clients() {
               className="hover-scale"
             >
               <Upload className="h-4 w-4 mr-2" />
-              Bulk Import
+              {t('list.bulkImport')}
             </Button>
           </>
         }
@@ -139,34 +142,34 @@ export default function Clients() {
 
       {/* Metrics ---------------------------------------------------------- */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <MetricCard label="Total Clients" value={clients.length} />
+        <MetricCard label={t('list.metrics.totalClients')} value={clients.length} />
         <MetricCard
-          label="Active Clients"
+          label={t('list.metrics.activeClients')}
           value={clients.filter((c) => (c.status?.toLowerCase() ?? '') === 'active').length}
         />
-        <MetricCard label="Total Cases" value={totalCases} />
-        <MetricCard label="Total Contracts" value={totalContracts} />
+        <MetricCard label={t('list.metrics.totalCases')} value={totalCases} />
+        <MetricCard label={t('list.metrics.totalContracts')} value={totalContracts} />
       </div>
 
       {/* Filters ---------------------------------------------------------- */}
       <ModuleFilterBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Search clients, contacts, or email..."
+        searchPlaceholder={t('list.searchPlaceholder')}
         searchWidth="w-full sm:w-[280px]"
         filters={[
           {
             key: 'status',
-            placeholder: 'Status',
+            placeholder: t('common:fields.status'),
             value: statusFilter,
             onChange: setStatusFilter,
             width: 'w-[140px]',
             icon: <Filter className="h-4 w-4" />,
             options: [
-              { value: 'all', label: 'All Status' },
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-              { value: 'pending', label: 'Pending' },
+              { value: 'all', label: t('list.allStatuses') },
+              { value: 'active', label: t('common:status.active') },
+              { value: 'inactive', label: t('common:status.inactive') },
+              { value: 'pending', label: t('common:status.pending') },
             ],
           },
         ]}
@@ -179,7 +182,7 @@ export default function Clients() {
       {/* Table ------------------------------------------------------------ */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Client Directory</CardTitle>
+          <CardTitle>{t('list.directory')}</CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -187,7 +190,7 @@ export default function Clients() {
               [
                 {
                   id: 'client',
-                  header: 'Client',
+                  header: t('common:entities.client'),
                   accessorKey: 'name',
                   minWidth: '200px',
                   cell: (client) => (
@@ -209,40 +212,44 @@ export default function Clients() {
                 },
                 {
                   id: 'contact',
-                  header: 'Email',
+                  header: t('common:fields.email'),
                   sortable: false,
                   minWidth: '200px',
                   cell: (client) => (
                     <div
                       className="flex items-center gap-2 text-sm truncate max-w-[200px]"
-                      title={client.email || 'No email'}
+                      title={client.email || t('list.noEmail')}
                     >
                       <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="truncate">{client.email || 'No email'}</span>
+                      <span className="truncate">{client.email || t('list.noEmail')}</span>
                     </div>
                   ),
                 },
                 {
                   id: 'type',
-                  header: 'Type',
+                  header: t('common:fields.type'),
                   sortable: false,
                   minWidth: '120px',
-                  cell: () => <Badge variant="outline">Individual</Badge>,
+                  cell: () => <Badge variant="outline">{t('list.individual')}</Badge>,
                 },
                 {
                   id: 'status',
-                  header: 'Status',
+                  header: t('common:fields.status'),
                   accessorKey: 'status',
                   minWidth: '120px',
                   cell: (client) => (
                     <Badge className={getStatusColor(client.status)} variant="outline">
-                      {client.status ?? '-'}
+                      {client.status
+                        ? t(`common:status.${client.status.toLowerCase()}`, {
+                            defaultValue: client.status,
+                          })
+                        : '-'}
                     </Badge>
                   ),
                 },
                 {
                   id: 'cases',
-                  header: 'Cases',
+                  header: t('list.columns.cases'),
                   accessorFn: (client) => client.cases?.[0]?.count ?? 0,
                   minWidth: '100px',
                   cell: (client) => (
@@ -251,7 +258,7 @@ export default function Clients() {
                 },
                 {
                   id: 'contracts',
-                  header: 'Contracts',
+                  header: t('common:entities.contracts'),
                   accessorFn: (client) => client.contracts?.[0]?.count ?? 0,
                   minWidth: '120px',
                   cell: (client) => (
@@ -260,18 +267,18 @@ export default function Clients() {
                 },
                 {
                   id: 'created',
-                  header: 'Created',
+                  header: t('common:fields.createdAt'),
                   accessorKey: 'created_at',
                   minWidth: '120px',
                   cell: (client) => (
                     <span className="text-sm text-muted-foreground">
-                      {new Date(client.created_at).toLocaleDateString()}
+                      {formatDate(client.created_at, 'P')}
                     </span>
                   ),
                 },
                 {
                   id: 'actions',
-                  header: 'Actions',
+                  header: t('list.columns.actions'),
                   sortable: false,
                   minWidth: '80px',
                   cell: (client) => <ClientActionsMenu client={client} navigate={navigate} />,
@@ -279,7 +286,7 @@ export default function Clients() {
               ] as ColumnDef<Client>[]
             }
             data={filtered}
-            emptyMessage="No clients found"
+            emptyMessage={t('list.noClientsFound')}
             getRowKey={(row) => row.id}
           />
         </CardContent>
@@ -289,10 +296,10 @@ export default function Clients() {
       {filtered.length === 0 && clients.length === 0 && (
         <EmptyState
           icon={UserCheck}
-          title="No clients yet"
-          description="Get started by adding your first client to manage relationships and track legal matters."
+          title={t('list.empty.title')}
+          description={t('list.empty.description')}
           action={{
-            label: 'Add First Client',
+            label: t('list.empty.action'),
             onClick: () => navigate('/clients/create'),
             icon: Plus,
           }}
@@ -301,10 +308,10 @@ export default function Clients() {
       {filtered.length === 0 && clients.length > 0 && (
         <EmptyState
           icon={UserCheck}
-          title="No matching clients"
-          description={`No clients match "${searchTerm}". Try adjusting your search or filters.`}
+          title={t('list.noMatch.title')}
+          description={t('list.noMatch.description', { search: searchTerm })}
           action={{
-            label: 'Clear Filters',
+            label: t('list.noMatch.action'),
             onClick: () => {
               setSearchTerm('');
               setStatusFilter('all');
@@ -325,6 +332,7 @@ interface ClientActionsMenuProps {
 }
 
 function ClientActionsMenu({ client, navigate }: ClientActionsMenuProps) {
+  const { t } = useTranslation('clients');
   const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
   const enablePortal = useEnableClientPortal();
   const disablePortal = useDisableClientPortal();
@@ -344,37 +352,37 @@ function ClientActionsMenu({ client, navigate }: ClientActionsMenuProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}`)}>
-            View Details
+            {t('actions.viewDetails')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}/edit`)}>
-            Edit Client
+            {t('actions.editClient')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate(`/matters?client=${client.id}`)}>
-            View Matters
+            {t('actions.viewMatters')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate(`/contracts?client=${client.id}`)}>
-            View Contracts
+            {t('actions.viewContracts')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={!hasEmail || enablePortal.isPending}
             onClick={() => {
               if (!hasEmail) {
-                toast.error('An email address is required to enable the client portal');
+                toast.error(t('portal.emailRequired'));
                 return;
               }
               enablePortal.mutate(client.id);
             }}
           >
             <ShieldCheck className="h-4 w-4 mr-2" />
-            Enable client portal
+            {t('portal.enable')}
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onClick={() => setConfirmDisableOpen(true)}
           >
             <ShieldOff className="h-4 w-4 mr-2" />
-            Disable client portal
+            {t('portal.disable')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -382,19 +390,18 @@ function ClientActionsMenu({ client, navigate }: ClientActionsMenuProps) {
       <AlertDialog open={confirmDisableOpen} onOpenChange={setConfirmDisableOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disable client portal?</AlertDialogTitle>
+            <AlertDialogTitle>{t('portal.disableConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This revokes {client.name}&apos;s access to the client portal. They will no longer be
-              able to sign in or view case updates. You can re-enable access at any time.
+              {t('portal.disableConfirmDescription', { name: client.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => disablePortal.mutate(client.id)}
             >
-              Disable access
+              {t('portal.disableAccess')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

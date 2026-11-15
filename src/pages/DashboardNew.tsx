@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,7 +41,8 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useCases } from '@/hooks/useCases';
 import { useContracts } from '@/hooks/useContracts';
 import { Case, Contract } from '@/types';
-import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
+import { dateLocale, intlLocale } from '@/i18n/dates';
 import { ModuleErrorBoundary } from '@/components/ErrorBoundary';
 import GettingStartedChecklist from '@/components/GettingStartedChecklist';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +52,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, startOfMonth, subMonths } from 'date-fns';
 import { PageContainer } from '@/components/layout/PageContainer';
+
+/** Locale-aware date for tables ("—" when empty/invalid). */
+function formatDate(
+  date: string | Date | null | undefined,
+  options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' }
+): string {
+  if (!date) return '—';
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(dateObj.getTime())) return '—';
+  return dateObj.toLocaleDateString(intlLocale(), options);
+}
 
 // Components
 const StatCard = ({
@@ -153,6 +166,7 @@ export default function Dashboard() {
   const [windowDays] = useState(7);
   const [chartView, setChartView] = useState('monthly');
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation('dashboard');
 
   // Get data for different dashboard sections
   const { upcomingCases, upcomingContracts } = useInsights(windowDays);
@@ -167,8 +181,13 @@ export default function Dashboard() {
 
   // Process case status data for pie chart
   const casesByStatus = useMemo(() => {
-    return calculateCaseStatusData(casesData?.cases || []);
-  }, [casesData]);
+    return calculateCaseStatusData(casesData?.cases || []).map((entry) => ({
+      ...entry,
+      name: t(`common:status.${entry.name.toLowerCase().replace(' ', '_')}`, {
+        defaultValue: entry.name,
+      }),
+    }));
+  }, [casesData, t]);
 
   // Generate monthly activity data based on real data if available
   const recentActivity = useMemo(() => {
@@ -178,7 +197,7 @@ export default function Dashboard() {
       const currentMonth = startOfMonth(new Date());
       const monthLabels = Array.from({ length: 12 }, (_, index) => {
         const monthDate = subMonths(currentMonth, 11 - index);
-        return format(monthDate, 'MMM yyyy');
+        return format(monthDate, 'LLL yyyy', { locale: dateLocale() });
       });
 
       // Initialize all months to zero
@@ -189,7 +208,9 @@ export default function Dashboard() {
       // Count cases by month
       casesData.cases.forEach((c: Case) => {
         if (c.created_at) {
-          const monthKey = format(startOfMonth(new Date(c.created_at)), 'MMM yyyy');
+          const monthKey = format(startOfMonth(new Date(c.created_at)), 'LLL yyyy', {
+            locale: dateLocale(),
+          });
           if (monthlyData[monthKey]) {
             monthlyData[monthKey].cases += 1;
           }
@@ -202,7 +223,9 @@ export default function Dashboard() {
         : contractsData?.contracts || [];
       contractsList.forEach((contract: Contract) => {
         if (contract.created_at) {
-          const monthKey = format(startOfMonth(new Date(contract.created_at)), 'MMM yyyy');
+          const monthKey = format(startOfMonth(new Date(contract.created_at)), 'LLL yyyy', {
+            locale: dateLocale(),
+          });
           if (monthlyData[monthKey]) {
             monthlyData[monthKey].contracts += 1;
           }
@@ -219,7 +242,7 @@ export default function Dashboard() {
 
     // Return empty array if no data
     return [];
-  }, [casesData, contractsData]);
+  }, [casesData, contractsData, i18n.language]);
 
   // Weekly activity data
   const weeklyActivity = useMemo(() => {
@@ -290,7 +313,7 @@ export default function Dashboard() {
         contracts: bucket?.contracts ?? 0,
       };
     });
-  }, [casesData, contractsData]);
+  }, [casesData, contractsData, i18n.language]);
 
   // Generate recent cases
   const recentCases = useMemo(() => {
@@ -313,30 +336,36 @@ export default function Dashboard() {
       case 'active':
         return (
           <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-200">
-            Active
+            {t('common:status.active')}
           </Badge>
         );
       case 'pending':
       case 'in_progress':
         return (
           <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200">
-            Pending
+            {t('common:status.pending')}
           </Badge>
         );
       case 'closed':
         return (
           <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">
-            Closed
+            {t('common:status.closed')}
           </Badge>
         );
       case 'expired':
         return (
           <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200">
-            Expired
+            {t('status.expired')}
           </Badge>
         );
       default:
-        return <Badge variant="outline">{status || 'Unknown'}</Badge>;
+        return (
+          <Badge variant="outline">
+            {status
+              ? t(`common:status.${status}`, { defaultValue: status })
+              : t('common:status.unknown')}
+          </Badge>
+        );
     }
   }
 
@@ -350,8 +379,8 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <ErrorState
-          title="Failed to load dashboard data"
-          message="There was an error loading your dashboard. Please try again or contact support if the problem persists."
+          title={t('error.title')}
+          message={t('error.message')}
           error={dashboardError}
           onRetry={() => refetchDashboard()}
         />
@@ -367,17 +396,17 @@ export default function Dashboard() {
       {/* Stats Cards (Live Data) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard
-          title="Active Matters"
+          title={t('stats.activeMatters')}
           value={dashboardLoading ? '—' : (dashboardData?.activeCases ?? '0')}
           icon={<Briefcase className="h-4 w-4" />}
-          description="Currently in progress"
+          description={t('stats.activeMattersHint')}
           loading={dashboardLoading}
           iconColor="text-blue-500"
           iconBgColor="bg-blue-500/10"
         />
 
         <StatCard
-          title="Total Clients"
+          title={t('stats.totalClients')}
           value={dashboardLoading ? '—' : (dashboardData?.totalClients ?? '0')}
           icon={<Users className="h-4 w-4" />}
           loading={dashboardLoading}
@@ -386,10 +415,10 @@ export default function Dashboard() {
         />
 
         <StatCard
-          title="Documents"
+          title={t('common:entities.documents')}
           value={dashboardLoading ? '—' : (dashboardData?.totalDocuments ?? '0')}
           icon={<FileText className="h-4 w-4" />}
-          description="Across all matters"
+          description={t('stats.documentsHint')}
           loading={dashboardLoading}
           iconColor="text-amber-500"
           iconBgColor="bg-amber-500/10"
@@ -409,7 +438,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{upcomingCases.length}</p>
-                <p className="text-sm text-muted-foreground">Hearings This Week</p>
+                <p className="text-sm text-muted-foreground">{t('focus.hearingsThisWeek')}</p>
               </div>
             </div>
           </CardContent>
@@ -426,7 +455,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{upcomingContracts.length}</p>
-                <p className="text-sm text-muted-foreground">Contracts Expiring Soon</p>
+                <p className="text-sm text-muted-foreground">{t('focus.contractsExpiring')}</p>
               </div>
             </div>
           </CardContent>
@@ -445,7 +474,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-bold">
                   {formatDate(new Date(), { weekday: 'short', month: 'short', day: 'numeric' })}
                 </p>
-                <p className="text-sm text-muted-foreground">View Today's Calendar</p>
+                <p className="text-sm text-muted-foreground">{t('focus.todaysCalendar')}</p>
               </div>
             </div>
           </CardContent>
@@ -460,17 +489,17 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="h-5 w-5 text-primary" />
-                  Activity Overview
+                  {t('charts.activityOverview')}
                 </CardTitle>
               </div>
-              <CardDescription>Track new matters and contracts over time</CardDescription>
+              <CardDescription>{t('charts.activityOverviewDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="px-1">
               <Tabs value={chartView} onValueChange={setChartView} className="w-full">
                 <div className="flex justify-center mb-4">
                   <TabsList className="grid w-[200px] grid-cols-2">
-                    <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                    <TabsTrigger value="monthly">{t('charts.monthly')}</TabsTrigger>
+                    <TabsTrigger value="weekly">{t('charts.weekly')}</TabsTrigger>
                   </TabsList>
                 </div>
                 <TabsContent value="monthly" className="mt-0">
@@ -487,7 +516,7 @@ export default function Dashboard() {
                       <Line
                         type="monotone"
                         dataKey="cases"
-                        name="Matters"
+                        name={t('common:entities.matters')}
                         stroke="#3b82f6"
                         strokeWidth={3}
                         dot={{ r: 4 }}
@@ -496,7 +525,7 @@ export default function Dashboard() {
                       <Line
                         type="monotone"
                         dataKey="contracts"
-                        name="Contracts"
+                        name={t('common:entities.contracts')}
                         stroke="#10b981"
                         strokeWidth={3}
                         dot={{ r: 4 }}
@@ -516,10 +545,15 @@ export default function Dashboard() {
                       <YAxis axisLine={false} tickLine={false} width={30} />
                       <RechartsTooltip content={<CustomTooltip />} />
                       <Legend verticalAlign="top" height={36} iconType="circle" />
-                      <Bar dataKey="cases" name="Matters" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar
+                        dataKey="cases"
+                        name={t('common:entities.matters')}
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      />
                       <Bar
                         dataKey="contracts"
-                        name="Contracts"
+                        name={t('common:entities.contracts')}
                         fill="#10b981"
                         radius={[4, 4, 0, 0]}
                       />
@@ -536,9 +570,9 @@ export default function Dashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
-                Matters by Status
+                {t('charts.mattersByStatus')}
               </CardTitle>
-              <CardDescription>Distribution of matters by their current status</CardDescription>
+              <CardDescription>{t('charts.mattersByStatusDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -577,9 +611,9 @@ export default function Dashboard() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  Recent Matters
+                  {t('recent.title')}
                 </CardTitle>
-                <CardDescription>Latest matter activities</CardDescription>
+                <CardDescription>{t('recent.description')}</CardDescription>
               </div>
               <Button
                 variant="ghost"
@@ -587,7 +621,7 @@ export default function Dashboard() {
                 className="gap-1"
                 onClick={() => navigate('/matters')}
               >
-                View All
+                {t('common:actions.viewAll')}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </CardHeader>
@@ -619,11 +653,16 @@ export default function Dashboard() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label={t('recent.viewMatter')}
+                              >
                                 <Eye className="h-4 w-4 text-muted-foreground" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>View Matter</TooltipContent>
+                            <TooltipContent>{t('recent.viewMatter')}</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                         {c.assigned_to &&
@@ -654,29 +693,30 @@ export default function Dashboard() {
                                   </Avatar>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  Assigned to{' '}
-                                  {
-                                    (
-                                      c as Case & {
-                                        assigned_user?: {
-                                          id: string;
-                                          first_name: string | null;
-                                          last_name: string | null;
-                                        };
-                                      }
-                                    ).assigned_user?.first_name
-                                  }{' '}
-                                  {
-                                    (
-                                      c as Case & {
-                                        assigned_user?: {
-                                          id: string;
-                                          first_name: string | null;
-                                          last_name: string | null;
-                                        };
-                                      }
-                                    ).assigned_user?.last_name
-                                  }
+                                  {t('recent.assignedTo', {
+                                    name: [
+                                      (
+                                        c as Case & {
+                                          assigned_user?: {
+                                            id: string;
+                                            first_name: string | null;
+                                            last_name: string | null;
+                                          };
+                                        }
+                                      ).assigned_user?.first_name,
+                                      (
+                                        c as Case & {
+                                          assigned_user?: {
+                                            id: string;
+                                            first_name: string | null;
+                                            last_name: string | null;
+                                          };
+                                        }
+                                      ).assigned_user?.last_name,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' '),
+                                  })}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -688,14 +728,14 @@ export default function Dashboard() {
               ) : (
                 <div className="text-center py-8 bg-muted/10 rounded-md">
                   <Briefcase className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-muted-foreground text-sm">No recent matters found.</p>
+                  <p className="text-muted-foreground text-sm">{t('recent.empty')}</p>
                   <Button
                     variant="outline"
                     size="sm"
                     className="mt-4"
                     onClick={() => navigate('/matters/create')}
                   >
-                    <Plus className="h-4 w-4 mr-1" /> Create a Matter
+                    <Plus className="h-4 w-4 mr-1" /> {t('recent.createMatter')}
                   </Button>
                 </div>
               )}
@@ -709,9 +749,9 @@ export default function Dashboard() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-warning" />
-                  Upcoming Events
+                  {t('upcoming.events')}
                 </CardTitle>
-                <CardDescription>Next {windowDays} days</CardDescription>
+                <CardDescription>{t('upcoming.nextDays', { count: windowDays })}</CardDescription>
               </div>
               <Button
                 variant="ghost"
@@ -719,7 +759,7 @@ export default function Dashboard() {
                 className="gap-1"
                 onClick={() => navigate('/calendar')}
               >
-                View Calendar
+                {t('upcoming.viewCalendar')}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </CardHeader>
@@ -737,7 +777,9 @@ export default function Dashboard() {
                           <Calendar className="h-5 w-5 text-amber-500" />
                         </div>
                         <div>
-                          <h4 className="font-medium text-sm">Hearing: {c.title}</h4>
+                          <h4 className="font-medium text-sm">
+                            {t('upcoming.hearingItem', { title: c.title })}
+                          </h4>
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatDate(c.next_hearing_date)}
                             {c.court && <span> • {c.court}</span>}
@@ -745,7 +787,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <Button variant="ghost" size="sm" className="h-8">
-                        View
+                        {t('common:actions.view')}
                       </Button>
                     </div>
                   ))}
@@ -762,16 +804,18 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <h4 className="font-medium text-sm">
-                            Contract Expiring: {contract.title}
+                            {t('upcoming.contractExpiringItem', { title: contract.title })}
                           </h4>
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatDate(contract.end_date)}
-                            {contract.value && <span> • {formatCurrency(contract.value)}</span>}
+                            {contract.value && (
+                              <span> • {formatCurrency(contract.value, 'USD', intlLocale())}</span>
+                            )}
                           </p>
                         </div>
                       </div>
                       <Button variant="ghost" size="sm" className="h-8">
-                        View
+                        {t('common:actions.view')}
                       </Button>
                     </div>
                   ))}
@@ -780,7 +824,7 @@ export default function Dashboard() {
                 <div className="text-center py-8 bg-muted/10 rounded-md">
                   <Calendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
                   <p className="text-muted-foreground text-sm">
-                    No upcoming events in the next {windowDays} days.
+                    {t('upcoming.noEvents', { count: windowDays })}
                   </p>
                   <Button
                     variant="outline"
@@ -788,7 +832,7 @@ export default function Dashboard() {
                     className="mt-4"
                     onClick={() => navigate('/calendar')}
                   >
-                    View Calendar
+                    {t('upcoming.viewCalendar')}
                   </Button>
                 </div>
               )}

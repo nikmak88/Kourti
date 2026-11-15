@@ -13,6 +13,7 @@ import {
 import { DroppableWorkWeekSlot } from './DroppableSlots';
 import { DraggableCalendarEvent } from './DraggableCalendarEvent';
 import { QuickEventCreate } from './QuickEventCreate';
+import { dateLocale } from '@/i18n/dates';
 
 interface CalendarWorkWeekViewProps {
   date: Date;
@@ -31,6 +32,7 @@ export function CalendarWorkWeekView({
   onEventClick,
   getEventTypeColor,
 }: CalendarWorkWeekViewProps) {
+  const locale = dateLocale();
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
   const [quickCreateSlot, setQuickCreateSlot] = useState<{ dayIndex: number; time: Date } | null>(
@@ -117,7 +119,7 @@ export function CalendarWorkWeekView({
                 isToday(day) ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              {format(day, 'EEE')}
+              {format(day, 'EEE', { locale })}
             </div>
             <div className={cn('text-lg font-bold', isToday(day) && 'text-primary')}>
               {format(day, 'd')}
@@ -139,7 +141,7 @@ export function CalendarWorkWeekView({
                 style={{ height: `${SLOT_HEIGHT}px` }}
               >
                 <span className="text-xs text-muted-foreground -mt-2">
-                  {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+                  {format(new Date().setHours(hour, 0, 0, 0), 'p', { locale })}
                 </span>
               </div>
             ))}

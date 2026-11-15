@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface FilterOption {
   value: string;
@@ -43,7 +44,7 @@ export interface ModuleFilterBarProps {
 export function ModuleFilterBar({
   searchTerm,
   onSearchChange,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   searchWidth = 'w-full sm:w-[280px]',
   filters = [],
   trailing,
@@ -51,6 +52,7 @@ export function ModuleFilterBar({
   showClearAll = true,
   onClearAll,
 }: ModuleFilterBarProps) {
+  const { t } = useTranslation('matters');
   const hasActiveFilters =
     (searchTerm && searchTerm.length > 0) ||
     filters.some((f) => f.value !== 'all' && f.value !== '');
@@ -67,7 +69,7 @@ export function ModuleFilterBar({
           <div className={cn('relative', searchWidth)}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? t('filters.searchDefault')}
               value={searchTerm ?? ''}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-10 pr-4 py-2 rounded-md border border-input focus:ring-primary focus:border-primary/30"
@@ -99,7 +101,7 @@ export function ModuleFilterBar({
             className="h-10 px-3 text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4 mr-1" />
-            Clear
+            {t('common:actions.clear')}
           </Button>
         )}
       </div>

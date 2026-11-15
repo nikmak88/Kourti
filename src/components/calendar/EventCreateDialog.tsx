@@ -17,7 +17,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
+  useFormField,
 } from '@/components/ui/form';
 import {
   Select,
@@ -40,13 +40,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { getSession } from '@/lib/authClient';
 import { invokeNodeApi } from '@/lib/backendApi';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 
 const eventSchema = z
   .object({
-    title: z.string().min(1, 'Title is required'),
+    title: z.string().min(1, 'form.validation.titleRequired'),
     description: z.string().optional(),
-    start_date: z.string().min(1, 'Start date is required'),
-    end_date: z.string().min(1, 'End date is required'),
+    start_date: z.string().min(1, 'form.validation.startRequired'),
+    end_date: z.string().min(1, 'form.validation.endRequired'),
     location: z.string().optional(),
     event_type: z.enum(['meeting', 'hearing', 'deadline', 'deposition', 'review', 'consultation']),
     case_id: z.string().optional(),
@@ -80,7 +82,7 @@ const eventSchema = z
     if (end <= start) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'End date must be after the start date',
+        message: 'form.validation.endAfterStart',
         path: ['end_date'],
       });
     }
@@ -88,7 +90,7 @@ const eventSchema = z
     if (data.is_recurring && !data.recurrence_frequency) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Recurrence frequency is required for recurring events',
+        message: 'form.validation.frequencyRequired',
         path: ['recurrence_frequency'],
       });
     }
@@ -98,7 +100,7 @@ const eventSchema = z
       if (recurrenceEnd <= start) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Recurrence end date must be after start date',
+          message: 'form.validation.recurrenceEndAfterStart',
           path: ['recurrence_end_date'],
         });
       }
@@ -106,6 +108,23 @@ const eventSchema = z
   });
 
 type EventFormValues = z.infer<typeof eventSchema>;
+
+/**
+ * FormMessage for calendar forms: the zod schemas hold translation keys
+ * (e.g. 'form.validation.titleRequired') so they can stay at module level;
+ * the text is translated here, at display time.
+ */
+export function CalendarFormMessage({ className }: { className?: string }) {
+  const { t } = useTranslation('calendar');
+  const { error, formMessageId } = useFormField();
+  if (!error?.message) return null;
+  const message = String(error.message);
+  return (
+    <p id={formMessageId} className={cn('text-sm font-medium text-destructive', className)}>
+      {t(message, { defaultValue: message })}
+    </p>
+  );
+}
 
 interface EventCreateDialogProps {
   children?: React.ReactNode;
@@ -136,6 +155,7 @@ export function EventCreateDialog({
   const [reminders, setReminders] = useState<
     Array<{ minutes: number; method: 'in_app' | 'email' | 'both' }>
   >([]);
+  const { t } = useTranslation('calendar');
   const createEvent = useCreateCalendarEvent();
   const { data: casesData } = useCases();
   const { data: clientsData } = useClients();
@@ -399,15 +419,15 @@ export function EventCreateDialog({
         {children || (
           <Button className="shadow-md">
             <Plus className="h-4 w-4 mr-2" />
-            New Event
+            {t('page.newEvent')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Event</DialogTitle>
+          <DialogTitle>{t('create.title')}</DialogTitle>
           <DialogDescription>
-            Schedule a new calendar event and optionally link it to a case or client.
+            {t('create.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -418,11 +438,11 @@ export function EventCreateDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>{t('common:fields.title')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter event title" {...field} />
+                    <Input placeholder={t('form.titlePlaceholder')} {...field} />
                   </FormControl>
-                  <FormMessage />
+                  <CalendarFormMessage />
                 </FormItem>
               )}
             />
@@ -432,23 +452,23 @@ export function EventCreateDialog({
               name="event_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Event Type</FormLabel>
+                  <FormLabel>{t('form.eventType')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select event type" />
+                        <SelectValue placeholder={t('form.eventTypePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                      <SelectItem value="hearing">Hearing</SelectItem>
-                      <SelectItem value="deadline">Deadline</SelectItem>
-                      <SelectItem value="deposition">Deposition</SelectItem>
-                      <SelectItem value="review">Review</SelectItem>
-                      <SelectItem value="consultation">Consultation</SelectItem>
+                      <SelectItem value="meeting">{t('eventTypes.meeting')}</SelectItem>
+                      <SelectItem value="hearing">{t('eventTypes.hearing')}</SelectItem>
+                      <SelectItem value="deadline">{t('eventTypes.deadline')}</SelectItem>
+                      <SelectItem value="deposition">{t('eventTypes.deposition')}</SelectItem>
+                      <SelectItem value="review">{t('eventTypes.review')}</SelectItem>
+                      <SelectItem value="consultation">{t('eventTypes.consultation')}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  <CalendarFormMessage />
                 </FormItem>
               )}
             />
@@ -458,11 +478,11 @@ export function EventCreateDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('common:fields.description')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter event description" {...field} />
+                    <Textarea placeholder={t('form.descriptionPlaceholder')} {...field} />
                   </FormControl>
-                  <FormMessage />
+                  <CalendarFormMessage />
                 </FormItem>
               )}
             />
@@ -473,11 +493,11 @@ export function EventCreateDialog({
                 name="start_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date & Time</FormLabel>
+                    <FormLabel>{t('form.start')}</FormLabel>
                     <FormControl>
                       <Input type="datetime-local" {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <CalendarFormMessage />
                   </FormItem>
                 )}
               />
@@ -487,11 +507,11 @@ export function EventCreateDialog({
                 name="end_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Date & Time</FormLabel>
+                    <FormLabel>{t('form.end')}</FormLabel>
                     <FormControl>
                       <Input type="datetime-local" {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <CalendarFormMessage />
                   </FormItem>
                 )}
               />
@@ -502,11 +522,11 @@ export function EventCreateDialog({
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location</FormLabel>
+                  <FormLabel>{t('form.location')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter event location" {...field} />
+                    <Input placeholder={t('form.locationPlaceholder')} {...field} />
                   </FormControl>
-                  <FormMessage />
+                  <CalendarFormMessage />
                 </FormItem>
               )}
             />
@@ -517,15 +537,15 @@ export function EventCreateDialog({
                 name="case_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Related Case</FormLabel>
+                    <FormLabel>{t('form.relatedCase')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a case" />
+                          <SelectValue placeholder={t('form.casePlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No case</SelectItem>
+                        <SelectItem value="none">{t('form.noCase')}</SelectItem>
                         {cases.map((case_: Case) => (
                           <SelectItem key={case_.id} value={case_.id}>
                             {case_.title}
@@ -533,7 +553,7 @@ export function EventCreateDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <CalendarFormMessage />
                   </FormItem>
                 )}
               />
@@ -543,15 +563,15 @@ export function EventCreateDialog({
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Related Client</FormLabel>
+                    <FormLabel>{t('form.relatedClient')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a client" />
+                          <SelectValue placeholder={t('form.clientPlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No client</SelectItem>
+                        <SelectItem value="none">{t('form.noClient')}</SelectItem>
                         {clients.map((client: Client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}
@@ -559,7 +579,7 @@ export function EventCreateDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <CalendarFormMessage />
                   </FormItem>
                 )}
               />
@@ -578,7 +598,7 @@ export function EventCreateDialog({
                 />
                 <Label htmlFor="is_recurring" className="flex items-center gap-2 cursor-pointer">
                   <Repeat className="h-4 w-4" />
-                  Recurring Event
+                  {t('recurrence.recurringEvent')}
                 </Label>
               </div>
               {isRecurring && (
@@ -589,7 +609,7 @@ export function EventCreateDialog({
                       name="recurrence_frequency"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Frequency</FormLabel>
+                          <FormLabel>{t('recurrence.frequency')}</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -597,13 +617,13 @@ export function EventCreateDialog({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="yearly">Yearly</SelectItem>
+                              <SelectItem value="daily">{t('recurrence.daily')}</SelectItem>
+                              <SelectItem value="weekly">{t('recurrence.weekly')}</SelectItem>
+                              <SelectItem value="monthly">{t('recurrence.monthly')}</SelectItem>
+                              <SelectItem value="yearly">{t('recurrence.yearly')}</SelectItem>
                             </SelectContent>
                           </Select>
-                          <FormMessage />
+                          <CalendarFormMessage />
                         </FormItem>
                       )}
                     />
@@ -612,7 +632,7 @@ export function EventCreateDialog({
                       name="recurrence_interval"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Repeat Every</FormLabel>
+                          <FormLabel>{t('recurrence.repeatEvery')}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -621,7 +641,7 @@ export function EventCreateDialog({
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                             />
                           </FormControl>
-                          <FormMessage />
+                          <CalendarFormMessage />
                         </FormItem>
                       )}
                     />
@@ -631,11 +651,11 @@ export function EventCreateDialog({
                     name="recurrence_end_date"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End Date (Optional)</FormLabel>
+                        <FormLabel>{t('recurrence.endDate')}</FormLabel>
                         <FormControl>
                           <Input type="datetime-local" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <CalendarFormMessage />
                       </FormItem>
                     )}
                   />
@@ -647,17 +667,17 @@ export function EventCreateDialog({
             <div className="space-y-3 border-t pt-4">
               <Label className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
-                Reminders
+                {t('reminders.title')}
               </Label>
               <div className="space-y-2">
                 {[15, 30, 60, 1440].map((minutes) => {
                   const reminder = reminders.find((r) => r.minutes === minutes);
                   const label =
                     minutes < 60
-                      ? `${minutes} minutes before`
+                      ? t('reminders.minutesBefore', { count: minutes })
                       : minutes === 60
-                        ? '1 hour before'
-                        : '1 day before';
+                        ? t('reminders.hoursBefore', { count: 1 })
+                        : t('reminders.daysBefore', { count: 1 });
 
                   return (
                     <div key={minutes} className="flex items-center justify-between">
@@ -698,9 +718,9 @@ export function EventCreateDialog({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="in_app">In-App</SelectItem>
-                            <SelectItem value="email">Email</SelectItem>
-                            <SelectItem value="both">Both</SelectItem>
+                            <SelectItem value="in_app">{t('reminders.methods.in_app')}</SelectItem>
+                            <SelectItem value="email">{t('reminders.methods.email')}</SelectItem>
+                            <SelectItem value="both">{t('reminders.methods.both')}</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -712,16 +732,16 @@ export function EventCreateDialog({
 
             {/* Attendees Section */}
             <div className="space-y-3 border-t pt-4">
-              <FormLabel>Attendees</FormLabel>
+              <FormLabel>{t('form.attendees')}</FormLabel>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Add team member email"
+                  placeholder={t('form.attendeePlaceholder')}
                   value={newAttendee}
                   onChange={(e) => setNewAttendee(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAttendee())}
                 />
                 <Button type="button" onClick={addAttendee} variant="outline">
-                  Add
+                  {t('common:actions.add')}
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -744,10 +764,10 @@ export function EventCreateDialog({
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
+                {t('common:actions.cancel')}
               </Button>
               <Button type="submit" disabled={createEvent.isPending}>
-                {createEvent.isPending ? 'Creating...' : 'Create Event'}
+                {createEvent.isPending ? t('create.creating') : t('create.submit')}
               </Button>
             </div>
           </form>

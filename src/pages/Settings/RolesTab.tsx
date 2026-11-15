@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { PlusCircleIcon, TrashIcon, UserIcon } from 'lucide-react';
 import {
   Card,
@@ -63,12 +65,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InviteUserDialog } from '@/components/InviteUserDialog';
 
-const roleSchema = z.object({
-  role_name: z.string().min(3, 'Role name must be at least 3 characters'),
-  description: z.string().optional(),
-});
+// Built inside the component so validation messages follow the UI language.
+const createRoleSchema = (t: TFunction) =>
+  z.object({
+    role_name: z.string().min(3, t('settings:roles.validation.roleNameMin')),
+    description: z.string().optional(),
+  });
 
-type RoleFormData = z.infer<typeof roleSchema>;
+type RoleFormData = z.infer<ReturnType<typeof createRoleSchema>>;
 
 export default function RolesTab() {
   const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
@@ -76,6 +80,10 @@ export default function RolesTab() {
   const { data: users = [], isLoading: usersLoading, error: usersError } = useUsersWithRoles();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('roles');
+  const { t } = useTranslation('settings');
+  const roleSchema = useMemo(() => createRoleSchema(t), [t]);
+  // Role codes are API values: translate known ones, show the stored name otherwise.
+  const roleLabel = (code: string) => t(`users:roles.${code}`, { defaultValue: code });
   const form = useForm<RoleFormData>({
     resolver: zodResolver(roleSchema),
     defaultValues: {
@@ -100,7 +108,7 @@ export default function RolesTab() {
   };
 
   const handleDeleteRole = (roleId: string, roleName: string) => {
-    if (confirm(`Are you sure you want to delete the "${roleName}" role?`)) {
+    if (confirm(t('roles.confirmDelete', { name: roleName }))) {
       deleteRole.mutateAsync(roleId);
     }
   };
@@ -110,15 +118,15 @@ export default function RolesTab() {
   };
 
   const systemRoles = [
-    { id: '1', name: 'superadmin', description: 'Full system access' },
-    { id: '2', name: 'admin', description: 'Organization administration' },
-    { id: '3', name: 'user', description: 'Regular user access' },
+    { id: '1', name: 'superadmin', description: t('roles.system.superadmin') },
+    { id: '2', name: 'admin', description: t('roles.system.admin') },
+    { id: '3', name: 'user', description: t('roles.system.user') },
   ];
 
   const allRoleOptions = [
-    { value: 'superadmin', label: 'Super Admin' },
-    { value: 'admin', label: 'Admin' },
-    { value: 'user', label: 'Regular User' },
+    { value: 'superadmin', label: t('roles.options.superadmin') },
+    { value: 'admin', label: t('roles.options.admin') },
+    { value: 'user', label: t('roles.options.user') },
     ...roles.map((role) => ({ value: role.role_name, label: role.role_name })),
   ];
 
@@ -133,7 +141,9 @@ export default function RolesTab() {
   };
 
   if (profileLoading || rolesLoading || usersLoading) {
-    return <div className="flex items-center justify-center p-8">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">{t('common:status.loading')}</div>
+    );
   }
 
   if (profileError || usersError) {
@@ -141,7 +151,7 @@ export default function RolesTab() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          There was an error loading role information. Please try refreshing the page.
+          {t('roles.loadError')}
         </AlertDescription>
       </Alert>
     );
@@ -153,8 +163,7 @@ export default function RolesTab() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Only administrators can manage roles. Contact your organization administrator for
-            access.
+            {t('roles.adminOnly')}
           </AlertDescription>
         </Alert>
       )}
@@ -166,14 +175,14 @@ export default function RolesTab() {
           onClick={() => setActiveSection('roles')}
           className="rounded-b-none"
         >
-          Roles
+          {t('roles.sections.roles')}
         </Button>
         <Button
           variant={activeSection === 'users' ? 'default' : 'ghost'}
           onClick={() => setActiveSection('users')}
           className="rounded-b-none"
         >
-          Users
+          {t('roles.sections.users')}
         </Button>
       </div>
 
@@ -182,15 +191,15 @@ export default function RolesTab() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>System Roles</CardTitle>
-              <CardDescription>Default roles provided by the system</CardDescription>
+              <CardTitle>{t('roles.system.title')}</CardTitle>
+              <CardDescription>{t('roles.system.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Role Name</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead>{t('roles.roleName')}</TableHead>
+                    <TableHead>{t('common:fields.description')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,9 +208,9 @@ export default function RolesTab() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <UserIcon className="h-4 w-4" />
-                          <span className="capitalize">{role.name}</span>
+                          <span>{roleLabel(role.name)}</span>
                           <Badge variant="default" className="ml-2">
-                            System
+                            {t('roles.system.badge')}
                           </Badge>
                         </div>
                       </TableCell>
@@ -216,8 +225,8 @@ export default function RolesTab() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Custom Roles</CardTitle>
-                <CardDescription>Organization-specific roles</CardDescription>
+                <CardTitle>{t('roles.custom.title')}</CardTitle>
+                <CardDescription>{t('roles.custom.description')}</CardDescription>
               </div>
 
               {isCurrentUserSuperAdmin && (
@@ -225,13 +234,13 @@ export default function RolesTab() {
                   <DialogTrigger asChild>
                     <Button size="sm">
                       <PlusCircleIcon className="h-4 w-4 mr-2" />
-                      Add Role
+                      {t('roles.custom.add')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Create New Role</DialogTitle>
-                      <DialogDescription>Add a new role to your organization</DialogDescription>
+                      <DialogTitle>{t('roles.create.title')}</DialogTitle>
+                      <DialogDescription>{t('roles.create.description')}</DialogDescription>
                     </DialogHeader>
 
                     <Form {...form}>
@@ -241,11 +250,11 @@ export default function RolesTab() {
                           name="role_name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Role Name</FormLabel>
+                              <FormLabel>{t('roles.roleName')}</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g. Legal Assistant" />
+                                <Input {...field} placeholder={t('roles.create.namePlaceholder')} />
                               </FormControl>
-                              <FormDescription>A unique name for this role</FormDescription>
+                              <FormDescription>{t('roles.create.nameHelp')}</FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -256,11 +265,11 @@ export default function RolesTab() {
                           name="description"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Description</FormLabel>
+                              <FormLabel>{t('common:fields.description')}</FormLabel>
                               <FormControl>
                                 <Textarea
                                   {...field}
-                                  placeholder="Describe the permissions and responsibilities of this role"
+                                  placeholder={t('roles.create.descriptionPlaceholder')}
                                   rows={3}
                                 />
                               </FormControl>
@@ -270,7 +279,7 @@ export default function RolesTab() {
                         />
 
                         <DialogFooter>
-                          <Button type="submit">Create Role</Button>
+                          <Button type="submit">{t('roles.create.submit')}</Button>
                         </DialogFooter>
                       </form>
                     </Form>
@@ -282,18 +291,16 @@ export default function RolesTab() {
             <CardContent>
               {roles.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
-                  No custom roles have been created yet.
-                  {isCurrentUserSuperAdmin && (
-                    <p className="mt-2">Click "Add Role" to create your first custom role.</p>
-                  )}
+                  {t('roles.custom.empty')}
+                  {isCurrentUserSuperAdmin && <p className="mt-2">{t('roles.custom.emptyHint')}</p>}
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Role Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      {isCurrentUserSuperAdmin && <TableHead>Actions</TableHead>}
+                      <TableHead>{t('roles.roleName')}</TableHead>
+                      <TableHead>{t('common:fields.description')}</TableHead>
+                      {isCurrentUserSuperAdmin && <TableHead>{t('roles.actions')}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -321,8 +328,7 @@ export default function RolesTab() {
 
             <CardFooter>
               <p className="text-xs text-muted-foreground">
-                Custom roles allow you to create organization-specific access levels beyond the
-                standard system roles.
+                {t('roles.custom.footer')}
               </p>
             </CardFooter>
           </Card>
@@ -334,8 +340,8 @@ export default function RolesTab() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Team Members</CardTitle>
-              <CardDescription>Manage user roles for your team members</CardDescription>
+              <CardTitle>{t('roles.team.title')}</CardTitle>
+              <CardDescription>{t('roles.team.description')}</CardDescription>
             </div>
 
             {isCurrentUserAdmin && (
@@ -346,17 +352,17 @@ export default function RolesTab() {
           <CardContent>
             {users.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
-                No users found in your organization.
+                {t('roles.team.empty')}
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Title</TableHead>
-                    {isCurrentUserAdmin && <TableHead>Role</TableHead>}
+                    <TableHead>{t('common:fields.name')}</TableHead>
+                    <TableHead>{t('common:fields.email')}</TableHead>
+                    <TableHead>{t('common:fields.department')}</TableHead>
+                    <TableHead>{t('roles.team.jobTitle')}</TableHead>
+                    {isCurrentUserAdmin && <TableHead>{t('common:fields.role')}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -379,7 +385,7 @@ export default function RolesTab() {
                             </div>
                             {user.user_id === profile?.user_id && (
                               <Badge variant="outline" className="text-xs">
-                                You
+                                {t('roles.team.you')}
                               </Badge>
                             )}
                           </div>
@@ -397,7 +403,7 @@ export default function RolesTab() {
                               disabled={!isCurrentUserSuperAdmin && user.role === 'superadmin'}
                             >
                               <SelectTrigger className="w-[130px]">
-                                <SelectValue placeholder="Select role" />
+                                <SelectValue placeholder={t('roles.team.selectRole')} />
                               </SelectTrigger>
                               <SelectContent>
                                 {allRoleOptions.map((option) => (
@@ -408,7 +414,7 @@ export default function RolesTab() {
                               </SelectContent>
                             </Select>
                           ) : (
-                            <div className="capitalize">{user.role}</div>
+                            <div>{roleLabel(user.role)}</div>
                           )}
                         </TableCell>
                       )}
@@ -422,8 +428,8 @@ export default function RolesTab() {
           <CardFooter>
             <p className="text-xs text-muted-foreground">
               {isCurrentUserAdmin
-                ? 'As an administrator, you can change user roles to control access levels.'
-                : 'Contact an administrator to change user roles.'}
+                ? t('roles.team.footerAdmin')
+                : t('roles.team.footerUser')}
             </p>
           </CardFooter>
         </Card>

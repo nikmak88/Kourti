@@ -1,0 +1,231 @@
+{
+  "list": {
+    "title": "Matters",
+    "description": "Manage and track all your legal matters",
+    "bulkImport": "Bulk Import",
+    "newMatter": "New Matter",
+    "allMatters_one": "All Matters ({{count}})",
+    "allMatters_other": "All Matters ({{count}})",
+    "allMattersDescription": "Overview of all matters in your organization",
+    "loadFailedTitle": "Failed to load matters",
+    "loadFailedMessage": "An unexpected error occurred while loading matters.",
+    "unknownClient": "Unknown Client",
+    "unassigned": "Unassigned",
+    "noDateSet": "No date set",
+    "columns": {
+      "name": "Matter Name",
+      "actions": "Actions"
+    },
+    "actions": {
+      "viewDetails": "View Details",
+      "edit": "Edit Matter",
+      "viewDocuments": "View Documents",
+      "delete": "Delete Matter"
+    },
+    "deleteDialog": {
+      "title": "Are you absolutely sure?",
+      "description": "This action cannot be undone. This will permanently delete the matter and remove all associated data."
+    },
+    "emptyFiltered": "No matters found matching your criteria.",
+    "empty": {
+      "title": "No matters yet",
+      "description": "Get started by creating your first matter to track legal cases and manage client work.",
+      "action": "Create First Matter"
+    },
+    "noMatches": {
+      "title": "No matching matters",
+      "description": "No matters match your current filters. Try adjusting your search or filter criteria.",
+      "action": "Clear Filters"
+    },
+    "pageOf": "Page {{page}} of {{total}}"
+  },
+  "filters": {
+    "searchPlaceholder": "Search matters, clients, or IDs...",
+    "searchDefault": "Search...",
+    "allStatuses": "All Status",
+    "allPriorities": "All Priorities",
+    "clientLabel": "Client:"
+  },
+  "status": {
+    "open": "Open",
+    "active": "Active",
+    "review": "Review",
+    "draft": "Draft",
+    "closed": "Closed",
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "on_hold": "On hold",
+    "completed": "Completed",
+    "archived": "Archived"
+  },
+  "toast": {
+    "loadFailedDescription": "Failed to load matters. Please try again.",
+    "deletedTitle": "Matter Deleted",
+    "deletedDescription": "The matter has been successfully deleted.",
+    "deleteFailedTitle": "Deletion Failed",
+    "deleteFailedDescription": "Could not delete the matter. Please try again."
+  },
+  "validation": {
+    "titleRequired": "Matter title is required",
+    "statusRequired": "Status is required",
+    "priorityRequired": "Priority is required",
+    "typeRequired": "Matter type is required"
+  },
+  "form": {
+    "titleLabel": "Matter Title",
+    "titlePlaceholder": "Enter matter title",
+    "numberLabel": "Matter Number",
+    "numberPlaceholder": "Auto-generated if empty",
+    "clientPlaceholder": "Select a client",
+    "statusPlaceholder": "Select status",
+    "priorityPlaceholder": "Select priority",
+    "descriptionPlaceholder": "Enter matter description",
+    "typeLabel": "Matter Type",
+    "typePlaceholder": "Select matter type",
+    "issueLabel": "Matter Issue",
+    "issuePlaceholder": "Select matter issue",
+    "issuesLoading": "Loading issues...",
+    "noIssues": "No issues available for this matter type",
+    "courtLabel": "Court",
+    "courtPlaceholder": "Enter court name",
+    "nextHearingLabel": "Next Hearing Date",
+    "pickDate": "Pick a date"
+  },
+  "create": {
+    "title": "Create New Matter",
+    "description": "Add a new matter to your organization",
+    "detailsCard": "Matter Details",
+    "optionalSection": "Optional Information",
+    "submit": "Create Matter",
+    "submitting": "Creating..."
+  },
+  "edit": {
+    "loadFailed": "Could not load case for editing.",
+    "backToMatter": "Back to Matter",
+    "title": "Edit Matter: {{title}}",
+    "cardTitle": "Edit Matter Information",
+    "saveChanges": "Save Changes"
+  },
+  "details": {
+    "notFoundTitle": "Matter Not Found",
+    "notFoundDescription": "The matter you're looking for doesn't exist or you don't have access to it.",
+    "backToMatters": "Back to Matters",
+    "number": "Matter #{{number}}",
+    "priorityBadge": "{{priority}} Priority",
+    "nextHearingOn": "Next hearing {{date}}",
+    "progress": "Progress",
+    "quickActions": {
+      "title": "Quick Actions",
+      "scheduleEvent": "Schedule Event"
+    },
+    "info": {
+      "title": "Matter Information",
+      "nextHearing": "Next Hearing"
+    },
+    "portal": {
+      "title": "Client Portal",
+      "privateBadge": "Private — hidden from client portal",
+      "publicBadge": "Public — visible to client",
+      "publishing": "Publishing…",
+      "makePublic": "Make Public",
+      "hiding": "Hiding…",
+      "makePrivate": "Make Private",
+      "privateHelp": "This matter is hidden from the client portal. Make it public to share progress with the client.",
+      "publicHelp": "This matter is visible to the client in their portal.",
+      "planFeature": "{{feature}} is a {{plan}} feature",
+      "upgradeDescription": "Upgrade your plan to give clients secure portal access, timelines, shared documents, and AI-drafted progress updates.",
+      "upgradeTo": "Upgrade to {{plan}}"
+    },
+    "documents": {
+      "title": "Matter Documents",
+      "attach": "Attach Document",
+      "attachTitle": "Attach Document to Case",
+      "loading": "Loading documents…",
+      "empty": "No documents attached to this case",
+      "uploadedOn": "Uploaded {{date}}",
+      "sizeKb": "{{size}} KB",
+      "dropHint": "Drag and drop a file here, or",
+      "browse": "Browse Files",
+      "supportedFormats": "Supported formats: PDF, Word documents, images, and text files",
+      "uploading": "Uploading..."
+    }
+  },
+  "activities": {
+    "title": "Activities",
+    "pageTitle": "Matter Activities",
+    "add": "Add Activity",
+    "new": "New Activity",
+    "createTitle": "Create Activity",
+    "creating": "Creating...",
+    "loading": "Loading activities…",
+    "empty": "No activities for this case",
+    "emptyAll": "No activities yet.",
+    "dueOn": "Due: {{date}}",
+    "assignedTo": "Assigned to: {{name}}",
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "types": {
+      "hearing": "Court Hearing",
+      "meeting": "Meeting",
+      "deposition": "Deposition",
+      "research": "Legal Research",
+      "filing": "Court Filing",
+      "negotiation": "Negotiation",
+      "investigation": "Investigation",
+      "document_review": "Document Review",
+      "mediation": "Mediation",
+      "consultation": "Consultation",
+      "preparation": "Case Preparation",
+      "follow_up": "Follow-up",
+      "court": "Court",
+      "documentation": "Documentation",
+      "communication": "Communication",
+      "other": "Other"
+    },
+    "toast": {
+      "missingInfoTitle": "Missing info",
+      "missingInfoDescription": "Please fill in title and description",
+      "created": "Activity created",
+      "createFailed": "Failed to create activity"
+    },
+    "dialog": {
+      "createTitle": "Create New Activity",
+      "editTitle": "Edit Activity",
+      "createDescription": "Fill in the details below to create a new activity.",
+      "editDescription": "Fill in the details below to update the activity.",
+      "titleLabel": "Activity Title",
+      "titlePlaceholder": "Enter activity title",
+      "typeLabel": "Activity Type",
+      "typePlaceholder": "Select activity type",
+      "assignTo": "Assign To",
+      "assigneePlaceholder": "Select assignee",
+      "descriptionPlaceholder": "Enter activity description (optional)",
+      "submitCreate": "Create Activity"
+    }
+  },
+  "matterTypes": {
+    "addTitle": "Add New Case Type",
+    "namePlaceholder": "Enter case type name",
+    "descriptionPlaceholder": "Enter description (optional)",
+    "create": "Create Case Type",
+    "creating": "Creating...",
+    "selectPlaceholder": "Select case type",
+    "addNew": "Add new case type",
+    "loading": "Loading case types...",
+    "noneAvailable": "No case types available",
+    "loadFailed": "Error loading case types",
+    "emptyHint": "No case types yet. Use “{{addNew}}” above to create one for your firm.",
+    "validation": {
+      "nameRequired": "Name is required"
+    },
+    "toast": {
+      "organizationRequired": "Organization ID is required to create a case type",
+      "created": "Case type \"{{name}}\" created successfully",
+      "createFailed": "Failed to create case type"
+    }
+  }
+}

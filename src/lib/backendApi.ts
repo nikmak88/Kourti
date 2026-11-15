@@ -1,5 +1,6 @@
 import { env } from '@/lib/env';
 import { getAccessToken, refreshSession } from '@/lib/authClient';
+import { currentLanguage } from '@/i18n';
 
 type QueryValue = string | number | boolean | null | undefined;
 
@@ -74,6 +75,8 @@ export async function invokeNodeApi<T>(
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
+      // UI language, so the backend can reply (AI) in it.
+      'Accept-Language': currentLanguage(),
       ...(options?.headers || {}),
     },
     body: options?.body ? JSON.stringify(options.body) : undefined,

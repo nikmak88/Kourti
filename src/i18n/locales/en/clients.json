@@ -1,0 +1,163 @@
+{
+  "list": {
+    "title": "Clients",
+    "description": "Manage your client database and relationships",
+    "loadFailed": "Failed to load clients",
+    "loadFailedDescription": "An unexpected error occurred while loading clients.",
+    "newClient": "New Client",
+    "bulkImport": "Bulk Import",
+    "metrics": {
+      "totalClients": "Total Clients",
+      "activeClients": "Active Clients",
+      "totalCases": "Total Cases",
+      "totalContracts": "Total Contracts"
+    },
+    "searchPlaceholder": "Search clients, contacts, or email...",
+    "allStatuses": "All Status",
+    "directory": "Client Directory",
+    "noEmail": "No email",
+    "individual": "Individual",
+    "columns": {
+      "cases": "Cases",
+      "actions": "Actions"
+    },
+    "noClientsFound": "No clients found",
+    "empty": {
+      "title": "No clients yet",
+      "description": "Get started by adding your first client to manage relationships and track legal matters.",
+      "action": "Add First Client"
+    },
+    "noMatch": {
+      "title": "No matching clients",
+      "description": "No clients match \"{{search}}\". Try adjusting your search or filters.",
+      "action": "Clear Filters"
+    }
+  },
+  "actions": {
+    "viewDetails": "View Details",
+    "editClient": "Edit Client",
+    "deleteClient": "Delete Client",
+    "viewMatters": "View Matters",
+    "viewContracts": "View Contracts"
+  },
+  "status": {
+    "prospective": "Prospective"
+  },
+  "validation": {
+    "nameRequired": "Client name is required",
+    "statusRequired": "Status is required",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Enter a valid email address"
+  },
+  "form": {
+    "cardTitle": "Client Details",
+    "nameLabel": "Client Name",
+    "namePlaceholder": "Enter client name",
+    "companyPlaceholder": "Enter company name",
+    "emailPlaceholder": "Enter email address",
+    "phonePlaceholder": "Enter phone number",
+    "statusPlaceholder": "Select status",
+    "addressPlaceholder": "Enter client address",
+    "notesPlaceholder": "Enter any additional notes"
+  },
+  "create": {
+    "title": "Create New Client",
+    "description": "Add a new client to your organization",
+    "submit": "Create Client",
+    "submitting": "Creating..."
+  },
+  "edit": {
+    "description": "Update {{name}}'s information",
+    "submit": "Update Client",
+    "submitting": "Updating..."
+  },
+  "delete": {
+    "confirmDescription": "Are you sure you want to delete {{name}}? This action cannot be undone."
+  },
+  "details": {
+    "notFound": "Client not found",
+    "backToClients": "Back to Clients",
+    "moreActions": "More actions",
+    "createMatter": "Create New Matter",
+    "createContract": "Create New Contract",
+    "sendEmail": "Send Email",
+    "exportData": "Export Data",
+    "clientSince": "Client since {{date}}",
+    "tabs": {
+      "overview": "Overview",
+      "matters": "Matters ({{count}})",
+      "contracts": "Contracts ({{count}})"
+    },
+    "contactInfo": "Contact Information",
+    "notProvided": "Not provided",
+    "noNotes": "No notes available",
+    "commLog": {
+      "title": "Communication Log ({{count}})",
+      "typeLabel": "Log type",
+      "types": {
+        "email": "Email",
+        "phone": "Phone",
+        "note": "Note"
+      },
+      "placeholder": "Enter communication details...",
+      "detailsLabel": "Communication details",
+      "add": "Add Log",
+      "empty": "No communications logged yet."
+    },
+    "atAGlance": "At a glance",
+    "calendarEvents": "Calendar Events ({{count}})",
+    "noEvents": "No events scheduled",
+    "documents": "Documents ({{count}})",
+    "noDocuments": "No documents uploaded",
+    "newMatter": "New Matter",
+    "noMatters": "No matters for this client",
+    "createFirstMatter": "Create First Matter",
+    "nextHearing": "Next Hearing",
+    "newContract": "New Contract",
+    "noContracts": "No contracts for this client",
+    "createFirstContract": "Create First Contract",
+    "untitled": "Untitled"
+  },
+  "portal": {
+    "title": "Client Portal",
+    "enable": "Enable client portal",
+    "disable": "Disable client portal",
+    "disableShort": "Disable",
+    "disableAccess": "Disable access",
+    "disableConfirmTitle": "Disable client portal?",
+    "disableConfirmDescription": "This revokes {{name}}'s access to the client portal. They will no longer be able to sign in or view case updates. You can re-enable access at any time.",
+    "disableConfirmDescriptionShort": "The client will lose access to their portal and will no longer be able to view their shared matters. You can re-enable access at any time.",
+    "emailRequired": "An email address is required to enable the client portal",
+    "emailRequiredLong": "An email address is required. Add one on the client profile to enable the portal.",
+    "resendInvite": "Resend invite",
+    "invitationEmail": "Invitation email",
+    "loading": "Loading portal status…",
+    "unavailable": "Portal status is unavailable right now.",
+    "badge": {
+      "active": "Portal active",
+      "invited": "Portal invited",
+      "off": "Portal off"
+    },
+    "state": {
+      "active": {
+        "title": "Portal is active",
+        "lastSignIn": "Last signed in {{date}}.",
+        "description": "The client can sign in and view their shared matters."
+      },
+      "pending": {
+        "title": "Invite sent — awaiting acceptance",
+        "description": "The client has been invited and needs to accept and verify their email."
+      },
+      "none": {
+        "badge": "Not enabled",
+        "title": "Portal not enabled",
+        "description": "Enable the portal to give this client secure access to their shared matters."
+      }
+    },
+    "sharedMatters": "Matters in this client's portal ({{count}})",
+    "sharedMattersHelp": "Public matters are visible to the client in their portal; private matters stay hidden. The Public/Private toggle lives on each matter's page.",
+    "noMatters": "This client has no matters yet.",
+    "private": "Private",
+    "public": "Public"
+  }
+}

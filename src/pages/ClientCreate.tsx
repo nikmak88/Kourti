@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,17 +29,22 @@ import { ArrowLeft } from 'lucide-react';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
 
-const clientSchema = z.object({
-  name: z.string().min(1, 'Client name is required'),
-  status: z.string().min(1, 'Status is required'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  company: z.string().optional(),
-  notes: z.string().optional(),
-});
+// Built inside the component so validation messages follow the UI language.
+const makeClientSchema = (t: TFunction) =>
+  z.object({
+    name: z.string().min(1, t('clients:validation.nameRequired')),
+    status: z.string().min(1, t('clients:validation.statusRequired')),
+    email: z
+      .string()
+      .min(1, t('clients:validation.emailRequired'))
+      .email(t('clients:validation.emailInvalid')),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    company: z.string().optional(),
+    notes: z.string().optional(),
+  });
 
-type ClientFormData = z.infer<typeof clientSchema>;
+type ClientFormData = z.infer<ReturnType<typeof makeClientSchema>>;
 
 interface ClientCreateProps {
   onSuccess?: (client: { id: string; name: string }) => void;
@@ -46,6 +54,8 @@ interface ClientCreateProps {
 export default function ClientCreate({ onSuccess, showHeader = true }: ClientCreateProps) {
   const navigate = useNavigate();
   const createClient = useCreateClient();
+  const { t } = useTranslation('clients');
+  const clientSchema = useMemo(() => makeClientSchema(t), [t]);
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -95,9 +105,9 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              Create New Client
+              {t('create.title')}
             </h1>
-            <p className="text-muted-foreground">Add a new client to your organization</p>
+            <p className="text-muted-foreground">{t('create.description')}</p>
           </div>
         </div>
       )}
@@ -105,7 +115,7 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
       {/* Form */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Client Details</CardTitle>
+          <CardTitle>{t('form.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -116,9 +126,9 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client Name *</FormLabel>
+                      <FormLabel>{t('form.nameLabel')} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter client name" {...field} />
+                        <Input placeholder={t('form.namePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -130,9 +140,9 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                   name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company</FormLabel>
+                      <FormLabel>{t('common:fields.company')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter company name" {...field} />
+                        <Input placeholder={t('form.companyPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -144,9 +154,9 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email *</FormLabel>
+                      <FormLabel>{t('common:fields.email')} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter email address" type="email" {...field} />
+                        <Input placeholder={t('form.emailPlaceholder')} type="email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -158,9 +168,9 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>{t('common:fields.phone')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
+                        <Input placeholder={t('form.phonePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -172,17 +182,17 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status</FormLabel>
+                      <FormLabel>{t('common:fields.status')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder={t('form.statusPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="prospective">Prospective</SelectItem>
+                          <SelectItem value="active">{t('common:status.active')}</SelectItem>
+                          <SelectItem value="inactive">{t('common:status.inactive')}</SelectItem>
+                          <SelectItem value="prospective">{t('status.prospective')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -196,10 +206,10 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel>{t('common:fields.address')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter client address"
+                        placeholder={t('form.addressPlaceholder')}
                         className="min-h-[80px]"
                         {...field}
                       />
@@ -214,10 +224,10 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes</FormLabel>
+                    <FormLabel>{t('common:fields.notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter any additional notes"
+                        placeholder={t('form.notesPlaceholder')}
                         className="min-h-[100px]"
                         {...field}
                       />
@@ -233,10 +243,10 @@ export default function ClientCreate({ onSuccess, showHeader = true }: ClientCre
                   variant="outline"
                   onClick={() => (showHeader ? navigate('/clients') : undefined)}
                 >
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
                 <Button type="submit" disabled={createClient.isPending}>
-                  {createClient.isPending ? 'Creating...' : 'Create Client'}
+                  {createClient.isPending ? t('create.submitting') : t('create.submit')}
                 </Button>
               </div>
             </form>

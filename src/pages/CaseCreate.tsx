@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import type { TFunction } from 'i18next';
 import { useCreateCase, type CreateCaseData } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { useCaseTypes } from '@/features/cases/api/useCaseTypes';
@@ -34,28 +35,33 @@ import {
 import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import { formatDate, dateLocale } from '@/i18n/dates';
 import { cn } from '@/lib/utils';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
 
-const caseSchema = z.object({
-  title: z.string().min(1, 'Matter title is required'),
-  status: z.string().min(1, 'Status is required'),
-  priority: z.string().min(1, 'Priority is required'),
-  description: z.string().optional(),
-  case_number: z.string().optional(),
-  client_id: z.string().optional(),
-  court: z.string().optional(),
-  next_hearing_date: z.date().optional(),
-  case_type_id: z.string().optional(),
-  case_issue_id: z.string().optional(),
-});
+// Built inside the component so validation messages follow the UI language.
+const makeCaseSchema = (t: TFunction) =>
+  z.object({
+    title: z.string().min(1, t('validation.titleRequired')),
+    status: z.string().min(1, t('validation.statusRequired')),
+    priority: z.string().min(1, t('validation.priorityRequired')),
+    description: z.string().optional(),
+    case_number: z.string().optional(),
+    client_id: z.string().optional(),
+    court: z.string().optional(),
+    next_hearing_date: z.date().optional(),
+    case_type_id: z.string().optional(),
+    case_issue_id: z.string().optional(),
+  });
 
-type CaseFormData = z.infer<typeof caseSchema>;
+type CaseFormData = z.infer<ReturnType<typeof makeCaseSchema>>;
 
 export default function CaseCreate() {
   const navigate = useNavigate();
+  const { t } = useTranslation('matters');
+  const caseSchema = useMemo(() => makeCaseSchema(t), [t]);
   const { data } = useClients();
   const clients = data?.items ?? [];
   const createCase = useCreateCase();
@@ -104,7 +110,7 @@ export default function CaseCreate() {
     try {
       // Validate required fields
       if (!caseTypeId) {
-        form.setError('case_type_id', { message: 'Matter type is required' });
+        form.setError('case_type_id', { message: t('validation.typeRequired') });
         return;
       }
 
@@ -144,15 +150,15 @@ export default function CaseCreate() {
         </Button>
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            Create New Matter
+            {t('create.title')}
           </h1>
-          <p className="text-muted-foreground">Add a new matter to your organization</p>
+          <p className="text-muted-foreground">{t('create.description')}</p>
         </div>
       </div>
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Matter Details</CardTitle>
+          <CardTitle>{t('create.detailsCard')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -164,9 +170,9 @@ export default function CaseCreate() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Matter Title *</FormLabel>
+                      <FormLabel>{t('form.titleLabel')} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter matter title" {...field} />
+                        <Input placeholder={t('form.titlePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -178,9 +184,9 @@ export default function CaseCreate() {
                   name="case_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Matter Number</FormLabel>
+                      <FormLabel>{t('form.numberLabel')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Auto-generated if empty" {...field} />
+                        <Input placeholder={t('form.numberPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -192,11 +198,11 @@ export default function CaseCreate() {
                   name="client_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client</FormLabel>
+                      <FormLabel>{t('common:entities.client')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a client" />
+                            <SelectValue placeholder={t('form.clientPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -217,18 +223,18 @@ export default function CaseCreate() {
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status</FormLabel>
+                      <FormLabel>{t('common:fields.status')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder={t('form.statusPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="open">Open</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="review">Review</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
+                          <SelectItem value="open">{t('status.open')}</SelectItem>
+                          <SelectItem value="active">{t('status.active')}</SelectItem>
+                          <SelectItem value="review">{t('status.review')}</SelectItem>
+                          <SelectItem value="closed">{t('status.closed')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -241,17 +247,17 @@ export default function CaseCreate() {
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Priority</FormLabel>
+                      <FormLabel>{t('common:fields.priority')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
+                            <SelectValue placeholder={t('form.priorityPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="low">{t('common:priority.low')}</SelectItem>
+                          <SelectItem value="medium">{t('common:priority.medium')}</SelectItem>
+                          <SelectItem value="high">{t('common:priority.high')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -265,10 +271,10 @@ export default function CaseCreate() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{t('common:fields.description')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter matter description"
+                        placeholder={t('form.descriptionPlaceholder')}
                         className="min-h-[100px]"
                         {...field}
                       />
@@ -286,7 +292,7 @@ export default function CaseCreate() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        Matter Type <span className="text-red-500">*</span>
+                        {t('form.typeLabel')} <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <CaseTypeSelector
@@ -323,7 +329,10 @@ export default function CaseCreate() {
                     name="case_issue_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Matter Issue{caseIssues.length > 0 ? ' *' : ''}</FormLabel>
+                        <FormLabel>
+                          {t('form.issueLabel')}
+                          {caseIssues.length > 0 ? ' *' : ''}
+                        </FormLabel>
                         <FormControl>
                           <Select
                             value={caseIssueId}
@@ -338,14 +347,14 @@ export default function CaseCreate() {
                             <SelectTrigger>
                               <SelectValue
                                 placeholder={
-                                  isLoadingCaseIssues ? 'Loading issues...' : 'Select matter issue'
+                                  isLoadingCaseIssues ? t('form.issuesLoading') : t('form.issuePlaceholder')
                                 }
                               />
                             </SelectTrigger>
                             <SelectContent>
                               {isLoadingCaseIssues ? (
                                 <SelectItem value="loading" disabled>
-                                  Loading issues...
+                                  {t('form.issuesLoading')}
                                 </SelectItem>
                               ) : caseIssues.length > 0 ? (
                                 caseIssues.map((issue) => (
@@ -355,7 +364,7 @@ export default function CaseCreate() {
                                 ))
                               ) : (
                                 <SelectItem value="none" disabled>
-                                  No issues available for this matter type
+                                  {t('form.noIssues')}
                                 </SelectItem>
                               )}
                             </SelectContent>
@@ -385,16 +394,16 @@ export default function CaseCreate() {
 
               {/* Optional Fields Section */}
               <div className="border-t pt-6 mt-6">
-                <h3 className="text-lg font-medium mb-4 text-foreground">Optional Information</h3>
+                <h3 className="text-lg font-medium mb-4 text-foreground">{t('create.optionalSection')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="court"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Court</FormLabel>
+                        <FormLabel>{t('form.courtLabel')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter court name" {...field} />
+                          <Input placeholder={t('form.courtPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -406,7 +415,7 @@ export default function CaseCreate() {
                     name="next_hearing_date"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Next Hearing Date</FormLabel>
+                        <FormLabel>{t('form.nextHearingLabel')}</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -419,9 +428,9 @@ export default function CaseCreate() {
                               >
                                 {' '}
                                 {field.value ? (
-                                  format(field.value, 'PPP')
+                                  formatDate(field.value, 'PPP')
                                 ) : (
-                                  <span>Pick a date</span>
+                                  <span>{t('form.pickDate')}</span>
                                 )}{' '}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />{' '}
                               </Button>
@@ -434,6 +443,7 @@ export default function CaseCreate() {
                               onSelect={field.onChange}
                               disabled={(d) => d < new Date()}
                               initialFocus
+                              locale={dateLocale()}
                             />
                           </PopoverContent>
                         </Popover>
@@ -446,10 +456,10 @@ export default function CaseCreate() {
 
               <div className="flex justify-end gap-4">
                 <Button type="button" variant="outline" onClick={() => navigate('/matters')}>
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
                 <Button type="submit" disabled={createCase.isPending}>
-                  {createCase.isPending ? 'Creating...' : 'Create Matter'}
+                  {createCase.isPending ? t('create.submitting') : t('create.submit')}
                 </Button>
               </div>
             </form>

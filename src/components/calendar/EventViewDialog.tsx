@@ -14,6 +14,8 @@ import { Clock, MapPin, Users, FileText, Edit, Trash2, User } from 'lucide-react
 import { useDeleteCalendarEvent } from '@/hooks/useCalendar';
 import { toast } from 'sonner';
 import { EventEditDialog } from './EventEditDialog';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '@/i18n/dates';
 
 interface EventViewDialogProps {
   event: CalendarEvent | CalendarEventWithOwner | null;
@@ -24,6 +26,7 @@ interface EventViewDialogProps {
 export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const deleteEvent = useDeleteCalendarEvent();
+  const { t } = useTranslation('calendar');
 
   if (!event) return null;
 
@@ -51,8 +54,8 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
       await deleteEvent.mutateAsync(event.id);
       onOpenChange(false);
     } catch {
-      toast.error('Error', {
-        description: 'Failed to delete event',
+      toast.error(t('common:toast.error'), {
+        description: t('view.deleteFailed'),
       });
     }
   };
@@ -75,10 +78,12 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
             <div className="flex items-center justify-between">
               <DialogTitle className="text-xl">{event.title}</DialogTitle>
               <Badge className={getEventTypeColor(event.event_type || 'meeting')}>
-                {event.event_type || 'event'}
+                {event.event_type
+                  ? t(`eventTypes.${event.event_type}`, { defaultValue: event.event_type })
+                  : t('eventTypes.event')}
               </Badge>
             </div>
-            <DialogDescription>Event details and information</DialogDescription>
+            <DialogDescription>{t('view.description')}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -87,10 +92,10 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">{format(new Date(event.start_date), 'PPP')}</p>
+                  <p className="text-sm font-medium">{format(new Date(event.start_date), 'PPP', { locale: dateLocale() })}</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(event.start_date), 'p')} -{' '}
-                    {format(new Date(event.end_date), 'p')}
+                    {format(new Date(event.start_date), 'p', { locale: dateLocale() })} -{' '}
+                    {format(new Date(event.end_date), 'p', { locale: dateLocale() })}
                   </p>
                 </div>
               </div>
@@ -106,7 +111,7 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Description</p>
+                    <p className="text-sm font-medium">{t('common:fields.description')}</p>
                     <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                   </div>
                 </div>
@@ -116,7 +121,7 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
                 <div className="flex items-start gap-3">
                   <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Attendees</p>
+                    <p className="text-sm font-medium">{t('form.attendees')}</p>
                     <div className="mt-2 space-y-1">
                       {event.attendees.map((attendee, index) => (
                         <div key={index} className="flex items-center gap-2">
@@ -135,15 +140,15 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Event
+                  {t('view.edit')}
                 </Button>
                 <Button variant="outline" onClick={handleDelete} disabled={deleteEvent.isPending}>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Event
+                  {t('view.delete')}
                 </Button>
               </div>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Close
+                {t('common:actions.close')}
               </Button>
             </div>
           </div>

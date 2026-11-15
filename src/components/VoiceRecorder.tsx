@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mic, MicOff, Square, Play, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +11,7 @@ interface VoiceRecorderProps {
 }
 
 export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecorderProps) {
+  const { t, i18n } = useTranslation('voice');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -59,8 +61,8 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
       if (!hasPermission) {
         await checkMicrophonePermission();
         if (!hasPermission) {
-          toast.error('Permission required', {
-            description: 'Microphone permission is required for voice recording',
+          toast.error(t('recorder.permissionRequired'), {
+            description: t('recorder.permissionRequiredDescription'),
           });
           return;
         }
@@ -99,10 +101,10 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
       mediaRecorder.start();
       setIsRecording(true);
       onRecordingChange?.(true);
-      toast.success('Recording started');
+      toast.success(t('recorder.toast.started'));
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast.error('Failed to start recording');
+      toast.error(t('recorder.toast.startFailed'));
     }
   };
 
@@ -111,7 +113,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       onRecordingChange?.(false);
-      toast.success('Recording stopped');
+      toast.success(t('recorder.toast.stopped'));
     }
   };
 
@@ -149,13 +151,15 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
 
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = 'en-US';
+        recognition.lang = i18n.language === 'el' ? 'el-GR' : 'en-US'; // follow the UI language
 
         // Handle recognition result
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
           onTranscription(transcript);
-          toast.success('Transcribed', { description: 'Audio transcribed successfully' });
+          toast.success(t('recorder.toast.transcribed'), {
+            description: t('recorder.toast.transcribedDescription'),
+          });
         };
 
         recognition.onerror = (event) => {
@@ -180,14 +184,12 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
   const fallbackTranscription = () => {
     // For now, we'll prompt the user to manually enter transcription
     // In a production app, you'd send the audio to a transcription service
-    const transcript = prompt(
-      'Please enter the transcription manually (automatic transcription not available):'
-    );
+    const transcript = prompt(t('recorder.manualPrompt'));
     if (transcript) {
       onTranscription(transcript);
-      toast.success('Transcription added');
+      toast.success(t('recorder.toast.added'));
     } else {
-      toast.error('No transcription provided');
+      toast.error(t('recorder.toast.noneProvided'));
     }
   };
 
@@ -204,7 +206,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
         <CardContent className="p-4">
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Checking microphone permissions...</span>
+            <span>{t('recorder.checkingPermission')}</span>
           </div>
         </CardContent>
       </Card>
@@ -218,10 +220,10 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
           <div className="text-center space-y-2">
             <MicOff className="h-8 w-8 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Microphone access is required for voice recording
+              {t('recorder.accessRequired')}
             </p>
             <Button size="sm" onClick={checkMicrophonePermission}>
-              Grant Permission
+              {t('recorder.grantPermission')}
             </Button>
           </div>
         </CardContent>
@@ -241,7 +243,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
                 size="lg"
               >
                 <Mic className="h-5 w-5 mr-2" />
-                Start Recording
+                {t('recorder.start')}
               </Button>
             ) : (
               <Button
@@ -251,7 +253,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
                 className="hover-scale"
               >
                 <Square className="h-5 w-5 mr-2" />
-                Stop Recording
+                {t('recorder.stop')}
               </Button>
             )}
           </div>
@@ -260,7 +262,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 text-red-500">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium">Recording in progress...</span>
+                <span className="text-sm font-medium">{t('recorder.inProgress')}</span>
               </div>
             </div>
           )}
@@ -269,7 +271,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
             <div className="text-center">
               <div className="flex items-center justify-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Transcribing audio...</span>
+                <span className="text-sm">{t('recorder.transcribing')}</span>
               </div>
             </div>
           )}
@@ -278,7 +280,7 @@ export function VoiceRecorder({ onTranscription, onRecordingChange }: VoiceRecor
             <div className="text-center">
               <Button variant="outline" onClick={playRecording} size="sm">
                 <Play className="h-4 w-4 mr-2" />
-                Play Recording
+                {t('recorder.play')}
               </Button>
             </div>
           )}

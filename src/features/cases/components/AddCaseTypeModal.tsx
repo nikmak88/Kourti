@@ -1,6 +1,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import type { TFunction } from 'i18next';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -24,14 +27,15 @@ import { useUserOrganization } from '@/hooks/useUserOrganization';
 import { useCreateCaseType } from '@/features/cases/api/createCaseType';
 import { Switch } from '@/components/ui/switch';
 
-// Schema for case type validation
-const caseTypeSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  is_active: z.boolean(),
-});
+// Schema for case type validation (built per render so messages follow the UI language)
+const makeCaseTypeSchema = (t: TFunction) =>
+  z.object({
+    name: z.string().min(1, t('matterTypes.validation.nameRequired')),
+    description: z.string().optional(),
+    is_active: z.boolean(),
+  });
 
-type CaseTypeFormValues = z.infer<typeof caseTypeSchema>;
+type CaseTypeFormValues = z.infer<ReturnType<typeof makeCaseTypeSchema>>;
 
 interface AddCaseTypeModalProps {
   isOpen: boolean;
@@ -43,6 +47,8 @@ interface AddCaseTypeModalProps {
  * Modal for adding a new case type
  */
 export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModalProps) {
+  const { t } = useTranslation('matters');
+  const caseTypeSchema = useMemo(() => makeCaseTypeSchema(t), [t]);
   const { data: organizationId } = useUserOrganization();
   const createCaseType = useCreateCaseType();
 
@@ -57,7 +63,7 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
 
   const onSubmit = async (data: CaseTypeFormValues) => {
     if (!organizationId) {
-      toast.error('Error', { description: 'Organization ID is required to create a case type' });
+      toast.error(t('common:toast.error'), { description: t('matterTypes.toast.organizationRequired') });
       return;
     }
 
@@ -69,7 +75,9 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
         is_active: data.is_active,
       });
 
-      toast.success('Success', { description: `Case type "${data.name}" created successfully` });
+      toast.success(t('common:toast.success'), {
+        description: t('matterTypes.toast.created', { name: data.name }),
+      });
 
       form.reset();
       onClose();
@@ -80,8 +88,8 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
       }
     } catch (error) {
       console.error('Error creating case type:', error);
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to create case type',
+      toast.error(t('common:toast.error'), {
+        description: error instanceof Error ? error.message : t('matterTypes.toast.createFailed'),
       });
     }
   };
@@ -90,7 +98,7 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Case Type</DialogTitle>
+          <DialogTitle>{t('matterTypes.addTitle')}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -100,9 +108,9 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name*</FormLabel>
+                  <FormLabel>{t('common:fields.name')}*</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter case type name" {...field} autoFocus />
+                    <Input placeholder={t('matterTypes.namePlaceholder')} {...field} autoFocus />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -114,9 +122,9 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('common:fields.description')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter description (optional)" {...field} rows={3} />
+                    <Textarea placeholder={t('matterTypes.descriptionPlaceholder')} {...field} rows={3} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -129,7 +137,7 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel>Active</FormLabel>
+                    <FormLabel>{t('common:status.active')}</FormLabel>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -145,10 +153,10 @@ export function AddCaseTypeModal({ isOpen, onClose, onSuccess }: AddCaseTypeModa
                 onClick={onClose}
                 disabled={createCaseType.isPending}
               >
-                Cancel
+                {t('common:actions.cancel')}
               </Button>
               <Button type="submit" disabled={createCaseType.isPending}>
-                {createCaseType.isPending ? 'Creating...' : 'Create Case Type'}
+                {createCaseType.isPending ? t('matterTypes.creating') : t('matterTypes.create')}
               </Button>
             </DialogFooter>
           </form>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   CardHeader,
@@ -33,6 +34,7 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { t } = useTranslation('auth');
 
   const validatePasswordLocal = (password: string): string | null => {
     const result = sharedValidatePassword(password);
@@ -44,8 +46,8 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
 
     // Validate passwords match
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords don't match", {
-        description: 'Please make sure both passwords are the same.',
+      toast.error(t('password.mismatchTitle'), {
+        description: t('password.mismatchDescription'),
       });
       return;
     }
@@ -53,7 +55,7 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
     // Validate password strength
     const passwordError = validatePasswordLocal(newPassword);
     if (passwordError) {
-      toast.error('Password too weak', { description: passwordError });
+      toast.error(t('password.tooWeak'), { description: passwordError });
       return;
     }
 
@@ -73,8 +75,8 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
       setConfirmPassword('');
       logInfo('Password changed successfully');
 
-      toast.success('Password updated', {
-        description: 'Please sign in again with your new password.',
+      toast.success(t('forceChange.successTitle'), {
+        description: t('forceChange.successDescription'),
       });
 
       await signOut();
@@ -83,8 +85,8 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
     } catch (error: unknown) {
       logError('Password change failed', { error });
       const errorMessage =
-        error instanceof Error ? error.message : 'An error occurred. Please try again.';
-      toast.error('Failed to update password', { description: errorMessage });
+        error instanceof Error ? error.message : t('common:errors.generic');
+      toast.error(t('forceChange.failed'), { description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -99,9 +101,9 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
     if (/[0-9]/.test(newPassword)) score++;
     if (/[^A-Za-z0-9]/.test(newPassword)) score++;
 
-    if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
-    if (score <= 4) return { score, label: 'Medium', color: 'bg-yellow-500' };
-    return { score, label: 'Strong', color: 'bg-green-500' };
+    if (score <= 2) return { score, label: t('password.strength.weak'), color: 'bg-red-500' };
+    if (score <= 4) return { score, label: t('password.strength.medium'), color: 'bg-yellow-500' };
+    return { score, label: t('password.strength.strong'), color: 'bg-green-500' };
   };
 
   const strength = passwordStrength();
@@ -119,9 +121,9 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl font-semibold">Set Your Password</CardTitle>
+            <CardTitle className="text-2xl font-semibold">{t('forceChange.title')}</CardTitle>
             <CardDescription className="mt-2">
-              For security, please create a new password for your account.
+              {t('forceChange.subtitle')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -129,13 +131,13 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword">{t('password.new')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="newPassword"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your new password"
+                  placeholder={t('password.newPlaceholder')}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="pl-10 pr-10"
@@ -166,7 +168,7 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Password strength:{' '}
+                    {t('password.strength.label')}{' '}
                     <span className={`font-medium ${strength.color.replace('bg-', 'text-')}`}>
                       {strength.label}
                     </span>
@@ -176,13 +178,13 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('password.confirm')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Confirm your new password"
+                  placeholder={t('password.confirmPlaceholder')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="pl-10"
@@ -191,12 +193,12 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
                 />
               </div>
               {confirmPassword && newPassword !== confirmPassword && (
-                <p className="text-xs text-destructive">Passwords don't match</p>
+                <p className="text-xs text-destructive">{t('password.mismatchTitle')}</p>
               )}
             </div>
 
             <div className="text-xs text-muted-foreground space-y-1 bg-muted/50 p-3 rounded-md">
-              <p className="font-medium">Password requirements:</p>
+              <p className="font-medium">{t('password.requirements')}</p>
               <ul className="list-disc list-inside space-y-0.5">
                 {PASSWORD_REQUIREMENTS.map((req) => (
                   <li key={req.label} className={req.test(newPassword) ? 'text-green-600' : ''}>
@@ -218,10 +220,10 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
               {isLoading ? (
                 <>
                   <span className="animate-spin mr-2">⏳</span>
-                  Updating...
+                  {t('forceChange.updating')}
                 </>
               ) : (
-                'Set Password & Continue'
+                t('forceChange.submit')
               )}
             </Button>
           </CardFooter>

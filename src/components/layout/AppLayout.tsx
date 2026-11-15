@@ -1,5 +1,6 @@
 // src/components/layout/AppLayout.tsx
 import { ReactNode, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
@@ -63,6 +64,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { KeyboardShortcutsDialog } from '@/hooks/useKeyboardShortcuts';
 import { useTotalUnreadCount } from '@/hooks/useChat';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 // Navigation item type
 export type NavItem = {
   title: string;
@@ -103,48 +105,49 @@ function MobileNavigation() {
   const role = userRoleData && 'role' in userRoleData ? userRoleData.role : null;
   const isAdmin = role === 'superadmin' || role === 'admin';
   const totalUnreadCount = useTotalUnreadCount();
+  const { t } = useTranslation('nav');
 
   // Sidebar navigation groups (matching AppSidebar structure)
   const coreNavigation = {
-    label: 'Core',
+    label: t('groups.core'),
     items: [
-      { title: 'Dashboard', url: '/', icon: LayoutDashboard, end: true },
-      { title: 'Matters', url: '/matters', icon: Briefcase, end: false },
-      { title: 'Clients', url: '/clients', icon: UserCheck, end: false },
-      { title: 'Calendar', url: '/calendar', icon: Calendar, end: false },
+      { title: t('items.dashboard'), url: '/', icon: LayoutDashboard, end: true },
+      { title: t('items.matters'), url: '/matters', icon: Briefcase, end: false },
+      { title: t('items.clients'), url: '/clients', icon: UserCheck, end: false },
+      { title: t('items.calendar'), url: '/calendar', icon: Calendar, end: false },
     ],
   };
   const legalToolsNavigation = {
-    label: 'Legal Tools',
+    label: t('groups.legalTools'),
     items: [
-      { title: 'Documents', url: '/documents', icon: FileText, end: false },
-      { title: 'Contracts', url: '/contracts', icon: FileCheck, end: false },
+      { title: t('items.documents'), url: '/documents', icon: FileText, end: false },
+      { title: t('items.contracts'), url: '/contracts', icon: FileCheck, end: false },
       {
-        title: 'AI Assistant',
+        title: t('items.aiAssistant'),
         url: '/ream-ai',
         icon: Bot,
         end: false,
-        badge: 'New',
+        badge: t('badges.new'),
         badgeVariant: 'default' as const,
       },
-      { title: 'Voice & Transcriptions', url: '/voice-recorder', icon: Mic, end: false },
+      { title: t('items.voice'), url: '/voice-recorder', icon: Mic, end: false },
     ],
   };
   const mobileWorkspaceNavigation = {
-    label: 'Workspace',
+    label: t('groups.workspace'),
     items: [
       {
-        title: 'Live Chat',
+        title: t('items.liveChat'),
         url: '/live-chat',
         icon: MessageCircle,
         end: false,
       },
       {
-        title: 'Invoicing',
+        title: t('items.invoicing'),
         url: '/invoices',
         icon: Receipt,
         end: false,
-        badge: 'Soon',
+        badge: t('badges.soon'),
         badgeVariant: 'outline' as const,
       },
     ],
@@ -152,11 +155,11 @@ function MobileNavigation() {
 
   // Footer items
   const footerItems: NavItem[] = [
-    { title: 'Settings', url: '/settings', icon: Settings, end: false },
+    { title: t('items.settings'), url: '/settings', icon: Settings, end: false },
     ...(isAdmin
       ? [
-          { title: 'Admin Panel', url: '/analytics', icon: Gauge, end: false },
-          { title: 'Users', url: '/users', icon: Users, end: false },
+          { title: t('items.adminPanel'), url: '/analytics', icon: Gauge, end: false },
+          { title: t('items.users'), url: '/users', icon: Users, end: false },
         ]
       : []),
   ];
@@ -191,13 +194,11 @@ function MobileNavigation() {
       <Dialog open={showInvoiceSoon} onOpenChange={setShowInvoiceSoon}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Coming Soon</DialogTitle>
-            <DialogDescription>
-              The invoicing & billing module will be available in an upcoming release!
-            </DialogDescription>
+            <DialogTitle>{t('comingSoon.title')}</DialogTitle>
+            <DialogDescription>{t('comingSoon.invoicing')}</DialogDescription>
           </DialogHeader>
           <Button className="mt-2 w-full" onClick={() => setShowInvoiceSoon(false)} autoFocus>
-            Close
+            {t('common:actions.close')}
           </Button>
         </DialogContent>
       </Dialog>
@@ -207,8 +208,8 @@ function MobileNavigation() {
             variant="ghost"
             size="icon"
             className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
-            aria-label="Open main navigation menu"
-            title="Open main navigation menu"
+            aria-label={t('mobile.openMenu')}
+            title={t('mobile.openMenu')}
           >
             <Menu className="h-4 w-4" />
           </Button>
@@ -221,7 +222,12 @@ function MobileNavigation() {
             <div className="p-4 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Kourti AI</h2>
-                <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setOpen(false)}
+                  aria-label={t('common:actions.close')}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -282,8 +288,12 @@ function MobileNavigation() {
             </div>
             <div className="p-4 border-t mt-auto space-y-2">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Theme</span>
+                <span className="text-sm text-muted-foreground">{t('userMenu.theme')}</span>
                 <ThemeToggle />
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">{t('common:language.label')}</span>
+                <LanguageSwitcher compact />
               </div>
               <nav className="space-y-1">
                 {footerItems.map((item) => (
@@ -322,6 +332,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'U';
   const { data: organizationId } = useUserOrganization();
+  const { t } = useTranslation('nav');
 
   // Command palette
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
@@ -358,17 +369,53 @@ export function AppLayout({ children }: { children: ReactNode }) {
   type ModuleTone = 'success' | 'info' | 'warning';
 
   const moduleDescriptors: Record<string, { label: string; status: string; tone: ModuleTone }> = {
-    dashboard: { label: 'Dashboard Overview', status: 'Operational', tone: 'success' },
-    cases: { label: 'Case Management', status: 'Active Review', tone: 'info' },
-    clients: { label: 'Client Services', status: 'Engagement Focus', tone: 'info' },
-    calendar: { label: 'Calendar', status: 'Schedule Synced', tone: 'success' },
-    documents: { label: 'Document Control', status: 'Secure Vault', tone: 'success' },
-    contracts: { label: 'Contracts', status: 'Revision Cycle', tone: 'warning' },
-    analytics: { label: 'Analytics', status: 'Insights Live', tone: 'info' },
-    users: { label: 'User Management', status: 'Access Governance', tone: 'info' },
-    settings: { label: 'Settings', status: 'Configuration', tone: 'info' },
-    'ream-ai': { label: 'Ream AI', status: 'Assistant Ready', tone: 'success' },
-    default: { label: 'Workspace', status: 'Operational', tone: 'info' },
+    dashboard: {
+      label: t('modules.dashboard.label'),
+      status: t('modules.dashboard.status'),
+      tone: 'success',
+    },
+    cases: { label: t('modules.cases.label'), status: t('modules.cases.status'), tone: 'info' },
+    clients: {
+      label: t('modules.clients.label'),
+      status: t('modules.clients.status'),
+      tone: 'info',
+    },
+    calendar: {
+      label: t('modules.calendar.label'),
+      status: t('modules.calendar.status'),
+      tone: 'success',
+    },
+    documents: {
+      label: t('modules.documents.label'),
+      status: t('modules.documents.status'),
+      tone: 'success',
+    },
+    contracts: {
+      label: t('modules.contracts.label'),
+      status: t('modules.contracts.status'),
+      tone: 'warning',
+    },
+    analytics: {
+      label: t('modules.analytics.label'),
+      status: t('modules.analytics.status'),
+      tone: 'info',
+    },
+    users: { label: t('modules.users.label'), status: t('modules.users.status'), tone: 'info' },
+    settings: {
+      label: t('modules.settings.label'),
+      status: t('modules.settings.status'),
+      tone: 'info',
+    },
+    'ream-ai': {
+      label: t('modules.reamAi.label'),
+      status: t('modules.reamAi.status'),
+      tone: 'success',
+    },
+    default: {
+      label: t('modules.default.label'),
+      status: t('modules.default.status'),
+      tone: 'info',
+    },
   };
 
   const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -492,6 +539,7 @@ function AppLayoutInner({
 }: AppLayoutInnerProps) {
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const { t } = useTranslation('nav');
 
   const hasSearchResults =
     hasSearchTerm &&
@@ -510,19 +558,23 @@ function AppLayoutInner({
       <Dialog open={quickActionsOpen} onOpenChange={setQuickActionsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Quick Actions</DialogTitle>
-            <DialogDescription>Jump to common tasks and pages</DialogDescription>
+            <DialogTitle>{t('quickActions.title')}</DialogTitle>
+            <DialogDescription>{t('quickActions.description')}</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2 pt-2">
             {[
-              { label: 'New Matter', icon: Briefcase, href: '/cases/create' },
-              { label: 'New Client', icon: UserCheck, href: '/clients/create' },
-              { label: 'Upload Document', icon: FileText, href: '/documents/upload' },
-              { label: 'New Contract', icon: FileCheck, href: '/contracts/create' },
-              { label: 'Calendar', icon: Calendar, href: '/calendar' },
-              { label: 'AI Assistant', icon: Bot, href: '/ream-ai' },
-              { label: 'Analytics', icon: Gauge, href: '/analytics' },
-              { label: 'Voice Recorder', icon: Mic, href: '/voice-recorder' },
+              { label: t('quickActions.newMatter'), icon: Briefcase, href: '/cases/create' },
+              { label: t('quickActions.newClient'), icon: UserCheck, href: '/clients/create' },
+              {
+                label: t('quickActions.uploadDocument'),
+                icon: FileText,
+                href: '/documents/upload',
+              },
+              { label: t('quickActions.newContract'), icon: FileCheck, href: '/contracts/create' },
+              { label: t('items.calendar'), icon: Calendar, href: '/calendar' },
+              { label: t('items.aiAssistant'), icon: Bot, href: '/ream-ai' },
+              { label: t('items.analytics'), icon: Gauge, href: '/analytics' },
+              { label: t('quickActions.voiceRecorder'), icon: Mic, href: '/voice-recorder' },
             ].map((action) => (
               <button
                 key={action.href}
@@ -548,20 +600,20 @@ function AppLayoutInner({
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold text-foreground">AI Assistant</h2>
-              <p className="text-[12px] text-muted-foreground">
-                Ask anything about your legal practice
-              </p>
+              <h2 className="text-[15px] font-semibold text-foreground">
+                {t('aiAssistant.title')}
+              </h2>
+              <p className="text-[12px] text-muted-foreground">{t('aiAssistant.subtitle')}</p>
             </div>
           </div>
           <div className="px-5 py-6 space-y-3">
-            <p className="text-[13px] text-muted-foreground">What would you like help with?</p>
+            <p className="text-[13px] text-muted-foreground">{t('aiAssistant.prompt')}</p>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { label: 'Summarize my active matters', icon: Briefcase },
-                { label: 'Draft a legal document', icon: FileText },
-                { label: 'Review a contract', icon: FileCheck },
-                { label: 'Research a legal topic', icon: SearchIcon },
+                { label: t('aiAssistant.suggestions.summarize'), icon: Briefcase },
+                { label: t('aiAssistant.suggestions.draft'), icon: FileText },
+                { label: t('aiAssistant.suggestions.review'), icon: FileCheck },
+                { label: t('aiAssistant.suggestions.research'), icon: SearchIcon },
               ].map((suggestion) => (
                 <button
                   key={suggestion.label}
@@ -586,7 +638,7 @@ function AppLayoutInner({
               }}
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              Open Full Assistant
+              {t('aiAssistant.openFull')}
             </Button>
           </div>
         </DialogContent>
@@ -607,13 +659,17 @@ function AppLayoutInner({
               {/* Greeting */}
               <div className="hidden md:block">
                 <h1 className="text-[18px] font-medium text-foreground">
-                  Welcome back{firstName ? `, ${firstName}` : ''}
+                  {firstName
+                    ? t('header.welcomeBackName', { name: firstName })
+                    : t('header.welcomeBack')}
                 </h1>
               </div>
 
               {/* Mobile greeting */}
               <span className="text-[16px] font-medium text-foreground md:hidden">
-                Welcome back{firstName ? `, ${firstName}` : ''}
+                {firstName
+                  ? t('header.welcomeBackName', { name: firstName })
+                  : t('header.welcomeBack')}
               </span>
 
               <div className="flex-1" />
@@ -626,7 +682,7 @@ function AppLayoutInner({
                 onClick={() => setSearchDialogOpen(true)}
               >
                 <SearchIcon className="h-3.5 w-3.5" />
-                Search
+                {t('common:actions.search')}
               </Button>
 
               {/* Quick Actions button */}
@@ -637,7 +693,7 @@ function AppLayoutInner({
                 onClick={() => setQuickActionsOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
-                Quick Actions
+                {t('quickActions.title')}
               </Button>
 
               {/* AI Assistant trigger */}
@@ -645,12 +701,13 @@ function AppLayoutInner({
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => setAiAssistantOpen(true)}
+                    aria-label={t('aiAssistant.title')}
                     className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#afc8f0] to-[#79a5ea] text-white shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95"
                   >
                     <Sparkles className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>AI Assistant</TooltipContent>
+                <TooltipContent>{t('aiAssistant.title')}</TooltipContent>
               </Tooltip>
 
               {/* Mobile search icon */}
@@ -659,9 +716,15 @@ function AppLayoutInner({
                 size="icon"
                 className="sm:hidden h-9 w-9 text-muted-foreground"
                 onClick={() => setSearchDialogOpen(true)}
+                aria-label={t('common:actions.search')}
               >
                 <SearchIcon className="h-4 w-4" />
               </Button>
+
+              {/* Language switch (saved to the user's profile) */}
+              <div className="hidden sm:block">
+                <LanguageSwitcher compact />
+              </div>
 
               <NotificationsDropdown />
               <DeadlineReminders />
@@ -676,7 +739,7 @@ function AppLayoutInner({
                           (user as { user_metadata?: { avatar_url?: string } })?.user_metadata
                             ?.avatar_url
                         }
-                        alt={user?.email || 'User'}
+                        alt={user?.email || t('common:entities.user')}
                       />
                       <AvatarFallback className="bg-muted text-foreground text-xs font-semibold">
                         {userInitials}
@@ -699,13 +762,13 @@ function AppLayoutInner({
                     <DropdownMenuItem asChild>
                       <Link to="/settings?tab=profile">
                         <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
+                        <span>{t('userMenu.profile')}</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/settings?tab=general">
                         <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
+                        <span>{t('items.settings')}</span>
                       </Link>
                     </DropdownMenuItem>
                     <PermissionGate resource="settings" action="manage">
@@ -722,7 +785,7 @@ function AppLayoutInner({
                     className="flex items-center justify-between"
                     onSelect={(e) => e.preventDefault()}
                   >
-                    <span>Theme</span>
+                    <span>{t('userMenu.theme')}</span>
                     <ThemeToggle />
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -730,7 +793,7 @@ function AppLayoutInner({
                     className="text-destructive focus:text-destructive"
                     onClick={handleSignOut}
                   >
-                    Sign Out
+                    {t('common:actions.signOut')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -738,43 +801,47 @@ function AppLayoutInner({
 
             <CommandDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
               <CommandInput
-                placeholder="Search cases, documents, contracts, clients, calendar events, and voice content..."
+                placeholder={t('search.placeholder')}
                 value={term}
                 onValueChange={setTerm}
               />
               <CommandList>
                 {!hasSearchTerm && (
                   <>
-                    <CommandGroup heading="Quick Navigation">
+                    <CommandGroup heading={t('search.quickNavigation')}>
                       {[
-                        { label: 'Dashboard', icon: <Home className="h-4 w-4 mr-2" />, href: '/' },
                         {
-                          label: 'Matters',
+                          label: t('items.dashboard'),
+                          icon: <Home className="h-4 w-4 mr-2" />,
+                          href: '/',
+                        },
+                        {
+                          label: t('items.matters'),
                           icon: <Briefcase className="h-4 w-4 mr-2" />,
                           href: '/matters',
                         },
                         {
-                          label: 'Clients',
+                          label: t('items.clients'),
                           icon: <UserCheck className="h-4 w-4 mr-2" />,
                           href: '/clients',
                         },
                         {
-                          label: 'Calendar',
+                          label: t('items.calendar'),
                           icon: <Calendar className="h-4 w-4 mr-2" />,
                           href: '/calendar',
                         },
                         {
-                          label: 'Documents',
+                          label: t('items.documents'),
                           icon: <FileText className="h-4 w-4 mr-2" />,
                           href: '/documents',
                         },
                         {
-                          label: 'Contracts',
+                          label: t('items.contracts'),
                           icon: <FileCheck className="h-4 w-4 mr-2" />,
                           href: '/contracts',
                         },
                         {
-                          label: 'Settings',
+                          label: t('items.settings'),
                           icon: <Settings className="h-4 w-4 mr-2" />,
                           href: '/settings',
                         },
@@ -791,20 +858,20 @@ function AppLayoutInner({
                         </CommandItem>
                       ))}
                     </CommandGroup>
-                    <CommandGroup heading="Quick Actions">
+                    <CommandGroup heading={t('quickActions.title')}>
                       {[
                         {
-                          label: 'New Matter',
+                          label: t('quickActions.newMatter'),
                           icon: <Briefcase className="h-4 w-4 mr-2" />,
                           href: '/cases/create',
                         },
                         {
-                          label: 'New Client',
+                          label: t('quickActions.newClient'),
                           icon: <UserCheck className="h-4 w-4 mr-2" />,
                           href: '/clients/create',
                         },
                         {
-                          label: 'Upload Document',
+                          label: t('quickActions.uploadDocument'),
                           icon: <FileText className="h-4 w-4 mr-2" />,
                           href: '/documents/upload',
                         },
@@ -825,7 +892,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.cases.length > 0 && (
-                  <CommandGroup heading="Matters">
+                  <CommandGroup heading={t('items.matters')}>
                     {searchResults.cases.map((item) => (
                       <CommandItem
                         key={`case-${item.id}`}
@@ -860,7 +927,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.documents.length > 0 && (
-                  <CommandGroup heading="Documents">
+                  <CommandGroup heading={t('items.documents')}>
                     {searchResults.documents.map((item) => (
                       <CommandItem
                         key={`document-${item.id}`}
@@ -897,7 +964,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.contracts.length > 0 && (
-                  <CommandGroup heading="Contracts">
+                  <CommandGroup heading={t('items.contracts')}>
                     {searchResults.contracts.map((item) => (
                       <CommandItem
                         key={`contract-${item.id}`}
@@ -934,7 +1001,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.clients.length > 0 && (
-                  <CommandGroup heading="Clients">
+                  <CommandGroup heading={t('items.clients')}>
                     {searchResults.clients.map((item) => (
                       <CommandItem
                         key={`client-${item.id}`}
@@ -955,7 +1022,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.calendarEvents.length > 0 && (
-                  <CommandGroup heading="Calendar Events">
+                  <CommandGroup heading={t('search.groups.calendarEvents')}>
                     {searchResults.calendarEvents.map((item) => (
                       <CommandItem
                         key={`event-${item.id}`}
@@ -990,7 +1057,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.voiceRecordings.length > 0 && (
-                  <CommandGroup heading="Voice Recordings">
+                  <CommandGroup heading={t('search.groups.voiceRecordings')}>
                     {searchResults.voiceRecordings.map((item) => (
                       <CommandItem
                         key={`voice-${item.id}`}
@@ -1025,7 +1092,7 @@ function AppLayoutInner({
                 )}
 
                 {hasSearchTerm && searchResults && searchResults.transcriptions.length > 0 && (
-                  <CommandGroup heading="Transcriptions">
+                  <CommandGroup heading={t('search.groups.transcriptions')}>
                     {searchResults.transcriptions.map((item) => (
                       <CommandItem
                         key={`transcription-${item.id}`}
@@ -1072,22 +1139,22 @@ function AppLayoutInner({
                     );
                     return (
                       <div className="px-2 py-1.5 text-xs text-muted-foreground border-t">
-                        Found {totalResults} result{totalResults !== 1 ? 's' : ''}
+                        {t('search.found', { count: totalResults })}
                       </div>
                     );
                   })()}
                 <CommandEmpty>
                   {!hasSearchTerm ? null : globalSearchError ? (
-                    'Unable to search the workspace. Please try again.'
+                    t('search.error')
                   ) : isGlobalSearchLoading ? (
                     <div className="flex items-center gap-2 py-4">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                      <span>Searching workspace...</span>
+                      <span>{t('search.searching')}</span>
                     </div>
                   ) : hasSearchResults ? (
-                    'Keep typing to narrow down your results.'
+                    t('search.keepTyping')
                   ) : (
-                    'No results found for your search.'
+                    t('search.noResults')
                   )}
                 </CommandEmpty>
               </CommandList>

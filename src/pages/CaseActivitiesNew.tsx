@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useActivities } from '@/features/activities/api/useActivities';
 import { useCreateActivity } from '@/features/activities/api/useCreateActivity';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -41,6 +42,7 @@ const activityTypes = [
 export default function CaseActivities() {
   const { caseId = '' } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation('matters');
   const { data: activities = [], isLoading } = useActivities(caseId);
   const createActivity = useCreateActivity();
 
@@ -72,7 +74,9 @@ export default function CaseActivities() {
 
   const handleCreateActivity = async () => {
     if (!newActivity.title || !newActivity.description) {
-      toast.error('Missing info', { description: 'Please fill in title and description' });
+      toast.error(t('activities.toast.missingInfoTitle'), {
+        description: t('activities.toast.missingInfoDescription'),
+      });
       return;
     }
     try {
@@ -92,9 +96,9 @@ export default function CaseActivities() {
         status: 'pending',
       });
       setDialogOpen(false);
-      toast.success('Activity created');
+      toast.success(t('activities.toast.created'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create activity');
+      toast.error(err?.message || t('activities.toast.createFailed'));
     }
   };
 
@@ -118,29 +122,29 @@ export default function CaseActivities() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            Matter Activities
+            {t('activities.pageTitle')}
           </h1>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" /> New Activity
+              <Plus className="h-4 w-4 mr-2" /> {t('activities.new')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Create Activity</DialogTitle>
+              <DialogTitle>{t('activities.createTitle')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-1">
-                <Label>Title</Label>
+                <Label>{t('common:fields.title')}</Label>
                 <Input
                   value={newActivity.title}
                   onChange={(e) => setNewActivity({ ...newActivity, title: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Description</Label>
+                <Label>{t('common:fields.description')}</Label>
                 <Textarea
                   rows={4}
                   value={newActivity.description}
@@ -149,7 +153,7 @@ export default function CaseActivities() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <Label>Type</Label>
+                  <Label>{t('common:fields.type')}</Label>
                   <Select
                     value={newActivity.activity_type}
                     onValueChange={(v) => setNewActivity({ ...newActivity, activity_type: v })}
@@ -158,16 +162,16 @@ export default function CaseActivities() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {activityTypes.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
+                      {activityTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {t(`activities.types.${type.toLowerCase()}`, { defaultValue: type })}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label>Due Date</Label>
+                  <Label>{t('common:time.dueDate')}</Label>
                   <Input
                     type="date"
                     value={newActivity.due_date}
@@ -176,7 +180,7 @@ export default function CaseActivities() {
                 </div>
               </div>
               <Button onClick={handleCreateActivity} disabled={createActivity.isPending}>
-                {createActivity.isPending ? 'Creating...' : 'Create'}
+                {createActivity.isPending ? t('activities.creating') : t('common:actions.create')}
               </Button>
             </div>
           </DialogContent>
@@ -191,11 +195,15 @@ export default function CaseActivities() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge className={typeColors[act.activity_type || ''] || 'bg-muted'}>
-                    {act.activity_type}
+                    {t(`activities.types.${(act.activity_type || '').toLowerCase()}`, {
+                      defaultValue: act.activity_type,
+                    })}
                   </Badge>
                   <CardTitle>{act.title}</CardTitle>
                 </div>
-                <span className={statusColors[act.status || ''] || ''}>{act.status}</span>
+                <span className={statusColors[act.status || ''] || ''}>
+                  {t(`activities.status.${act.status}`, { defaultValue: act.status })}
+                </span>
               </div>
             </CardHeader>
             <CardContent>
@@ -205,7 +213,7 @@ export default function CaseActivities() {
           </Card>
         ))}
         {activities.length === 0 && (
-          <p className="text-muted-foreground text-center">No activities yet.</p>
+          <p className="text-muted-foreground text-center">{t('activities.emptyAll')}</p>
         )}
       </div>
     </PageContainer>

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -44,6 +45,7 @@ export default function GettingStartedChecklist() {
     dismissChecklist,
   } = useGettingStarted();
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useTranslation('dashboard');
 
   if (!showChecklist || isLoading) return null;
 
@@ -58,9 +60,9 @@ export default function GettingStartedChecklist() {
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base">Getting Started with Kourti</CardTitle>
+              <CardTitle className="text-base">{t('checklist.title')}</CardTitle>
               <CardDescription className="text-xs">
-                Complete these steps to get the most out of your workspace
+                {t('checklist.description')}
               </CardDescription>
             </div>
           </div>
@@ -70,6 +72,7 @@ export default function GettingStartedChecklist() {
               size="sm"
               className="h-7 w-7 p-0"
               onClick={() => setCollapsed(!collapsed)}
+              aria-label={collapsed ? t('checklist.expand') : t('checklist.collapse')}
             >
               {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>
@@ -78,6 +81,7 @@ export default function GettingStartedChecklist() {
               size="sm"
               className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
               onClick={dismissChecklist}
+              aria-label={t('checklist.dismiss')}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -87,7 +91,7 @@ export default function GettingStartedChecklist() {
         <div className="flex items-center gap-3 mt-2">
           <Progress value={progressPercent} className="h-2 flex-1" />
           <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-            {completedCount}/{totalSteps} complete
+            {t('checklist.progress', { done: completedCount, total: totalSteps })}
           </span>
         </div>
       </CardHeader>
@@ -137,10 +141,12 @@ export default function GettingStartedChecklist() {
                         isComplete && 'line-through text-muted-foreground'
                       )}
                     >
-                      {step.title}
+                      {t(`checklist.steps.${step.name}.title`, { defaultValue: step.title })}
                     </p>
                     <p className="text-xs text-muted-foreground leading-tight">
-                      {step.description}
+                      {t(`checklist.steps.${step.name}.description`, {
+                        defaultValue: step.description,
+                      })}
                     </p>
                   </div>
                   <ArrowRight

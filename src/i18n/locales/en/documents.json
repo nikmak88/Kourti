@@ -1,0 +1,211 @@
+{
+  "untitledDocument": "Untitled document",
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "signed": "Signed",
+    "review": "Under Review",
+    "archived": "Archived",
+    "uploaded": "Uploaded"
+  },
+  "toast": {
+    "fileUnavailable": "File unavailable",
+    "fileUnavailableDescription": "This document was uploaded before persistent storage was enabled. Please re-upload the original file.",
+    "exportedPdf": "Document exported as PDF.",
+    "exportPdfFailed": "Failed to export PDF.",
+    "exportedDocx": "Document exported as DOCX.",
+    "exportDocxFailed": "Failed to export DOCX."
+  },
+  "list": {
+    "title": "Documents",
+    "loadingDescription": "Manage and organize your legal documents",
+    "description": "Manage and review legal documents with AI-powered analysis",
+    "aiReview": "AI Review",
+    "uploadDocument": "Upload Document",
+    "stats": {
+      "total": "Total Documents",
+      "underReview": "Under Review"
+    },
+    "searchPlaceholder": "Search documents, cases, or file names...",
+    "filters": {
+      "allTypes": "All Types",
+      "word": "Word",
+      "wordDoc": "Word (.doc)",
+      "images": "Images",
+      "allStatuses": "All Status"
+    },
+    "allDocuments": "All Documents ({{count}})",
+    "tableDescription": "Documents linked to cases with AI-powered review capabilities",
+    "unavailable": "Unavailable",
+    "unavailableTooltip": "The file bytes for this document were lost in a prior storage migration. Please re-upload.",
+    "noCaseLinked": "No case linked",
+    "unknownUser": "Unknown User",
+    "columns": {
+      "linkedCase": "Linked Case",
+      "uploadedBy": "Uploaded By",
+      "comments": "Comments",
+      "lastAccessed": "Last Accessed",
+      "actions": "Actions"
+    },
+    "menu": {
+      "view": "View Document",
+      "shareInternally": "Share Internally",
+      "exportPdf": "Export as PDF",
+      "exportDocx": "Export as DOCX"
+    },
+    "empty": {
+      "title": "No documents yet",
+      "description": "Upload your first document to get started with AI-powered document management and analysis."
+    },
+    "noMatch": {
+      "title": "No matching documents",
+      "description": "No documents match \"{{search}}\". Try adjusting your search or filters.",
+      "action": "Clear Filters"
+    },
+    "aiPanel": {
+      "title": "AI Document Review",
+      "description": "Get AI-powered insights and analysis for your legal documents",
+      "clauses": {
+        "title": "Key Clause Detection",
+        "description": "Automatically identify important clauses, terms, and conditions in contracts and agreements."
+      },
+      "risk": {
+        "title": "Risk Assessment",
+        "description": "Flag potential legal risks and areas that require attorney review or attention."
+      },
+      "summary": {
+        "title": "Document Summarization",
+        "description": "Generate concise summaries of lengthy legal documents for quick review."
+      }
+    }
+  },
+  "upload": {
+    "title": "Upload Document",
+    "description": "Upload a new document to the system",
+    "detailsTitle": "Document details",
+    "detailsDescription": "Prepare a file, add the context our AI needs, and share it with your workspace.",
+    "validation": {
+      "nameMin": "Document name must be at least 2 characters.",
+      "valueNumber": "Value must be a number"
+    },
+    "steps": {
+      "file": {
+        "title": "Upload file",
+        "description": "Drop a contract, agreement, or supporting document."
+      },
+      "context": {
+        "title": "Add context",
+        "description": "Name the document and optionally tag a related case."
+      },
+      "ai": {
+        "title": "Configure AI",
+        "description": "Choose if the AI should summarize and notify the team."
+      }
+    },
+    "readiness": {
+      "label": "Upload readiness",
+      "ready": "Ready to process",
+      "incomplete": "Complete these steps",
+      "complete": "complete",
+      "done": "Done"
+    },
+    "boost": {
+      "title": "Boost AI accuracy",
+      "description": "Include case links, contract values, and renewal expectations so summaries highlight the most relevant insights."
+    },
+    "dropzone": {
+      "prompt": "Click or drag file to upload",
+      "supported": "Supported: PDF, DOCX, TXT up to 10MB",
+      "unknownType": "Unknown type",
+      "clear": "Clear file"
+    },
+    "fields": {
+      "file": "Document file",
+      "name": "Document name",
+      "namePlaceholder": "e.g., Vendor agreement Q2",
+      "case": "Related case (optional)",
+      "casePlaceholder": "Select a case...",
+      "effectiveDate": "Effective Date",
+      "renewalDate": "Renewal Date",
+      "terminationDate": "Termination Date",
+      "value": "Contract Value",
+      "currency": "Currency",
+      "documentType": "Document Type",
+      "documentTypePlaceholder": "e.g. Master Service Agreement",
+      "summary": "Summary (optional)",
+      "summaryPlaceholder": "Add any context or highlights you already know",
+      "terms": "Key Terms (Optional)",
+      "termsPlaceholder": "Notable clauses, parties, obligations..."
+    },
+    "sections": {
+      "contract": "Contract & Financial Details (Optional)",
+      "context": "Context and Summary"
+    },
+    "workflow": {
+      "title": "AI workflow",
+      "description": "Choose what should happen once the file is processed.",
+      "aiEnabled": "AI enabled",
+      "manual": "Manual",
+      "summarize": "Generate AI summary",
+      "summarizeHelp": "Receive a concise overview and key clauses within seconds.",
+      "notify": "Notify legal team",
+      "notifyHelp": "Send a digest to collaborators when the AI finishes processing.",
+      "askAi": "Ask AI for a smarter summary"
+    },
+    "submit": "Upload document",
+    "submitting": "Uploading…",
+    "encryptionNote": "Files are encrypted at rest and automatically versioned.",
+    "preview": {
+      "title": "AI preview",
+      "description": "Review what will be shared once processing is complete.",
+      "aiSummary": "AI summary",
+      "summaryPending": "We will generate a short executive summary and highlight the top risks once the upload finishes.",
+      "summaryDisabled": "Enable AI summarization to get quick talking points for your team.",
+      "workflow": "Workflow",
+      "summaryBadge": "Summary",
+      "notifyBadge": "Notify team",
+      "linkedCaseBadge": "Linked case"
+    },
+    "checklist": {
+      "title": "Upload checklist",
+      "description": "Confirm these best practices before sharing with clients.",
+      "redact": "Remove sensitive data or apply redactions if this file leaves your organization.",
+      "dates": "Include renewal dates, contract values, and related matters so automated tracking stays accurate.",
+      "summaries": "Turn on AI summaries to help stakeholders review documents faster."
+    },
+    "toast": {
+      "summaryAlreadyEnabled": "AI summary already enabled",
+      "summaryRequested": "AI summary requested",
+      "summaryWillInclude": "We'll include a generated summary when the upload completes.",
+      "summaryNeedsFile": "Add a document first so we know what to summarize.",
+      "selectFile": "Please select a file to upload.",
+      "uploaded": "Document uploaded successfully.",
+      "createFailed": "Failed to create document.",
+      "invalidFile": "Invalid File",
+      "validationFailed": "File validation failed",
+      "validationError": "Validation Error",
+      "validateFailed": "Failed to validate file"
+    }
+  },
+  "versions": {
+    "title": "Version history",
+    "empty": "No versions yet. Versions are created when AI proposes edits or when you accept/reject tracked changes.",
+    "active": "Active",
+    "makeActive": "Make active",
+    "unnamed": "(unnamed)",
+    "source": {
+      "upload": "Upload",
+      "assistantEdit": "AI redline",
+      "userAccept": "Accepted",
+      "userReject": "Rejected",
+      "generated": "Generated"
+    },
+    "toast": {
+      "loadFailed": "Failed to load versions",
+      "activated": "Version activated",
+      "activateFailed": "Activate failed",
+      "downloadFailed": "Download failed",
+      "unknownError": "Unknown error"
+    }
+  }
+}

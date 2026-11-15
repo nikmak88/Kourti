@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ export default function ResetPassword() {
   const [tokenValid, setTokenValid] = useState(false);
   const [resetToken, setResetToken] = useState('');
   const navigate = useNavigate();
+  const { t } = useTranslation('auth');
 
   useEffect(() => {
     let mounted = true;
@@ -49,15 +51,17 @@ export default function ResetPassword() {
         // If no token found, the link is invalid
         if (mounted) {
           setTokenValid(false);
-          toast.error('Invalid reset link', {
-            description: 'This password reset link is invalid or has expired.',
+          toast.error(t('resetPassword.invalidTitle'), {
+            description: t('resetPassword.invalidDescription'),
           });
           setTimeout(() => navigate('/forgot-password'), 3000);
         }
       } catch {
         if (mounted) {
           setTokenValid(false);
-          toast.error('Error', { description: 'Failed to verify password reset link.' });
+          toast.error(t('common:toast.error'), {
+            description: t('resetPassword.verifyFailed'),
+          });
           setTimeout(() => navigate('/forgot-password'), 3000);
         }
       } finally {
@@ -78,15 +82,15 @@ export default function ResetPassword() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match", {
-        description: 'Please ensure both passwords are the same.',
+      toast.error(t('password.mismatchTitle'), {
+        description: t('password.mismatchDescription'),
       });
       return;
     }
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.valid) {
-      toast.error('Password too weak', { description: passwordCheck.error! });
+      toast.error(t('password.tooWeak'), { description: passwordCheck.error! });
       return;
     }
 
@@ -101,8 +105,8 @@ export default function ResetPassword() {
       setPassword('');
       setConfirmPassword('');
 
-      toast.success('Password reset successfully!', {
-        description: 'Your password has been updated. You can now sign in with your new password.',
+      toast.success(t('resetPassword.successTitle'), {
+        description: t('resetPassword.successDescription'),
       });
 
       // Redirect to login after successful password reset
@@ -111,8 +115,8 @@ export default function ResetPassword() {
       setPassword('');
       setConfirmPassword('');
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to reset password. Please try again.';
-      toast.error('Error', { description: errorMessage });
+        error instanceof Error ? error.message : t('resetPassword.failed');
+      toast.error(t('common:toast.error'), { description: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -125,7 +129,7 @@ export default function ResetPassword() {
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <p className="text-muted-foreground">Verifying reset link...</p>
+              <p className="text-muted-foreground">{t('resetPassword.verifying')}</p>
             </div>
           </CardContent>
         </Card>
@@ -143,18 +147,18 @@ export default function ResetPassword() {
                 <Lock className="h-10 w-10 text-destructive" />
               </div>
               <div className="space-y-3">
-                <h3 className="font-semibold text-xl">Invalid Reset Link</h3>
+                <h3 className="font-semibold text-xl">{t('resetPassword.invalidTitle')}</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>This password reset link is invalid or has expired.</p>
+                  <p>{t('resetPassword.invalidDescription')}</p>
                   <p className="text-xs">
-                    <strong>Common reasons:</strong>
+                    <strong>{t('link.commonReasons')}</strong>
                   </p>
                   <ul className="text-xs text-left list-disc list-inside space-y-1 bg-muted/50 p-3 rounded-md">
-                    <li>The link has already been used</li>
-                    <li>The link has expired (reset links expire after 1 hour)</li>
-                    <li>The link was clicked more than once</li>
+                    <li>{t('resetPassword.reasonUsed')}</li>
+                    <li>{t('resetPassword.reasonExpired')}</li>
+                    <li>{t('link.clickedTwice')}</li>
                   </ul>
-                  <p className="text-xs">Please request a new password reset link.</p>
+                  <p className="text-xs">{t('resetPassword.requestNewHint')}</p>
                 </div>
               </div>
               <Button
@@ -162,7 +166,7 @@ export default function ResetPassword() {
                 onClick={() => navigate('/forgot-password')}
                 className="w-full"
               >
-                Request New Reset Link
+                {t('resetPassword.requestNew')}
               </Button>
             </div>
           </CardContent>
@@ -179,21 +183,21 @@ export default function ResetPassword() {
             <AppLogo size="md" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-semibold">Reset Your Password</CardTitle>
-            <p className="text-muted-foreground mt-2">Enter your new password below.</p>
+            <CardTitle className="text-2xl font-semibold">{t('resetPassword.title')}</CardTitle>
+            <p className="text-muted-foreground mt-2">{t('resetPassword.subtitle')}</p>
           </div>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">{t('password.new')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your new password"
+                  placeholder={t('password.newPlaceholder')}
                   className="pl-10 pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -220,13 +224,13 @@ export default function ResetPassword() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">{t('resetPassword.confirmLabel')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm your new password"
+                  placeholder={t('password.confirmPlaceholder')}
                   className="pl-10 pr-10"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -250,7 +254,7 @@ export default function ResetPassword() {
             {password && confirmPassword && password === confirmPassword && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Passwords match</span>
+                <span>{t('password.match')}</span>
               </div>
             )}
 
@@ -259,7 +263,7 @@ export default function ResetPassword() {
               className="w-full"
               disabled={loading || !password || !confirmPassword || password !== confirmPassword}
             >
-              {loading ? 'Resetting password...' : 'Reset Password'}
+              {loading ? t('resetPassword.submitting') : t('resetPassword.submit')}
             </Button>
           </form>
         </CardContent>

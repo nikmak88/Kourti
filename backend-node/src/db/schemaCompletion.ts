@@ -286,6 +286,9 @@ export const schemaCompletionStatements: string[] = [
   `,
   `alter table public.case_issues add column if not exists is_active boolean not null default true`,
 
+  // UI/email language chosen by the user (null = install default, DEFAULT_LANGUAGE).
+  `alter table public.profiles add column if not exists preferred_language text`,
+
   // Firm-specific issues (null = global, shared by every firm).
   `alter table public.case_issues add column if not exists organization_id uuid`,
   `create index if not exists idx_case_issues_org on public.case_issues (organization_id)`,

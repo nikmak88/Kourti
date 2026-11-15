@@ -1,0 +1,101 @@
+{
+  "roles": {
+    "superadmin": "Super Admin",
+    "admin": "Admin",
+    "administrator": "Administrator",
+    "user": "User",
+    "finance": "Finance",
+    "legal": "Legal",
+    "customSuffix": " (Custom)"
+  },
+  "management": {
+    "title": "User Management",
+    "description": "Manage organization members and permissions",
+    "invite": {
+      "title": "Invite New User",
+      "description": "Add a new member to your organization",
+      "seatsUsed": "{{used}} of {{seats}} seats used",
+      "departmentPlaceholder": "Legal, HR, etc.",
+      "submitting": "Inviting...",
+      "seatsFull": "All {{seats}} seats are in use. Add seats from Settings → Billing to invite more."
+    },
+    "list": {
+      "title": "Organization Users ({{count}})",
+      "description": "All users and pending invitations in your organization",
+      "noName": "No name",
+      "disabled": "Disabled",
+      "notSpecified": "Not specified",
+      "resend": "Resend",
+      "sending": "Sending...",
+      "typeInvitation": "Invitation",
+      "typeUser": "User",
+      "openMenu": "Open menu",
+      "resendInvitation": "Resend Invitation",
+      "deleteInvitation": "Delete Invitation",
+      "enableUser": "Enable User",
+      "disableUser": "Disable User",
+      "empty": "No users found"
+    },
+    "columns": {
+      "user": "User",
+      "added": "Added",
+      "actions": "Actions"
+    },
+    "verification": {
+      "verified": "Verified",
+      "pending": "Pending",
+      "unverified": "Unverified",
+      "expired": "Expired",
+      "unknown": "Unknown"
+    },
+    "confirm": {
+      "resend": "Resend invitation email to {{name}} ({{email}})?",
+      "changeRole": "Are you sure you want to change {{name}}'s role to \"{{role}}\"? This will modify their access permissions."
+    }
+  },
+  "invite": {
+    "trigger": "Invite User",
+    "dialogTitle": "Invite Team Member",
+    "dialogDescription": "Send an invitation to join your organization. They'll receive an email with setup instructions.",
+    "firstName": "First Name",
+    "firstNamePlaceholder": "John",
+    "lastName": "Last Name",
+    "lastNamePlaceholder": "Doe",
+    "email": "Email Address",
+    "roleRequiredLabel": "Role *",
+    "selectRole": "Select a role",
+    "departmentOptional": "Department (Optional)",
+    "departmentPlaceholder": "Legal, HR, Finance...",
+    "departmentPlaceholderAlt": "Legal, Finance, etc.",
+    "badgeGlobal": "Global",
+    "badgeCustom": "Custom",
+    "send": "Send Invitation",
+    "sending": "Sending...",
+    "tabs": {
+      "single": "Single Invite",
+      "bulk": "Bulk Import"
+    },
+    "bulk": {
+      "formatLabel": "Bulk Import Format",
+      "formatHelp": "Enter users in CSV format: email,firstName,lastName,role,department",
+      "preview_one": "Preview ({{count}} user)",
+      "preview_other": "Preview ({{count}} users)",
+      "submit_one": "Invite {{count}} User",
+      "submit_other": "Invite {{count}} Users"
+    },
+    "toast": {
+      "successTitle": "Success",
+      "successDescription": "Invitation sent successfully",
+      "sendFailed": "Failed to send invitation",
+      "rowFailed": "Failed to invite",
+      "bulkCompleteTitle": "Bulk Invite Complete",
+      "bulkCompleteDescription": "{{success}} successful, {{failed}} failed"
+    },
+    "validation": {
+      "emailInvalid": "Please enter a valid email address",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "roleRequired": "Please select a role"
+    }
+  }
+}

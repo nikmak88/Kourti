@@ -54,6 +54,9 @@ const envSchema = z.object({
   // Minimum cosine similarity for document search hits. text-embedding-3-small
   // scores relevant passages ~0.3-0.6 and unrelated text ~0.1, so the old
   // 0.6 cut-off (tuned for ada-002) dropped almost every real match.
+  // Language for users who have not chosen one (emails, AI replies). The web
+  // app gets the same value at build time as VITE_DEFAULT_LANGUAGE.
+  DEFAULT_LANGUAGE: z.enum(['en', 'el']).catch('en').default('en'),
   RAG_MATCH_THRESHOLD: z.coerce.number().min(0).max(1).default(0.3),
 
   ANTHROPIC_API_KEY: z.string().optional(),

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,12 +21,14 @@ import { Case } from '@/types';
 import { useCreateActivity } from '@/features/activities/api/useCreateActivity';
 import TranscriptActions from '@/components/voice/TranscriptActions';
 import { Mic, Play, Pause, Square, Save, FileText, Loader2, List } from 'lucide-react';
+import { formatNumber } from '@/i18n/dates';
 
 // Maximum file size for Whisper API (25MB)
 const MAX_RECORDING_SIZE = 25 * 1024 * 1024; // 25MB in bytes
 
 const VoiceTranscriptionModule: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation('voice');
   const { data: casesData } = useCases();
   const cases = casesData?.cases || [];
   const createActivity = useCreateActivity();
@@ -115,8 +118,10 @@ const VoiceTranscriptionModule: React.FC = () => {
 
           // Check if size limit exceeded
           if (totalSize > MAX_RECORDING_SIZE) {
-            toast.error('Recording Size Limit Reached', {
-              description: `Maximum recording size of ${(MAX_RECORDING_SIZE / (1024 * 1024)).toFixed(0)}MB reached. Recording stopped automatically.`,
+            toast.error(t('module.toast.sizeLimitTitle'), {
+              description: t('module.toast.sizeLimitDescription', {
+                max: formatNumber(MAX_RECORDING_SIZE / (1024 * 1024), { maximumFractionDigits: 0 }),
+              }),
             });
 
             // Stop recording automatically
@@ -140,7 +145,9 @@ const VoiceTranscriptionModule: React.FC = () => {
         stream.getTracks().forEach((track) => track.stop());
 
         // Auto-transcribe immediately after recording ends
-        toast.success('Recording Complete', { description: 'Starting transcription...' });
+        toast.success(t('module.toast.completeTitle'), {
+          description: t('module.toast.completeDescription'),
+        });
         await autoTranscribe(blob);
       };
 
@@ -148,11 +155,13 @@ const VoiceTranscriptionModule: React.FC = () => {
       setIsRecording(true);
       setIsPaused(false);
 
-      toast.success('Recording Started', { description: 'Recording legal proceedings...' });
+      toast.success(t('module.toast.startedTitle'), {
+        description: t('module.toast.startedDescription'),
+      });
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast.error('Recording Error', {
-        description: 'Could not access microphone. Please check permissions.',
+      toast.error(t('module.toast.recordingErrorTitle'), {
+        description: t('module.toast.recordingErrorDescription'),
       });
     }
   };
@@ -163,7 +172,9 @@ const VoiceTranscriptionModule: React.FC = () => {
       pauseStartTimeRef.current = Date.now();
       setIsPaused(true);
 
-      toast.success('Recording Paused', { description: 'Click resume to continue recording' });
+      toast.success(t('module.toast.pausedTitle'), {
+        description: t('module.toast.pausedDescription'),
+      });
     }
   };
 
@@ -174,7 +185,9 @@ const VoiceTranscriptionModule: React.FC = () => {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
 
-      toast.success('Recording Resumed', { description: 'Recording continues...' });
+      toast.success(t('module.toast.resumedTitle'), {
+        description: t('module.toast.resumedDescription'),
+      });
     }
   };
 
@@ -184,7 +197,9 @@ const VoiceTranscriptionModule: React.FC = () => {
       setIsRecording(false);
       setIsPaused(false);
 
-      toast.success('Recording Stopped', { description: 'Processing recording...' });
+      toast.success(t('module.toast.stoppedTitle'), {
+        description: t('module.toast.stoppedDescription'),
+      });
     }
   };
 
@@ -216,7 +231,9 @@ const VoiceTranscriptionModule: React.FC = () => {
 
       audioRef.current.onerror = () => {
         setIsPlaying(false);
-        toast.error('Playback Error', { description: 'Failed to play audio recording' });
+        toast.error(t('module.toast.playbackErrorTitle'), {
+          description: t('module.toast.playbackErrorDescription'),
+        });
         if (audioUrlRef.current) {
           URL.revokeObjectURL(audioUrlRef.current);
           audioUrlRef.current = null;
@@ -225,8 +242,9 @@ const VoiceTranscriptionModule: React.FC = () => {
 
       audioRef.current.play().catch((err: unknown) => {
         setIsPlaying(false);
-        toast.error('Playback Error', {
-          description: err instanceof Error ? err.message : 'Failed to play audio recording',
+        toast.error(t('module.toast.playbackErrorTitle'), {
+          description:
+            err instanceof Error ? err.message : t('module.toast.playbackErrorDescription'),
         });
       });
       setIsPlaying(true);
@@ -251,8 +269,14 @@ const VoiceTranscriptionModule: React.FC = () => {
   const autoTranscribe = async (blob: Blob) => {
     // Validate file size before transcription
     if (blob.size > MAX_RECORDING_SIZE) {
-      toast.error('File Too Large', {
-        description: `Audio file (${(blob.size / (1024 * 1024)).toFixed(2)}MB) exceeds Whisper API limit of ${(MAX_RECORDING_SIZE / (1024 * 1024)).toFixed(0)}MB. Please record a shorter audio.`,
+      toast.error(t('module.toast.fileTooLargeTitle'), {
+        description: t('module.toast.fileTooLargeTranscription', {
+          size: formatNumber(blob.size / (1024 * 1024), {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          max: formatNumber(MAX_RECORDING_SIZE / (1024 * 1024), { maximumFractionDigits: 0 }),
+        }),
       });
       return;
     }
@@ -267,7 +291,7 @@ const VoiceTranscriptionModule: React.FC = () => {
           const base64Audio = reader.result?.toString().split(',')[1];
 
           if (!base64Audio) {
-            throw new Error('Failed to process audio file');
+            throw new Error(t('module.errors.processAudio'));
           }
 
           const data = await invokeNodeApi<{
@@ -286,20 +310,20 @@ const VoiceTranscriptionModule: React.FC = () => {
           }
 
           if (!data?.transcript) {
-            throw new Error('No transcript returned from service');
+            throw new Error(t('module.errors.noTranscript'));
           }
 
           setTranscript(data.transcript);
 
-          toast.success('Transcription Complete', {
-            description: 'Audio has been transcribed successfully',
+          toast.success(t('module.toast.transcribedTitle'), {
+            description: t('module.toast.transcribedDescription'),
           });
         } catch (innerError: unknown) {
           const errorMessage =
             innerError instanceof Error
               ? innerError.message
-              : 'Failed to transcribe audio automatically';
-          toast.error('Transcription Failed', { description: errorMessage });
+              : t('module.toast.transcribeFailedDescription');
+          toast.error(t('module.toast.transcribeFailedTitle'), { description: errorMessage });
         } finally {
           setIsTranscribing(false);
         }
@@ -308,7 +332,9 @@ const VoiceTranscriptionModule: React.FC = () => {
       reader.onerror = () => {
         console.error('❌ FileReader error');
         setIsTranscribing(false);
-        toast.error('File Processing Error', { description: 'Failed to process the audio file' });
+        toast.error(t('module.toast.fileProcessingErrorTitle'), {
+          description: t('module.toast.fileProcessingErrorDescription'),
+        });
       };
 
       reader.readAsDataURL(blob);
@@ -316,14 +342,16 @@ const VoiceTranscriptionModule: React.FC = () => {
       console.error('❌ Auto-transcription setup error:', error);
       setIsTranscribing(false);
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to set up transcription';
-      toast.error('Transcription Setup Failed', { description: errorMessage });
+        error instanceof Error ? error.message : t('module.toast.setupFailedDescription');
+      toast.error(t('module.toast.setupFailedTitle'), { description: errorMessage });
     }
   };
 
   const transcribeAudio = async () => {
     if (!audioBlob) {
-      toast.error('No Recording', { description: 'Please record audio first' });
+      toast.error(t('module.toast.noRecordingTitle'), {
+        description: t('module.toast.noRecordingDescription'),
+      });
       return;
     }
     // Same path as the automatic transcription (size check, errors, spinner).
@@ -332,7 +360,9 @@ const VoiceTranscriptionModule: React.FC = () => {
 
   const generateSummary = async () => {
     if (!transcript.trim()) {
-      toast.error('No Transcript', { description: 'Please transcribe audio first' });
+      toast.error(t('module.toast.noTranscriptTitle'), {
+        description: t('module.toast.noTranscriptDescription'),
+      });
       return;
     }
 
@@ -358,11 +388,14 @@ const VoiceTranscriptionModule: React.FC = () => {
         setSummary(data.summary);
       }
 
-      toast.success('Summary Generated', { description: 'Transcript summary has been generated' });
+      toast.success(t('module.toast.summaryTitle'), {
+        description: t('module.toast.summaryDescription'),
+      });
     } catch (error: unknown) {
       console.error('Summary error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate summary';
-      toast.error('Summary Failed', { description: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : t('module.toast.summaryFailedDescription');
+      toast.error(t('module.toast.summaryFailedTitle'), { description: errorMessage });
     } finally {
       setIsSummarizing(false);
     }
@@ -372,8 +405,8 @@ const VoiceTranscriptionModule: React.FC = () => {
     const contentToSave = saveType === 'summary' ? summary : transcript;
 
     if (!title.trim() || !contentToSave.trim()) {
-      toast.error('Missing Information', {
-        description: 'Please provide a title and content to save',
+      toast.error(t('module.toast.missingInfoTitle'), {
+        description: t('module.toast.missingInfoDescription'),
       });
       return;
     }
@@ -386,7 +419,7 @@ const VoiceTranscriptionModule: React.FC = () => {
       const user = session?.user;
 
       if (!user) {
-        throw new Error('User not authenticated');
+        throw new Error(t('module.errors.notAuthenticated'));
       }
 
       // Upload audio file to storage if available
@@ -395,8 +428,10 @@ const VoiceTranscriptionModule: React.FC = () => {
         // Validate audio file size (max 50MB for audio)
         const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB
         if (audioBlob.size > MAX_AUDIO_SIZE) {
-          toast.error('File Too Large', {
-            description: `Audio file exceeds maximum size of ${(MAX_AUDIO_SIZE / (1024 * 1024)).toFixed(0)}MB`,
+          toast.error(t('module.toast.fileTooLargeTitle'), {
+            description: t('module.toast.fileTooLargeSave', {
+              max: formatNumber(MAX_AUDIO_SIZE / (1024 * 1024), { maximumFractionDigits: 0 }),
+            }),
           });
           // Continue without audio file
         } else {
@@ -407,8 +442,8 @@ const VoiceTranscriptionModule: React.FC = () => {
             audioFilePath = uploadResult.filePath;
           } catch (uploadError) {
             console.error('Error uploading audio:', uploadError);
-            toast.error('Audio Upload Warning', {
-              description: 'Audio file could not be saved, but transcription will be saved.',
+            toast.error(t('module.toast.audioUploadWarningTitle'), {
+              description: t('module.toast.audioUploadWarningDescription'),
             });
           }
         }
@@ -438,16 +473,28 @@ const VoiceTranscriptionModule: React.FC = () => {
         await createActivity.mutateAsync({
           caseId: selectedCaseId,
           payload: {
-            title: `Voice Recording: ${title}`,
-            description: `${saveType === 'summary' ? 'Summary' : 'Transcript'} saved from voice recording`,
+            // Stored as activity text and shown on the matter later.
+            title: t('module.activity.title', { title }),
+            description:
+              saveType === 'summary'
+                ? t('module.activity.summarySaved')
+                : t('module.activity.transcriptSaved'),
             activity_type: 'voice_recording',
             status: 'completed',
           },
         });
       }
 
-      toast.success('Saved Successfully', {
-        description: `${saveType === 'summary' ? 'Summary' : 'Transcript'} has been saved${selectedCaseId && selectedCaseId !== 'none' ? ' and linked to the matter' : ''}`,
+      const linked = Boolean(selectedCaseId && selectedCaseId !== 'none');
+      toast.success(t('module.toast.savedTitle'), {
+        description:
+          saveType === 'summary'
+            ? linked
+              ? t('module.toast.summarySavedLinked')
+              : t('module.toast.summarySaved')
+            : linked
+              ? t('module.toast.transcriptSavedLinked')
+              : t('module.toast.transcriptSaved'),
       });
 
       // Reset form
@@ -459,8 +506,9 @@ const VoiceTranscriptionModule: React.FC = () => {
       setDuration(null);
     } catch (error: unknown) {
       console.error('Save error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save transcription';
-      toast.error('Save Failed', { description: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : t('module.toast.saveFailedDescription');
+      toast.error(t('module.toast.saveFailedTitle'), { description: errorMessage });
     } finally {
       setIsSaving(false);
     }
@@ -471,27 +519,26 @@ const VoiceTranscriptionModule: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
           <Mic className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold">Legal Proceedings Recorder</h1>
+          <h1 className="text-3xl font-bold">{t('module.title')}</h1>
         </div>
         <Button variant="outline" onClick={() => navigate('/transcriptions')}>
           <List className="h-4 w-4 mr-2" />
-          View All Transcriptions
+          {t('module.viewAll')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Voice Recording</CardTitle>
+          <CardTitle>{t('module.recording.title')}</CardTitle>
           <CardDescription>
-            Record legal proceedings and generate accurate transcripts with AI-powered summaries
+            {t('module.recording.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {hasPermission === false && (
             <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                Microphone access is required for voice recording. Please allow microphone access
-                and refresh the page.
+                {t('module.recording.permissionWarning')}
               </p>
             </div>
           )}
@@ -504,7 +551,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <Mic className="h-4 w-4" />
-                <span>Start Recording</span>
+                <span>{t('recorder.start')}</span>
               </Button>
             ) : (
               <div className="flex items-center space-x-2">
@@ -515,7 +562,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                     className="flex items-center space-x-2"
                   >
                     <Pause className="h-4 w-4" />
-                    <span>Pause</span>
+                    <span>{t('module.pause')}</span>
                   </Button>
                 ) : (
                   <Button
@@ -524,7 +571,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                     className="flex items-center space-x-2"
                   >
                     <Play className="h-4 w-4" />
-                    <span>Resume</span>
+                    <span>{t('module.resume')}</span>
                   </Button>
                 )}
                 <Button
@@ -533,7 +580,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                   className="flex items-center space-x-2"
                 >
                   <Square className="h-4 w-4" />
-                  <span>Stop Recording</span>
+                  <span>{t('recorder.stop')}</span>
                 </Button>
               </div>
             )}
@@ -547,7 +594,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                     className="flex items-center space-x-2"
                   >
                     <Play className="h-4 w-4" />
-                    <span>Play</span>
+                    <span>{t('module.play')}</span>
                   </Button>
                 ) : (
                   <Button
@@ -556,11 +603,13 @@ const VoiceTranscriptionModule: React.FC = () => {
                     className="flex items-center space-x-2"
                   >
                     <Pause className="h-4 w-4" />
-                    <span>Pause</span>
+                    <span>{t('module.pause')}</span>
                   </Button>
                 )}
                 {duration && (
-                  <span className="text-sm text-muted-foreground">Duration: {duration}s</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t('module.duration', { seconds: duration })}
+                  </span>
                 )}
               </div>
             )}
@@ -571,13 +620,18 @@ const VoiceTranscriptionModule: React.FC = () => {
               <div className="flex items-center space-x-2 text-red-600">
                 <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse" />
                 <span className="text-sm font-medium">
-                  {isPaused ? 'Recording paused...' : 'Recording in progress...'}
+                  {isPaused ? t('module.paused') : t('recorder.inProgress')}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  Recording size: {(recordingSize / (1024 * 1024)).toFixed(2)} MB /{' '}
-                  {(MAX_RECORDING_SIZE / (1024 * 1024)).toFixed(0)} MB
+                  {t('module.recordingSize', {
+                    size: formatNumber(recordingSize / (1024 * 1024), {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }),
+                    max: formatNumber(MAX_RECORDING_SIZE / (1024 * 1024), { maximumFractionDigits: 0 }),
+                  })}
                 </span>
                 <div className="w-48 bg-gray-200 rounded-full h-2">
                   <div
@@ -600,7 +654,7 @@ const VoiceTranscriptionModule: React.FC = () => {
           {isTranscribing && (
             <div className="flex items-center space-x-2 text-blue-600">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm font-medium">Transcribing audio...</span>
+              <span className="text-sm font-medium">{t('recorder.transcribing')}</span>
             </div>
           )}
         </CardContent>
@@ -609,8 +663,8 @@ const VoiceTranscriptionModule: React.FC = () => {
       {(audioBlob || transcript) && (
         <Card>
           <CardHeader>
-            <CardTitle>Processing</CardTitle>
-            <CardDescription>Your recording has been automatically transcribed</CardDescription>
+            <CardTitle>{t('module.processing.title')}</CardTitle>
+            <CardDescription>{t('module.processing.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {audioBlob && !transcript && !isTranscribing && (
@@ -620,18 +674,18 @@ const VoiceTranscriptionModule: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <FileText className="h-4 w-4" />
-                <span>Re-transcribe Audio</span>
+                <span>{t('module.processing.retranscribe')}</span>
               </Button>
             )}
 
             {transcript && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-2">Transcript</h3>
+                  <h3 className="font-semibold mb-2">{t('module.processing.transcript')}</h3>
                   <Textarea
                     value={transcript}
                     onChange={(e) => setTranscript(e.target.value)}
-                    placeholder="Transcript will appear here..."
+                    placeholder={t('module.processing.transcriptPlaceholder')}
                     className="min-h-[200px]"
                   />
                 </div>
@@ -647,7 +701,11 @@ const VoiceTranscriptionModule: React.FC = () => {
                   ) : (
                     <FileText className="h-4 w-4" />
                   )}
-                  <span>{isSummarizing ? 'Summarizing...' : 'Generate Summary'}</span>
+                  <span>
+                    {isSummarizing
+                      ? t('module.processing.summarizing')
+                      : t('module.processing.generateSummary')}
+                  </span>
                 </Button>
 
                 <TranscriptActions
@@ -660,11 +718,11 @@ const VoiceTranscriptionModule: React.FC = () => {
 
             {summary && (
               <div className="space-y-2">
-                <h3 className="font-semibold">AI Summary</h3>
+                <h3 className="font-semibold">{t('module.processing.aiSummary')}</h3>
                 <Textarea
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
-                  placeholder="Summary will appear here..."
+                  placeholder={t('module.processing.summaryPlaceholder')}
                   className="min-h-[150px]"
                 />
               </div>
@@ -676,27 +734,27 @@ const VoiceTranscriptionModule: React.FC = () => {
       {(transcript || summary) && (
         <Card>
           <CardHeader>
-            <CardTitle>Save Recording</CardTitle>
+            <CardTitle>{t('module.save.title')}</CardTitle>
             <CardDescription>
-              Save transcript or summary and optionally link to a matter
+              {t('module.save.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="Recording title (e.g., 'Client Meeting - Smith vs Jones')"
+              placeholder={t('module.save.titlePlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
 
             <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
               <SelectTrigger>
-                <SelectValue placeholder="Link to matter (optional)" />
+                <SelectValue placeholder={t('module.save.matterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No matter selected</SelectItem>
+                <SelectItem value="none">{t('module.save.noMatter')}</SelectItem>
                 {cases?.map((caseItem: Case) => (
                   <SelectItem key={caseItem.id} value={caseItem.id}>
-                    {caseItem.title} - {caseItem.case_number || 'No number'}
+                    {caseItem.title} - {caseItem.case_number || t('module.save.noNumber')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -714,7 +772,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
-                  <span>Save Transcript</span>
+                  <span>{t('module.save.saveTranscript')}</span>
                 </Button>
               )}
 
@@ -730,7 +788,7 @@ const VoiceTranscriptionModule: React.FC = () => {
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
-                  <span>Save Summary</span>
+                  <span>{t('module.save.saveSummary')}</span>
                 </Button>
               )}
             </div>

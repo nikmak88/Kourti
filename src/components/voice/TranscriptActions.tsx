@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { CalendarPlus, CheckSquare, ListChecks, Loader2, Quote, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { invokeNodeApi } from '@/lib/backendApi';
+import { formatDate } from '@/i18n/dates';
 
 /**
  * "Extract tasks & events" for a voice-note transcript.
@@ -25,6 +27,7 @@ import { invokeNodeApi } from '@/lib/backendApi';
  */
 
 type Priority = 'high' | 'medium' | 'low';
+// API values - only the displayed label is translated (voice:eventTypes.*).
 const EVENT_TYPES = ['meeting', 'hearing', 'deadline', 'deposition', 'review', 'consultation'];
 
 interface ProposedTask {
@@ -92,6 +95,7 @@ interface Props {
 
 const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceTitle }) => {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('voice');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [data, setData] = useState<ExtractResponse | null>(null);
@@ -113,56 +117,64 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
       });
       setData(res);
       setCaseId(res.suggested_case_id ?? NONE);
-      setTasks(res.tasks.map((t) => ({ ...t, selected: true })));
+      setTasks(res.tasks.map((task) => ({ ...task, selected: true })));
       setEvents(res.events.map((e) => ({ ...e, selected: true })));
       if (!res.tasks.length && !res.events.length) {
-        toast.info('Nothing to extract', {
-          description: 'No tasks or dated events were found in this transcript.',
+        toast.info(t('actions.toast.nothingTitle'), {
+          description: t('actions.toast.nothingDescription'),
         });
       }
     } catch (err: unknown) {
-      toast.error('Extraction failed', {
-        description: err instanceof Error ? err.message : 'Could not analyse the transcript',
+      toast.error(t('actions.toast.extractFailed'), {
+        description: err instanceof Error ? err.message : t('actions.toast.extractFailedDescription'),
       });
     } finally {
       setIsExtracting(false);
     }
   };
 
-  const selectedTasks = tasks.filter((t) => t.selected);
+  const selectedTasks = tasks.filter((task) => task.selected);
   const selectedEvents = events.filter((e) => e.selected);
   const needsMatter = selectedTasks.length > 0 && caseId === NONE;
 
   const createSelected = async () => {
     if (needsMatter) {
-      toast.error('Choose a matter', { description: 'Tasks must be attached to a matter.' });
+      toast.error(t('actions.chooseMatter'), { description: t('actions.tasksNeedMatter') });
       return;
     }
     setIsCreating(true);
     const matter = caseId === NONE ? undefined : caseId;
-    const origin = sourceTitle ? `From voice note "${sourceTitle}"` : 'From voice note';
+    // Written into the created task/event descriptions (shown to users later).
+    const origin = sourceTitle
+      ? t('actions.fromVoiceNote', { title: sourceTitle })
+      : t('actions.fromVoiceNoteUntitled');
     let created = 0;
     const failures: string[] = [];
 
-    for (const t of selectedTasks) {
+    for (const task of selectedTasks) {
       try {
         await invokeNodeApi('/api/v1/tasks', {
           method: 'POST',
           body: {
             case_id: matter,
-            title: t.title,
-            description: [t.description, t.source_quote && `${origin}: “${t.source_quote}”`]
+            title: task.title,
+            description: [task.description, task.source_quote && `${origin}: “${task.source_quote}”`]
               .filter(Boolean)
               .join('\n\n'),
-            due_date: t.due_date || undefined,
-            priority: t.priority,
-            assigned_to: t.assigned_to || undefined,
+            due_date: task.due_date || undefined,
+            priority: task.priority,
+            assigned_to: task.assigned_to || undefined,
             task_type: 'voice_note',
           },
         });
         created++;
       } catch (err) {
-        failures.push(`Task "${t.title}": ${err instanceof Error ? err.message : 'failed'}`);
+        failures.push(
+          t('actions.taskFailed', {
+            title: task.title,
+            error: err instanceof Error ? err.message : t('actions.failed'),
+          })
+        );
       }
     }
 
@@ -185,7 +197,12 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
         });
         created++;
       } catch (err) {
-        failures.push(`Event "${e.title}": ${err instanceof Error ? err.message : 'failed'}`);
+        failures.push(
+          t('actions.eventFailed', {
+            title: e.title,
+            error: err instanceof Error ? err.message : t('actions.failed'),
+          })
+        );
       }
     }
 
@@ -195,24 +212,24 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
     setIsCreating(false);
 
     if (failures.length) {
-      toast.error(`${failures.length} item(s) could not be created`, {
+      toast.error(t('actions.toast.createFailed', { count: failures.length }), {
         description: failures.slice(0, 3).join('\n'),
       });
     }
     if (created) {
-      toast.success(`Created ${created} item(s)`, {
+      toast.success(t('actions.toast.created', { count: created }), {
         description: matter
-          ? 'Added to the matter and the calendar.'
-          : 'Events were added to the calendar.',
+          ? t('actions.toast.createdWithMatter')
+          : t('actions.toast.createdEventsOnly'),
       });
       // Remove what was created; keep unticked / failed ones for another pass.
-      setTasks((prev) => prev.filter((t) => !t.selected));
+      setTasks((prev) => prev.filter((task) => !task.selected));
       setEvents((prev) => prev.filter((e) => !e.selected));
     }
   };
 
   const updateTask = (i: number, patch: Partial<ProposedTask>) =>
-    setTasks((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+    setTasks((prev) => prev.map((task, idx) => (idx === i ? { ...task, ...patch } : task)));
   const updateEvent = (i: number, patch: Partial<ProposedEvent>) =>
     setEvents((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
 
@@ -225,7 +242,7 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
         className="flex items-center space-x-2"
       >
         {isExtracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-        <span>{isExtracting ? 'Extracting…' : 'Extract tasks & events'}</span>
+        <span>{isExtracting ? t('actions.extracting') : t('actions.extract')}</span>
       </Button>
     );
   }
@@ -234,26 +251,28 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
     <div className="space-y-4 rounded-md border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold">
-          <ListChecks className="h-4 w-4" /> Proposed tasks & events
+          <ListChecks className="h-4 w-4" /> {t('actions.proposedTitle')}
         </h3>
         <Button variant="ghost" size="sm" onClick={extract} disabled={isExtracting}>
           {isExtracting ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-          Extract again
+          {t('actions.extractAgain')}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        AI proposals from the transcript (dates resolved from {data.reference_date}). Check and edit
-        them; only ticked items are created.
+        {t('actions.proposedHelp', {
+          date:
+            formatDate(`${data.reference_date.slice(0, 10)}T00:00`, 'PP') || data.reference_date,
+        })}
       </p>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium">Matter</label>
+        <label className="text-sm font-medium">{t('common:entities.matter')}</label>
         <Select value={caseId} onValueChange={setCaseId}>
           <SelectTrigger>
-            <SelectValue placeholder="Choose a matter" />
+            <SelectValue placeholder={t('actions.chooseMatter')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>No matter (events only)</SelectItem>
+            <SelectItem value={NONE}>{t('actions.noMatter')}</SelectItem>
             {data.matters.map((m) => (
               <SelectItem key={m.id} value={m.id}>
                 {m.label}
@@ -262,55 +281,57 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
           </SelectContent>
         </Select>
         {data.suggested_case_id && data.matter_reason && (
-          <p className="text-xs text-muted-foreground">Suggested by AI: {data.matter_reason}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('actions.suggestedByAi', { reason: data.matter_reason })}
+          </p>
         )}
         {needsMatter && (
-          <p className="text-xs text-destructive">Tasks must be attached to a matter.</p>
+          <p className="text-xs text-destructive">{t('actions.tasksNeedMatter')}</p>
         )}
       </div>
 
       {tasks.length > 0 && (
         <div className="space-y-2">
           <h4 className="flex items-center gap-2 text-sm font-semibold">
-            <CheckSquare className="h-4 w-4" /> Tasks
+            <CheckSquare className="h-4 w-4" /> {t('common:entities.tasks')}
           </h4>
-          {tasks.map((t, i) => (
+          {tasks.map((task, i) => (
             <div key={`t${i}`} className="space-y-2 rounded border p-3">
               <div className="flex items-start gap-2">
                 <Checkbox
-                  checked={t.selected}
+                  checked={task.selected}
                   onCheckedChange={(v) => updateTask(i, { selected: v === true })}
                   className="mt-2"
-                  aria-label="Create this task"
+                  aria-label={t('actions.createThisTask')}
                 />
-                <Input value={t.title} onChange={(e) => updateTask(i, { title: e.target.value })} />
+                <Input value={task.title} onChange={(e) => updateTask(i, { title: e.target.value })} />
               </div>
               <div className="grid grid-cols-1 gap-2 pl-6 sm:grid-cols-3">
                 <Input
                   type="date"
-                  value={t.due_date ?? ''}
+                  value={task.due_date ?? ''}
                   onChange={(e) => updateTask(i, { due_date: e.target.value || null })}
-                  aria-label="Due date"
+                  aria-label={t('common:time.dueDate')}
                 />
-                <Select value={t.priority} onValueChange={(v) => updateTask(i, { priority: v as Priority })}>
-                  <SelectTrigger aria-label="Priority">
+                <Select value={task.priority} onValueChange={(v) => updateTask(i, { priority: v as Priority })}>
+                  <SelectTrigger aria-label={t('common:fields.priority')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="high">High priority</SelectItem>
-                    <SelectItem value="medium">Medium priority</SelectItem>
-                    <SelectItem value="low">Low priority</SelectItem>
+                    <SelectItem value="high">{t('actions.priority.high')}</SelectItem>
+                    <SelectItem value="medium">{t('actions.priority.medium')}</SelectItem>
+                    <SelectItem value="low">{t('actions.priority.low')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
-                  value={t.assigned_to ?? UNASSIGNED}
+                  value={task.assigned_to ?? UNASSIGNED}
                   onValueChange={(v) => updateTask(i, { assigned_to: v === UNASSIGNED ? null : v })}
                 >
-                  <SelectTrigger aria-label="Assignee">
+                  <SelectTrigger aria-label={t('actions.assignee')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                    <SelectItem value={UNASSIGNED}>{t('actions.unassigned')}</SelectItem>
                     {data.staff.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
@@ -319,9 +340,9 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
                   </SelectContent>
                 </Select>
               </div>
-              {t.source_quote && (
+              {task.source_quote && (
                 <p className="flex gap-1 pl-6 text-xs italic text-muted-foreground">
-                  <Quote className="h-3 w-3 shrink-0" /> {t.source_quote}
+                  <Quote className="h-3 w-3 shrink-0" /> {task.source_quote}
                 </p>
               )}
             </div>
@@ -332,7 +353,7 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
       {events.length > 0 && (
         <div className="space-y-2">
           <h4 className="flex items-center gap-2 text-sm font-semibold">
-            <CalendarPlus className="h-4 w-4" /> Calendar events
+            <CalendarPlus className="h-4 w-4" /> {t('actions.calendarEvents')}
           </h4>
           {events.map((e, i) => (
             <div key={`e${i}`} className="space-y-2 rounded border p-3">
@@ -341,19 +362,19 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
                   checked={e.selected}
                   onCheckedChange={(v) => updateEvent(i, { selected: v === true })}
                   className="mt-2"
-                  aria-label="Create this event"
+                  aria-label={t('actions.createThisEvent')}
                 />
                 <Input value={e.title} onChange={(ev) => updateEvent(i, { title: ev.target.value })} />
               </div>
               <div className="grid grid-cols-1 gap-2 pl-6 sm:grid-cols-3">
                 <Select value={e.event_type} onValueChange={(v) => updateEvent(i, { event_type: v })}>
-                  <SelectTrigger aria-label="Event type">
+                  <SelectTrigger aria-label={t('actions.eventType')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {EVENT_TYPES.map((et) => (
                       <SelectItem key={et} value={et}>
-                        {et.charAt(0).toUpperCase() + et.slice(1)}
+                        {t(`eventTypes.${et}`, { defaultValue: et })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -363,24 +384,24 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
                     type="date"
                     value={e.start.slice(0, 10)}
                     onChange={(ev) => updateEvent(i, { start: ev.target.value })}
-                    aria-label="Date"
+                    aria-label={t('common:time.date')}
                   />
                 ) : (
                   <Input
                     type="datetime-local"
                     value={e.start}
                     onChange={(ev) => updateEvent(i, { start: ev.target.value })}
-                    aria-label="Start"
+                    aria-label={t('common:time.start')}
                   />
                 )}
                 <Input
-                  placeholder="Location"
+                  placeholder={t('actions.location')}
                   value={e.location ?? ''}
                   onChange={(ev) => updateEvent(i, { location: ev.target.value || null })}
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 pl-6">
-                {e.all_day && <Badge variant="secondary">All day</Badge>}
+                {e.all_day && <Badge variant="secondary">{t('common:time.allDay')}</Badge>}
                 {e.source_quote && (
                   <p className="flex gap-1 text-xs italic text-muted-foreground">
                     <Quote className="h-3 w-3 shrink-0" /> {e.source_quote}
@@ -400,11 +421,14 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
         >
           {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-4 w-4" />}
           <span>
-            Create {selectedTasks.length} task(s) and {selectedEvents.length} event(s)
+            {t('actions.createSelected', {
+              tasks: t('actions.taskCount', { count: selectedTasks.length }),
+              events: t('actions.eventCount', { count: selectedEvents.length }),
+            })}
           </span>
         </Button>
       ) : (
-        <p className="text-sm text-muted-foreground">Nothing left to create.</p>
+        <p className="text-sm text-muted-foreground">{t('actions.nothingLeft')}</p>
       )}
     </div>
   );

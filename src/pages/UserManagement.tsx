@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,8 +33,13 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
+import { formatDate } from '@/i18n/dates';
 
 export default function UserManagement() {
+  const { t } = useTranslation('users');
+  // Role codes are API values: translate known ones, show the stored name otherwise.
+  const roleLabel = (code: string, fallback?: string) =>
+    t(`roles.${code}`, { defaultValue: fallback || code });
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -140,29 +146,29 @@ export default function UserManagement() {
       case 'verified':
         return (
           <Badge variant="secondary" className="bg-green-100 text-green-800">
-            Verified
+            {t('management.verification.verified')}
           </Badge>
         );
       case 'pending':
         return (
           <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-            Pending
+            {t('management.verification.pending')}
           </Badge>
         );
       case 'unverified':
         return (
           <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-            Unverified
+            {t('management.verification.unverified')}
           </Badge>
         );
       case 'expired':
         return (
           <Badge variant="secondary" className="bg-red-100 text-red-800">
-            Expired
+            {t('management.verification.expired')}
           </Badge>
         );
       default:
-        return <Badge variant="secondary">Unknown</Badge>;
+        return <Badge variant="secondary">{t('management.verification.unknown')}</Badge>;
     }
   };
 
@@ -180,7 +186,7 @@ export default function UserManagement() {
 
   const handleResendInvitation = (user: (typeof users)[number]) => {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-    if (window.confirm(`Resend invitation email to ${fullName} (${user.email})?`)) {
+    if (window.confirm(t('management.confirm.resend', { name: fullName, email: user.email }))) {
       resendInvitation.mutate(user);
     }
   };
@@ -202,8 +208,8 @@ export default function UserManagement() {
   return (
     <PageContainer>
       <PageHeader
-        title="User Management"
-        description="Manage organization members and permissions"
+        title={t('management.title')}
+        description={t('management.description')}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -213,13 +219,16 @@ export default function UserManagement() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-primary" />
-                Invite New User
+                {t('management.invite.title')}
               </CardTitle>
               <CardDescription>
-                Add a new member to your organization
+                {t('management.invite.description')}
                 {seatUsage && seatUsage.seats > 0 && (
                   <span className="mt-1 block font-medium text-foreground">
-                    {seatUsage.used} of {seatUsage.seats} seats used
+                    {t('management.invite.seatsUsed', {
+                      used: seatUsage.used,
+                      seats: seatUsage.seats,
+                    })}
                   </span>
                 )}
               </CardDescription>
@@ -228,29 +237,29 @@ export default function UserManagement() {
               <form onSubmit={handleInviteUser} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">{t('invite.firstName')}</Label>
                     <Input
                       id="firstName"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="John"
+                      placeholder={t('invite.firstNamePlaceholder')}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">{t('invite.lastName')}</Label>
                     <Input
                       id="lastName"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Doe"
+                      placeholder={t('invite.lastNamePlaceholder')}
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email">{t('invite.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -262,10 +271,10 @@ export default function UserManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="role">{t('common:fields.role')}</Label>
                   <Select value={role} onValueChange={setRole}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder={t('invite.selectRole')} />
                     </SelectTrigger>
                     <SelectContent>
                       {roles
@@ -276,8 +285,8 @@ export default function UserManagement() {
                         )
                         .map((r) => (
                           <SelectItem key={r.role || r.role_name} value={r.role || r.role_name}>
-                            {r.display_name || r.role_name || r.role}
-                            {r.source === 'custom' && ' (Custom)'}
+                            {roleLabel(r.role || r.role_name, r.display_name || r.role_name || r.role)}
+                            {r.source === 'custom' && t('roles.customSuffix')}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -285,12 +294,12 @@ export default function UserManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department (Optional)</Label>
+                  <Label htmlFor="department">{t('invite.departmentOptional')}</Label>
                   <Input
                     id="department"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="Legal, HR, etc."
+                    placeholder={t('management.invite.departmentPlaceholder')}
                   />
                 </div>
 
@@ -299,12 +308,11 @@ export default function UserManagement() {
                   className="w-full"
                   disabled={inviteUser.isPending || seatsFull}
                 >
-                  {inviteUser.isPending ? 'Inviting...' : 'Invite User'}
+                  {inviteUser.isPending ? t('management.invite.submitting') : t('invite.trigger')}
                 </Button>
                 {seatsFull && (
                   <p className="text-center text-xs text-muted-foreground">
-                    All {seatUsage?.seats} seats are in use. Add seats from Settings → Billing to
-                    invite more.
+                    {t('management.invite.seatsFull', { seats: seatUsage?.seats })}
                   </p>
                 )}
               </form>
@@ -317,10 +325,10 @@ export default function UserManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              Organization Users ({users.length})
+              {t('management.list.title', { count: users.length })}
             </CardTitle>
             <CardDescription>
-              All users and pending invitations in your organization
+              {t('management.list.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -329,7 +337,7 @@ export default function UserManagement() {
                 [
                   {
                     id: 'user',
-                    header: 'User',
+                    header: t('management.columns.user'),
                     accessorFn: (user) => `${user.first_name || ''} ${user.last_name || ''}`.trim(),
                     minWidth: '200px',
                     cell: (user) => {
@@ -347,9 +355,11 @@ export default function UserManagement() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{fullName || 'No name'}</div>
+                            <div className="font-medium">{fullName || t('management.list.noName')}</div>
                             {isDisabled && (
-                              <div className="text-xs text-muted-foreground">Disabled</div>
+                              <div className="text-xs text-muted-foreground">
+                                {t('management.list.disabled')}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -358,13 +368,13 @@ export default function UserManagement() {
                   },
                   {
                     id: 'email',
-                    header: 'Email',
+                    header: t('common:fields.email'),
                     accessorKey: 'email',
                     minWidth: '220px',
                   },
                   {
                     id: 'role',
-                    header: 'Role',
+                    header: t('common:fields.role'),
                     accessorKey: 'role',
                     minWidth: '180px',
                     cell: (user) => {
@@ -377,7 +387,10 @@ export default function UserManagement() {
                           onValueChange={(newRole) => {
                             if (
                               window.confirm(
-                                `Are you sure you want to change ${fullName}'s role to "${newRole}"? This will modify their access permissions.`
+                                t('management.confirm.changeRole', {
+                                  name: fullName,
+                                  role: roleLabel(newRole),
+                                })
                               )
                             ) {
                               handleChangeRole(user.user_id!, newRole);
@@ -390,7 +403,7 @@ export default function UserManagement() {
                               <Badge className={getRoleColor(user.role)} variant="secondary">
                                 <div className="flex items-center gap-1">
                                   {getRoleIcon(user.role)}
-                                  {user.role}
+                                  {roleLabel(user.role)}
                                 </div>
                               </Badge>
                             </SelectValue>
@@ -407,8 +420,11 @@ export default function UserManagement() {
                                   key={r.role || r.role_name}
                                   value={r.role || r.role_name}
                                 >
-                                  {r.display_name || r.role_name || r.role}
-                                  {r.source === 'custom' && ' (Custom)'}
+                                  {roleLabel(
+                                    r.role || r.role_name,
+                                    r.display_name || r.role_name || r.role
+                                  )}
+                                  {r.source === 'custom' && t('roles.customSuffix')}
                                 </SelectItem>
                               ))}
                           </SelectContent>
@@ -417,7 +433,7 @@ export default function UserManagement() {
                         <Badge className={getRoleColor(user.role)} variant="secondary">
                           <div className="flex items-center gap-1">
                             {getRoleIcon(user.role)}
-                            {user.role}
+                            {roleLabel(user.role)}
                           </div>
                         </Badge>
                       );
@@ -425,14 +441,14 @@ export default function UserManagement() {
                   },
                   {
                     id: 'department',
-                    header: 'Department',
+                    header: t('common:fields.department'),
                     accessorKey: 'department',
                     minWidth: '150px',
-                    cell: (user) => user.department || 'Not specified',
+                    cell: (user) => user.department || t('management.list.notSpecified'),
                   },
                   {
                     id: 'status',
-                    header: 'Status',
+                    header: t('common:fields.status'),
                     accessorKey: 'verification_status',
                     minWidth: '200px',
                     cell: (user) => {
@@ -453,7 +469,9 @@ export default function UserManagement() {
                               className="h-7 text-xs"
                             >
                               <Mail className="mr-1 h-3 w-3" />
-                              {resendInvitation.isPending ? 'Sending...' : 'Resend'}
+                              {resendInvitation.isPending
+                                ? t('management.list.sending')
+                                : t('management.list.resend')}
                             </Button>
                           )}
                         </div>
@@ -462,27 +480,29 @@ export default function UserManagement() {
                   },
                   {
                     id: 'type',
-                    header: 'Type',
+                    header: t('common:fields.type'),
                     accessorKey: 'user_type',
                     minWidth: '120px',
                     cell: (user) => (
                       <Badge variant="outline">
-                        {user.user_type === 'invitation' ? 'Invitation' : 'User'}
+                        {user.user_type === 'invitation'
+                          ? t('management.list.typeInvitation')
+                          : t('management.list.typeUser')}
                       </Badge>
                     ),
                   },
                   {
                     id: 'added',
-                    header: 'Added',
+                    header: t('management.columns.added'),
                     accessorKey: 'created_at',
                     minWidth: '130px',
-                    cell: (user) => new Date(user.created_at).toLocaleDateString(),
+                    cell: (user) => formatDate(user.created_at, 'PP'),
                   },
                   ...(isSuperAdmin
                     ? [
                         {
                           id: 'actions',
-                          header: 'Actions',
+                          header: t('management.columns.actions'),
                           sortable: false,
                           minWidth: '80px',
                           cell: (user: (typeof users)[number]) => {
@@ -493,7 +513,7 @@ export default function UserManagement() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
+                                    <span className="sr-only">{t('management.list.openMenu')}</span>
                                     <Users className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -504,7 +524,7 @@ export default function UserManagement() {
                                         onClick={() => handleResendInvitation(user)}
                                       >
                                         <Mail className="mr-2 h-4 w-4" />
-                                        Resend Invitation
+                                        {t('management.list.resendInvitation')}
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem
@@ -512,7 +532,7 @@ export default function UserManagement() {
                                         className="text-destructive"
                                       >
                                         <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete Invitation
+                                        {t('management.list.deleteInvitation')}
                                       </DropdownMenuItem>
                                     </>
                                   ) : (
@@ -522,7 +542,7 @@ export default function UserManagement() {
                                           onClick={() => handleEnableUser(user.user_id!)}
                                         >
                                           <UserCheck className="mr-2 h-4 w-4" />
-                                          Enable User
+                                          {t('management.list.enableUser')}
                                         </DropdownMenuItem>
                                       ) : (
                                         <DropdownMenuItem
@@ -530,7 +550,7 @@ export default function UserManagement() {
                                           className="text-destructive"
                                         >
                                           <UserMinus className="mr-2 h-4 w-4" />
-                                          Disable User
+                                          {t('management.list.disableUser')}
                                         </DropdownMenuItem>
                                       )}
                                     </>
@@ -545,7 +565,7 @@ export default function UserManagement() {
                 ] as ColumnDef<(typeof users)[number]>[]
               }
               data={users}
-              emptyMessage="No users found"
+              emptyMessage={t('management.list.empty')}
               getRowKey={(row) => row.id}
               rowClassName={(user) => (user.status === 'disabled' ? 'opacity-60' : '')}
             />

@@ -3,6 +3,7 @@ import { useCaseTypes } from '../api/useCaseTypes';
 import { CaseType } from '../types';
 import { AppError } from '@/lib/error-handling';
 import { PlusCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -86,12 +87,15 @@ export function CaseTypeSelector({
   disabled = false,
   required = false,
   className = '',
-  placeholder = 'Select case type',
+  placeholder,
   errorMessage,
   renderItem,
   showAddOption = true, // Firms can add their own org-scoped types; globals are admin-managed
-  addNewText = 'Add new case type',
+  addNewText,
 }: CaseTypeSelectorProps) {
+  const { t } = useTranslation('matters');
+  const placeholderText = placeholder ?? t('matterTypes.selectPlaceholder');
+  const addNewLabel = addNewText ?? t('matterTypes.addNew');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const { data: caseTypes = [], isLoading, error } = useCaseTypes();
@@ -121,14 +125,14 @@ export function CaseTypeSelector({
         required={required}
       >
         <SelectTrigger className={cn('w-full', className)}>
-          <SelectValue placeholder={isLoading ? 'Loading case types...' : placeholder} />
+          <SelectValue placeholder={isLoading ? t('matterTypes.loading') : placeholderText} />
         </SelectTrigger>
         <SelectContent className="z-50 bg-background border border-border shadow-lg">
           {isLoading ? (
             <SelectItem value="loading" disabled>
               <div className="flex items-center gap-2">
                 <span className="inline-block w-4 h-4 border-2 border-t-transparent border-primary rounded-full animate-spin" />
-                <span>Loading case types...</span>
+                <span>{t('matterTypes.loading')}</span>
               </div>
             </SelectItem>
           ) : caseTypes.length > 0 ? (
@@ -139,7 +143,7 @@ export function CaseTypeSelector({
             ))
           ) : (
             <SelectItem value="none" disabled>
-              No case types available
+              {t('matterTypes.noneAvailable')}
             </SelectItem>
           )}
 
@@ -150,7 +154,7 @@ export function CaseTypeSelector({
               <SelectItem value="add-new" className="text-primary focus:text-primary">
                 <div className="flex items-center gap-2">
                   <PlusCircle className="h-4 w-4" />
-                  <span>{addNewText}</span>
+                  <span>{addNewLabel}</span>
                 </div>
               </SelectItem>
             </>
@@ -160,13 +164,13 @@ export function CaseTypeSelector({
 
       {error && (
         <p className="text-sm text-red-500">
-          {errorMessage || (error instanceof AppError ? error.message : 'Error loading case types')}
+          {errorMessage || (error instanceof AppError ? error.message : t('matterTypes.loadFailed'))}
         </p>
       )}
 
       {!isLoading && caseTypes.length === 0 && !error && !isAddModalOpen && (
         <p className="text-xs text-amber-600">
-          No case types yet. Use “Add new case type” above to create one for your firm.
+          {t('matterTypes.emptyHint', { addNew: addNewLabel })}
         </p>
       )}
 

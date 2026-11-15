@@ -13,6 +13,7 @@ import {
 import { env } from '../../config/env.js';
 import { ApiError, asyncHandler } from '../../lib/http.js';
 import { checkRateLimit } from '../../lib/rateLimit.js';
+import { aiLanguageInstruction, requestLanguage } from '../../lib/language.js';
 
 const analysisRequestSchema = z.object({
   text: z.string().min(1).max(200_000),
@@ -669,7 +670,8 @@ aiRouter.post(
       {
         role: 'system' as const,
         content:
-          'You are REAM AI, a legal assistant. Provide concise, practical, and risk-aware legal guidance. If information is missing, clearly state assumptions. When referencing knowledge base context, cite the source document name.',
+          'You are REAM AI, a legal assistant. Provide concise, practical, and risk-aware legal guidance. If information is missing, clearly state assumptions. When referencing knowledge base context, cite the source document name. ' +
+          aiLanguageInstruction(requestLanguage(req)),
       },
       {
         role: 'system' as const,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Case, Document } from '@/types';
 import {
   Edit,
@@ -66,6 +67,7 @@ import {
   useDisableClientPortal,
 } from '@/features/clientPortal/api';
 import { DocumentViewer } from '@/components/DocumentViewer';
+import { formatDate, formatNumber } from '@/i18n/dates';
 
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
@@ -81,6 +83,7 @@ import {
 export default function ClientDetails() {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation('clients');
 
   const { data: client, isLoading: clientLoading } = useClient(clientId!);
   const { data: commLogs = [] } = useClientLogs(clientId!);
@@ -136,8 +139,8 @@ export default function ClientDetails() {
     return (
       <PageContainer>
         <div className="text-center py-12">
-          <h1 className="text-2xl font-bold mb-4">Client not found</h1>
-          <Button onClick={() => navigate('/clients')}>Back to Clients</Button>
+          <h1 className="text-2xl font-bold mb-4">{t('details.notFound')}</h1>
+          <Button onClick={() => navigate('/clients')}>{t('details.backToClients')}</Button>
         </div>
       </PageContainer>
     );
@@ -166,23 +169,23 @@ export default function ClientDetails() {
               onClick={() => navigate(`/clients/${clientId}/edit`)}
             >
               <Edit className="h-4 w-4 mr-2" />
-              Edit Client
+              {t('actions.editClient')}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="More actions">
+                <Button variant="outline" size="icon" aria-label={t('details.moreActions')}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => navigate(`/matters/create?client=${clientId}`)}>
-                  Create New Matter
+                  {t('details.createMatter')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate(`/contracts/create?client=${clientId}`)}>
-                  Create New Contract
+                  {t('details.createContract')}
                 </DropdownMenuItem>
-                <DropdownMenuItem>Send Email</DropdownMenuItem>
-                <DropdownMenuItem>Export Data</DropdownMenuItem>
+                <DropdownMenuItem>{t('details.sendEmail')}</DropdownMenuItem>
+                <DropdownMenuItem>{t('details.exportData')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </>
@@ -193,7 +196,9 @@ export default function ClientDetails() {
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-card sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {client.status && (
-            <Badge className={`capitalize ${getStatusColor(client.status)}`}>{client.status}</Badge>
+            <Badge className={`capitalize ${getStatusColor(client.status)}`}>
+              {t(`common:status.${client.status.toLowerCase()}`, { defaultValue: client.status })}
+            </Badge>
           )}
           <PortalStatusBadge clientId={clientId!} />
         </div>
@@ -225,7 +230,7 @@ export default function ClientDetails() {
           )}
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4 shrink-0" />
-            Client since {new Date(client.created_at).toLocaleDateString()}
+            {t('details.clientSince', { date: formatDate(client.created_at, 'P') })}
           </span>
         </div>
       </div>
@@ -233,10 +238,14 @@ export default function ClientDetails() {
       {/* Tabbed body */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="matters">Matters ({cases.length})</TabsTrigger>
-          <TabsTrigger value="contracts">Contracts ({contracts.length})</TabsTrigger>
-          <TabsTrigger value="portal">Client Portal</TabsTrigger>
+          <TabsTrigger value="overview">{t('details.tabs.overview')}</TabsTrigger>
+          <TabsTrigger value="matters">
+            {t('details.tabs.matters', { count: cases.length })}
+          </TabsTrigger>
+          <TabsTrigger value="contracts">
+            {t('details.tabs.contracts', { count: contracts.length })}
+          </TabsTrigger>
+          <TabsTrigger value="portal">{t('portal.title')}</TabsTrigger>
         </TabsList>
 
         {/* ---------------------------------------------------------------- */}
@@ -251,14 +260,22 @@ export default function ClientDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5" />
-                    Contact Information
+                    {t('details.contactInfo')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <InfoRow icon={Mail} label="Email" value={client.email} />
-                  <InfoRow icon={Phone} label="Phone" value={client.phone} />
-                  <InfoRow icon={Building} label="Company" value={client.company} />
-                  <InfoRow icon={MapPin} label="Address" value={client.address} />
+                  <InfoRow icon={Mail} label={t('common:fields.email')} value={client.email} />
+                  <InfoRow icon={Phone} label={t('common:fields.phone')} value={client.phone} />
+                  <InfoRow
+                    icon={Building}
+                    label={t('common:fields.company')}
+                    value={client.company}
+                  />
+                  <InfoRow
+                    icon={MapPin}
+                    label={t('common:fields.address')}
+                    value={client.address}
+                  />
                 </CardContent>
               </Card>
 
@@ -267,14 +284,14 @@ export default function ClientDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <StickyNote className="h-5 w-5" />
-                    Notes
+                    {t('common:fields.notes')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {client.notes ? (
                     <p className="whitespace-pre-wrap text-sm text-foreground">{client.notes}</p>
                   ) : (
-                    <p className="text-sm italic text-muted-foreground">No notes available</p>
+                    <p className="text-sm italic text-muted-foreground">{t('details.noNotes')}</p>
                   )}
                 </CardContent>
               </Card>
@@ -284,7 +301,7 @@ export default function ClientDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <StickyNote className="h-5 w-5" />
-                    Communication Log ({commLogs.length})
+                    {t('details.commLog.title', { count: commLogs.length })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -293,21 +310,21 @@ export default function ClientDetails() {
                       value={logType}
                       onValueChange={(v) => setLogType(v as 'email' | 'phone' | 'note')}
                     >
-                      <SelectTrigger aria-label="Log type">
+                      <SelectTrigger aria-label={t('details.commLog.typeLabel')}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="phone">Phone</SelectItem>
-                        <SelectItem value="note">Note</SelectItem>
+                        <SelectItem value="email">{t('details.commLog.types.email')}</SelectItem>
+                        <SelectItem value="phone">{t('details.commLog.types.phone')}</SelectItem>
+                        <SelectItem value="note">{t('details.commLog.types.note')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <Input
                       className="sm:col-span-2"
-                      placeholder="Enter communication details..."
+                      placeholder={t('details.commLog.placeholder')}
                       value={logContent}
                       onChange={(e) => setLogContent(e.target.value)}
-                      aria-label="Communication details"
+                      aria-label={t('details.commLog.detailsLabel')}
                     />
                     <Button
                       disabled={createLog.isPending || !logContent.trim()}
@@ -320,13 +337,13 @@ export default function ClientDetails() {
                         setLogContent('');
                       }}
                     >
-                      Add Log
+                      {t('details.commLog.add')}
                     </Button>
                   </div>
 
                   {commLogs.length === 0 ? (
                     <p className="py-8 text-center text-muted-foreground">
-                      No communications logged yet.
+                      {t('details.commLog.empty')}
                     </p>
                   ) : (
                     <div className="max-h-64 space-y-3 overflow-auto">
@@ -336,12 +353,12 @@ export default function ClientDetails() {
                           className="flex items-start gap-3 rounded-lg bg-muted/30 p-3"
                         >
                           <Badge variant="outline" className="mt-1 capitalize">
-                            {log.type}
+                            {t(`details.commLog.types.${log.type}`, { defaultValue: log.type })}
                           </Badge>
                           <div className="flex-1">
                             <p className="text-sm">{log.content}</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {new Date(log.created_at).toLocaleString()}
+                              {formatDate(log.created_at, 'Pp')}
                             </p>
                           </div>
                         </div>
@@ -356,25 +373,29 @@ export default function ClientDetails() {
             <div className="space-y-6">
               <Card className="shadow-card">
                 <CardHeader>
-                  <CardTitle>At a glance</CardTitle>
+                  <CardTitle>{t('details.atAGlance')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="rounded-lg bg-muted/40 p-4 text-center">
                       <p className="text-2xl font-bold text-foreground">{cases.length}</p>
-                      <p className="text-sm text-muted-foreground">Matters</p>
+                      <p className="text-sm text-muted-foreground">{t('common:entities.matters')}</p>
                     </div>
                     <div className="rounded-lg bg-muted/40 p-4 text-center">
                       <p className="text-2xl font-bold text-foreground">{contracts.length}</p>
-                      <p className="text-sm text-muted-foreground">Contracts</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('common:entities.contracts')}
+                      </p>
                     </div>
                     <div className="rounded-lg bg-muted/40 p-4 text-center">
                       <p className="text-2xl font-bold text-foreground">{documents.length}</p>
-                      <p className="text-sm text-muted-foreground">Documents</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('common:entities.documents')}
+                      </p>
                     </div>
                     <div className="rounded-lg bg-muted/40 p-4 text-center">
                       <p className="text-2xl font-bold text-foreground">{calEvents.length}</p>
-                      <p className="text-sm text-muted-foreground">Events</p>
+                      <p className="text-sm text-muted-foreground">{t('common:entities.events')}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -385,22 +406,26 @@ export default function ClientDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    Calendar Events ({calEvents.length})
+                    {t('details.calendarEvents', { count: calEvents.length })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {calEvents.length === 0 ? (
-                    <p className="py-8 text-center text-muted-foreground">No events scheduled</p>
+                    <p className="py-8 text-center text-muted-foreground">
+                      {t('details.noEvents')}
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {calEvents.slice(0, 5).map((ev) => (
                         <div key={ev.id} className="rounded-lg border p-3 hover:bg-muted/30">
                           <p className="font-medium">{ev.title}</p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(ev.start_date).toLocaleString()}
+                            {formatDate(ev.start_date, 'Pp')}
                           </p>
                           <Badge variant="outline" className="mt-1">
-                            {ev.event_type}
+                            {t(`voice:eventTypes.${ev.event_type}`, {
+                              defaultValue: ev.event_type,
+                            })}
                           </Badge>
                         </div>
                       ))}
@@ -414,7 +439,7 @@ export default function ClientDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Documents ({documents.length})
+                    {t('details.documents', { count: documents.length })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -433,11 +458,11 @@ export default function ClientDetails() {
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
-                Matters ({cases.length})
+                {t('details.tabs.matters', { count: cases.length })}
               </CardTitle>
               {cases.length > 0 && (
                 <Button size="sm" onClick={() => navigate(`/matters/create?client=${clientId}`)}>
-                  New Matter
+                  {t('details.newMatter')}
                 </Button>
               )}
             </CardHeader>
@@ -445,19 +470,19 @@ export default function ClientDetails() {
               {cases.length === 0 ? (
                 <div className="py-8 text-center">
                   <Briefcase className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <p className="mb-4 text-muted-foreground">No matters for this client</p>
+                  <p className="mb-4 text-muted-foreground">{t('details.noMatters')}</p>
                   <Button onClick={() => navigate(`/matters/create?client=${clientId}`)}>
-                    Create First Matter
+                    {t('details.createFirstMatter')}
                   </Button>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Next Hearing</TableHead>
+                      <TableHead>{t('common:fields.title')}</TableHead>
+                      <TableHead>{t('common:fields.status')}</TableHead>
+                      <TableHead>{t('common:fields.priority')}</TableHead>
+                      <TableHead>{t('details.nextHearing')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -474,14 +499,14 @@ export default function ClientDetails() {
                         </TableCell>
                         <TableCell>
                           <Badge className={`capitalize ${getStatusColor(c.status)}`}>
-                            {c.status}
+                            {t(`common:status.${c.status}`, { defaultValue: c.status })}
                           </Badge>
                         </TableCell>
-                        <TableCell className="capitalize">{c.priority}</TableCell>
+                        <TableCell className="capitalize">
+                          {t(`common:priority.${c.priority}`, { defaultValue: c.priority })}
+                        </TableCell>
                         <TableCell>
-                          {c.next_hearing_date
-                            ? new Date(c.next_hearing_date).toLocaleDateString()
-                            : '-'}
+                          {c.next_hearing_date ? formatDate(c.next_hearing_date, 'P') : '-'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -500,11 +525,11 @@ export default function ClientDetails() {
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Contracts ({contracts.length})
+                {t('details.tabs.contracts', { count: contracts.length })}
               </CardTitle>
               {contracts.length > 0 && (
                 <Button size="sm" onClick={() => navigate(`/contracts/create?client=${clientId}`)}>
-                  New Contract
+                  {t('details.newContract')}
                 </Button>
               )}
             </CardHeader>
@@ -512,9 +537,9 @@ export default function ClientDetails() {
               {contracts.length === 0 ? (
                 <div className="py-8 text-center">
                   <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <p className="mb-4 text-muted-foreground">No contracts for this client</p>
+                  <p className="mb-4 text-muted-foreground">{t('details.noContracts')}</p>
                   <Button onClick={() => navigate(`/contracts/create?client=${clientId}`)}>
-                    Create First Contract
+                    {t('details.createFirstContract')}
                   </Button>
                 </div>
               ) : (
@@ -535,11 +560,11 @@ export default function ClientDetails() {
                         <p className="text-sm text-muted-foreground">
                           {ct.start_date &&
                             ct.end_date &&
-                            `${new Date(ct.start_date).toLocaleDateString()} - ${new Date(ct.end_date).toLocaleDateString()}`}
+                            `${formatDate(ct.start_date, 'P')} - ${formatDate(ct.end_date, 'P')}`}
                         </p>
                       </div>
                       <Badge className={`capitalize ${getStatusColor(ct.status)}`}>
-                        {ct.status}
+                        {t(`common:status.${ct.status}`, { defaultValue: ct.status })}
                       </Badge>
                     </div>
                   ))}
@@ -564,7 +589,7 @@ export default function ClientDetails() {
           onOpenChange={() => setSelectedDocument(null)}
           document={{
             ...selectedDocument,
-            name: selectedDocument.name || selectedDocument.title || 'Untitled',
+            name: selectedDocument.name || selectedDocument.title || t('details.untitled'),
           }}
         />
       )}
@@ -585,13 +610,18 @@ function InfoRow({
   label: string;
   value?: string | null;
 }) {
+  const { t } = useTranslation('clients');
   return (
     <div className="flex items-start gap-3 rounded-lg bg-muted/30 p-3">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
         <p className="text-sm text-muted-foreground">{label}</p>
         <p className="break-words font-medium">
-          {value || <span className="font-normal italic text-muted-foreground">Not provided</span>}
+          {value || (
+            <span className="font-normal italic text-muted-foreground">
+              {t('details.notProvided')}
+            </span>
+          )}
         </p>
       </div>
     </div>
@@ -604,6 +634,7 @@ function InfoRow({
 
 function PortalStatusBadge({ clientId }: { clientId: string }) {
   const { data: status } = useClientPortalStatus(clientId);
+  const { t } = useTranslation('clients');
 
   if (!status) return null;
 
@@ -611,7 +642,7 @@ function PortalStatusBadge({ clientId }: { clientId: string }) {
     return (
       <Badge className="bg-success text-success-foreground">
         <ShieldCheck className="mr-1 h-3 w-3" />
-        Portal active
+        {t('portal.badge.active')}
       </Badge>
     );
   }
@@ -619,14 +650,14 @@ function PortalStatusBadge({ clientId }: { clientId: string }) {
     return (
       <Badge className="bg-warning text-warning-foreground" variant="secondary">
         <Clock className="mr-1 h-3 w-3" />
-        Portal invited
+        {t('portal.badge.invited')}
       </Badge>
     );
   }
   return (
     <Badge variant="outline">
       <ShieldOff className="mr-1 h-3 w-3" />
-      Portal off
+      {t('portal.badge.off')}
     </Badge>
   );
 }
@@ -645,12 +676,13 @@ function ClientPortalSection({
   const { data: status, isLoading } = useClientPortalStatus(clientId);
   const enable = useEnableClientPortal();
   const disable = useDisableClientPortal();
+  const { t } = useTranslation('clients');
 
   if (isLoading) {
     return (
       <Card className="shadow-card">
         <CardContent className="py-12">
-          <p className="text-center text-sm text-muted-foreground">Loading portal status…</p>
+          <p className="text-center text-sm text-muted-foreground">{t('portal.loading')}</p>
         </CardContent>
       </Card>
     );
@@ -661,7 +693,7 @@ function ClientPortalSection({
       <Card className="shadow-card">
         <CardContent className="py-12">
           <p className="text-center text-sm text-muted-foreground">
-            Portal status is unavailable right now.
+            {t('portal.unavailable')}
           </p>
         </CardContent>
       </Card>
@@ -677,28 +709,33 @@ function ClientPortalSection({
     switch (status.status) {
       case 'active':
         return {
-          badge: <Badge className="bg-success text-success-foreground">Active</Badge>,
-          title: 'Portal is active',
+          badge: (
+            <Badge className="bg-success text-success-foreground">
+              {t('common:status.active')}
+            </Badge>
+          ),
+          title: t('portal.state.active.title'),
           description: status.lastSignInAt
-            ? `Last signed in ${new Date(status.lastSignInAt).toLocaleString()}.`
-            : 'The client can sign in and view their shared matters.',
+            ? t('portal.state.active.lastSignIn', {
+                date: formatDate(status.lastSignInAt, 'Pp'),
+              })
+            : t('portal.state.active.description'),
         };
       case 'pending':
         return {
           badge: (
             <Badge className="bg-warning text-warning-foreground" variant="secondary">
-              Pending
+              {t('common:status.pending')}
             </Badge>
           ),
-          title: 'Invite sent — awaiting acceptance',
-          description: 'The client has been invited and needs to accept and verify their email.',
+          title: t('portal.state.pending.title'),
+          description: t('portal.state.pending.description'),
         };
       default:
         return {
-          badge: <Badge variant="outline">Not enabled</Badge>,
-          title: 'Portal not enabled',
-          description:
-            'Enable the portal to give this client secure access to their shared matters.',
+          badge: <Badge variant="outline">{t('portal.state.none.badge')}</Badge>,
+          title: t('portal.state.none.title'),
+          description: t('portal.state.none.description'),
         };
     }
   })();
@@ -710,7 +747,7 @@ function ClientPortalSection({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            Client Portal
+            {t('portal.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -734,7 +771,7 @@ function ClientPortalSection({
                   ) : (
                     <Send className="mr-2 h-4 w-4" />
                   )}
-                  Enable client portal
+                  {t('portal.enable')}
                 </Button>
               )}
 
@@ -750,7 +787,7 @@ function ClientPortalSection({
                     ) : (
                       <Send className="mr-2 h-4 w-4" />
                     )}
-                    Resend invite
+                    {t('portal.resendInvite')}
                   </Button>
                   <DisablePortalButton
                     onDisable={() => disable.mutate(clientId)}
@@ -772,13 +809,13 @@ function ClientPortalSection({
           <div className="flex items-start gap-3 rounded-lg bg-muted/30 p-3">
             <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Invitation email</p>
+              <p className="text-sm text-muted-foreground">{t('portal.invitationEmail')}</p>
               {hasEmail ? (
                 <p className="break-words font-medium">{email}</p>
               ) : (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-warning">
                   <AlertCircle className="h-4 w-4" />
-                  An email address is required. Add one on the client profile to enable the portal.
+                  {t('portal.emailRequiredLong')}
                 </p>
               )}
             </div>
@@ -791,18 +828,17 @@ function ClientPortalSection({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Briefcase className="h-5 w-5" />
-            Matters in this client&apos;s portal ({matters.length})
+            {t('portal.sharedMatters', { count: matters.length })}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm text-muted-foreground">
-            Public matters are visible to the client in their portal; private matters stay hidden.
-            The Public/Private toggle lives on each matter&apos;s page.
+            {t('portal.sharedMattersHelp')}
           </p>
 
           {matters.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              This client has no matters yet.
+              {t('portal.noMatters')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -820,15 +856,19 @@ function ClientPortalSection({
                       <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                     </Link>
                     {m.status && (
-                      <p className="mt-0.5 text-xs capitalize text-muted-foreground">{m.status}</p>
+                      <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                        {t(`common:status.${m.status}`, { defaultValue: m.status })}
+                      </p>
                     )}
                   </div>
                   {m.portalPrivate ? (
                     <Badge variant="outline" className="shrink-0">
-                      Private
+                      {t('portal.private')}
                     </Badge>
                   ) : (
-                    <Badge className="shrink-0 bg-success text-success-foreground">Public</Badge>
+                    <Badge className="shrink-0 bg-success text-success-foreground">
+                      {t('portal.public')}
+                    </Badge>
                   )}
                 </div>
               ))}
@@ -841,6 +881,7 @@ function ClientPortalSection({
 }
 
 function DisablePortalButton({ onDisable, pending }: { onDisable: () => void; pending: boolean }) {
+  const { t } = useTranslation('clients');
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -850,24 +891,23 @@ function DisablePortalButton({ onDisable, pending }: { onDisable: () => void; pe
           ) : (
             <ShieldOff className="mr-2 h-4 w-4" />
           )}
-          Disable
+          {t('portal.disableShort')}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Disable client portal?</AlertDialogTitle>
+          <AlertDialogTitle>{t('portal.disableConfirmTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            The client will lose access to their portal and will no longer be able to view their
-            shared matters. You can re-enable access at any time.
+            {t('portal.disableConfirmDescriptionShort')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onDisable}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Disable
+            {t('portal.disableShort')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -880,6 +920,7 @@ function DisablePortalButton({ onDisable, pending }: { onDisable: () => void; pe
 // ---------------------------------------------------------------------------
 
 function DocumentsSection({ documents }: { documents: Document[] }) {
+  const { t } = useTranslation('clients');
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   const handleView = (doc: Document) => {
@@ -889,7 +930,7 @@ function DocumentsSection({ documents }: { documents: Document[] }) {
   return (
     <>
       {documents.length === 0 ? (
-        <p className="py-8 text-center text-muted-foreground">No documents uploaded</p>
+        <p className="py-8 text-center text-muted-foreground">{t('details.noDocuments')}</p>
       ) : (
         <div className="space-y-3">
           {documents.slice(0, 10).map((d) => (
@@ -902,14 +943,14 @@ function DocumentsSection({ documents }: { documents: Document[] }) {
                 <div>
                   <p className="font-medium">{d.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {d.file_size && `${Math.round(d.file_size / 1024)} KB`} •{' '}
-                    {new Date(d.created_at).toLocaleDateString()}
+                    {d.file_size && `${formatNumber(Math.round(d.file_size / 1024))} KB`} •{' '}
+                    {formatDate(d.created_at, 'P')}
                   </p>
                 </div>
               </div>
               <Button size="sm" variant="outline" onClick={() => handleView(d)}>
                 <Eye className="h-4 w-4 mr-2" />
-                View
+                {t('common:actions.view')}
               </Button>
             </div>
           ))}
@@ -923,7 +964,7 @@ function DocumentsSection({ documents }: { documents: Document[] }) {
           onOpenChange={() => setSelectedDocument(null)}
           document={{
             ...selectedDocument,
-            name: selectedDocument.name || selectedDocument.title || 'Untitled',
+            name: selectedDocument.name || selectedDocument.title || t('details.untitled'),
           }}
         />
       )}

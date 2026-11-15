@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -18,6 +19,7 @@ const RESEND_COOLDOWN = 30;
 
 export function EmailOtpChallenge({ mfaToken, emailHint, purpose, onSuccess, onCancel }: Props) {
   const { verifyEmailOtp } = useAuth();
+  const { t } = useTranslation('auth');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -26,8 +28,8 @@ export function EmailOtpChallenge({ mfaToken, emailHint, purpose, onSuccess, onC
 
   useEffect(() => {
     if (resendIn <= 0) return;
-    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
   }, [resendIn]);
 
   const handleVerify = async (value: string) => {
@@ -52,15 +54,16 @@ export function EmailOtpChallenge({ mfaToken, emailHint, purpose, onSuccess, onC
       setError(error.message);
       return;
     }
-    setInfo('A new code has been sent.');
+    setInfo(t('otp.newCodeSent'));
     setResendIn(RESEND_COOLDOWN);
   };
 
-  const title = purpose === 'signup' ? 'Verify your email' : 'Two-factor authentication';
+  const title = purpose === 'signup' ? t('otp.verifyEmailTitle') : t('otp.twoFactorTitle');
+  const target = emailHint ?? t('otp.yourEmail');
   const description =
     purpose === 'signup'
-      ? `We sent a 6-digit code to ${emailHint ?? 'your email'}. Enter it below to finish creating your account.`
-      : `We sent a 6-digit code to ${emailHint ?? 'your email'}. Enter it to finish signing in.`;
+      ? t('otp.signupDescription', { target })
+      : t('otp.loginDescription', { target });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
@@ -109,7 +112,7 @@ export function EmailOtpChallenge({ mfaToken, emailHint, purpose, onSuccess, onC
               disabled={code.length !== 6 || submitting}
               onClick={() => void handleVerify(code)}
             >
-              {submitting ? 'Verifying...' : 'Verify'}
+              {submitting ? t('otp.verifying') : t('otp.verify')}
             </Button>
 
             <div className="flex items-center justify-between text-sm">
@@ -119,7 +122,7 @@ export function EmailOtpChallenge({ mfaToken, emailHint, purpose, onSuccess, onC
                 disabled={resendIn > 0}
                 className="text-primary hover:underline disabled:opacity-50 disabled:no-underline"
               >
-                {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+                {resendIn > 0 ? t('otp.resendIn', { seconds: resendIn }) : t('otp.resend')}
               </button>
               {onCancel && (
                 <button
@@ -127,7 +130,7 @@ export function EmailOtpChallenge({ mfaToken, emailHint, purpose, onSuccess, onC
                   onClick={onCancel}
                   className="text-muted-foreground hover:underline"
                 >
-                  Cancel
+                  {t('common:actions.cancel')}
                 </button>
               )}
             </div>

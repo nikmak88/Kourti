@@ -14,6 +14,7 @@ import { Action, Resource } from '@/hooks/usePermissions';
 import OrganizationSetup from '@/components/OrganizationSetup';
 import ForcePasswordChange from '@/components/ForcePasswordChange';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { LanguageSync } from '@/components/i18n/LanguageSync';
 import { PortalAuthProvider } from '@/portal/PortalAuthContext';
 import { PortalProtectedRoute } from '@/portal/PortalProtectedRoute';
 import { PortalLayout } from '@/portal/PortalLayout';
@@ -674,6 +675,7 @@ const App = () => (
         <PageViewTracker />
         <AuthProvider>
           <InactivityHandler />
+          <LanguageSync />
           <Routes>
             <Route
               path="/auth"

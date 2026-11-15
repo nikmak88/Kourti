@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, GitBranch, Loader2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelative } from '@/i18n/dates';
 import {
   listDocumentVersions,
   activateDocumentVersion,
@@ -19,12 +20,13 @@ interface Props {
   onActivated?: (versionId: string) => void;
 }
 
-const SOURCE_LABELS: Record<DocumentVersion['source'], string> = {
-  upload: 'Upload',
-  assistant_edit: 'AI redline',
-  user_accept: 'Accepted',
-  user_reject: 'Rejected',
-  generated: 'Generated',
+// Translation keys (documents namespace) for each version source.
+const SOURCE_LABEL_KEYS: Record<DocumentVersion['source'], string> = {
+  upload: 'versions.source.upload',
+  assistant_edit: 'versions.source.assistantEdit',
+  user_accept: 'versions.source.userAccept',
+  user_reject: 'versions.source.userReject',
+  generated: 'versions.source.generated',
 };
 
 const SOURCE_BADGE: Record<DocumentVersion['source'], string> = {
@@ -36,6 +38,7 @@ const SOURCE_BADGE: Record<DocumentVersion['source'], string> = {
 };
 
 export function DocumentVersionsPanel({ documentId, currentVersionId, onActivated }: Props) {
+  const { t } = useTranslation('documents');
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(currentVersionId ?? null);
@@ -48,8 +51,8 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
         if (!cancelled) setVersions(rows);
       })
       .catch((err) =>
-        toast.error('Failed to load versions', {
-          description: err instanceof Error ? err.message : 'Unknown error',
+        toast.error(t('versions.toast.loadFailed'), {
+          description: err instanceof Error ? err.message : t('versions.toast.unknownError'),
         })
       )
       .finally(() => {
@@ -58,7 +61,7 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
     return () => {
       cancelled = true;
     };
-  }, [documentId]);
+  }, [documentId, t]);
 
   useEffect(() => {
     setActiveId(currentVersionId ?? null);
@@ -70,10 +73,10 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
       await activateDocumentVersion(documentId, versionId);
       setActiveId(versionId);
       onActivated?.(versionId);
-      toast.success('Version activated');
+      toast.success(t('versions.toast.activated'));
     } catch (err) {
-      toast.error('Activate failed', {
-        description: err instanceof Error ? err.message : 'Unknown error',
+      toast.error(t('versions.toast.activateFailed'), {
+        description: err instanceof Error ? err.message : t('versions.toast.unknownError'),
       });
     } finally {
       setActivating(null);
@@ -85,8 +88,8 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
       const { signedUrl } = await getDocumentVersionDownloadUrl(documentId, versionId);
       window.open(signedUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      toast.error('Download failed', {
-        description: err instanceof Error ? err.message : 'Unknown error',
+      toast.error(t('versions.toast.downloadFailed'), {
+        description: err instanceof Error ? err.message : t('versions.toast.unknownError'),
       });
     }
   };
@@ -96,16 +99,15 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <GitBranch className="h-4 w-4 text-blue-500" />
-          Version history
+          {t('versions.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-xs text-muted-foreground">Loading…</div>
+          <div className="text-xs text-muted-foreground">{t('common:status.loading')}</div>
         ) : versions.length === 0 ? (
           <div className="text-xs text-muted-foreground italic">
-            No versions yet. Versions are created when AI proposes edits or when you accept/reject
-            tracked changes.
+            {t('versions.empty')}
           </div>
         ) : (
           <ul className="space-y-2">
@@ -122,24 +124,23 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-medium">v{v.version_number}</span>
                       <Badge variant="secondary" className={SOURCE_BADGE[v.source]}>
-                        {SOURCE_LABELS[v.source]}
+                        {t(SOURCE_LABEL_KEYS[v.source], { defaultValue: v.source })}
                       </Badge>
                       {isActive && (
                         <Badge variant="default" className="bg-blue-600">
-                          Active
+                          {t('versions.active')}
                         </Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {v.display_name ?? '(unnamed)'} ·{' '}
-                      {formatDistanceToNow(new Date(v.created_at), { addSuffix: true })}
+                      {v.display_name ?? t('versions.unnamed')} · {formatRelative(v.created_at)}
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDownload(v.id)}
-                    title="Download"
+                    title={t('common:actions.download')}
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -155,7 +156,7 @@ export function DocumentVersionsPanel({ documentId, currentVersionId, onActivate
                       ) : (
                         <RotateCcw className="h-3 w-3 mr-1" />
                       )}
-                      Make active
+                      {t('versions.makeActive')}
                     </Button>
                   )}
                 </li>

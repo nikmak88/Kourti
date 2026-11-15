@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ export default function SetPassword() {
   const [tokenValid, setTokenValid] = useState(false);
   const [inviteToken, setInviteToken] = useState('');
   const navigate = useNavigate();
+  const { t } = useTranslation('auth');
 
   useEffect(() => {
     const verifyToken = () => {
@@ -51,14 +53,14 @@ export default function SetPassword() {
 
         // If no token found, the link is invalid
         setTokenValid(false);
-        toast.error('Invalid invitation', {
-          description: 'This invitation link is invalid or has expired.',
+        toast.error(t('setPassword.invalidTitle'), {
+          description: t('setPassword.invalidDescription'),
         });
         setTimeout(() => navigate('/auth'), 3000);
       } catch (error) {
         logError('Error verifying invitation token', error);
         setTokenValid(false);
-        toast.error('Error', { description: 'Failed to verify invitation link.' });
+        toast.error(t('common:toast.error'), { description: t('setPassword.verifyFailed') });
         setTimeout(() => navigate('/auth'), 3000);
       } finally {
         setVerifying(false);
@@ -72,15 +74,15 @@ export default function SetPassword() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match", {
-        description: 'Please ensure both passwords are the same.',
+      toast.error(t('password.mismatchTitle'), {
+        description: t('password.mismatchDescription'),
       });
       return;
     }
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.valid) {
-      toast.error('Password too weak', { description: passwordCheck.error! });
+      toast.error(t('password.tooWeak'), { description: passwordCheck.error! });
       return;
     }
 
@@ -94,7 +96,9 @@ export default function SetPassword() {
         headers: { Authorization: `Bearer ${inviteToken}` },
       });
 
-      toast.success('Password set successfully!', { description: 'Welcome to Kourti AI!' });
+      toast.success(t('setPassword.successTitle'), {
+        description: t('setPassword.successDescription'),
+      });
 
       // Clear password from state
       setPassword('');
@@ -107,8 +111,8 @@ export default function SetPassword() {
       setPassword('');
       setConfirmPassword('');
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to set password. Please try again.';
-      toast.error('Error', { description: errorMessage });
+        error instanceof Error ? error.message : t('setPassword.failed');
+      toast.error(t('common:toast.error'), { description: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -121,7 +125,7 @@ export default function SetPassword() {
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <p className="text-muted-foreground">Verifying invitation...</p>
+              <p className="text-muted-foreground">{t('setPassword.verifying')}</p>
             </div>
           </CardContent>
         </Card>
@@ -139,31 +143,39 @@ export default function SetPassword() {
                 <Lock className="h-10 w-10 text-destructive" />
               </div>
               <div className="space-y-3">
-                <h3 className="font-semibold text-xl">Invalid Invitation</h3>
+                <h3 className="font-semibold text-xl">{t('setPassword.invalidTitle')}</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>This invitation link is invalid or has expired.</p>
+                  <p>{t('setPassword.invalidDescription')}</p>
                   <p className="text-xs">
-                    <strong>Common reasons:</strong>
+                    <strong>{t('link.commonReasons')}</strong>
                   </p>
                   <ul className="text-xs text-left list-disc list-inside space-y-1 bg-muted/50 p-3 rounded-md">
-                    <li>The link has already been used to set up your account</li>
-                    <li>The link has expired (invitation links expire after 24 hours)</li>
-                    <li>The link was clicked more than once</li>
+                    <li>{t('setPassword.reasonUsed')}</li>
+                    <li>{t('setPassword.reasonExpired')}</li>
+                    <li>{t('link.clickedTwice')}</li>
                   </ul>
                   <p className="mt-4 text-sm">
-                    If you've already set your password, please{' '}
-                    <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/auth')}>
-                      sign in here
-                    </Button>
-                    .
+                    <Trans
+                      t={t}
+                      i18nKey="setPassword.alreadySet"
+                      components={{
+                        link: (
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto"
+                            onClick={() => navigate('/auth')}
+                          />
+                        ),
+                      }}
+                    />
                   </p>
                   <p className="text-xs">
-                    If you need a new invitation, please contact your administrator.
+                    {t('setPassword.needNewInvite')}
                   </p>
                 </div>
               </div>
               <Button variant="outline" onClick={() => navigate('/auth')} className="w-full">
-                Go to Sign In
+                {t('setPassword.goToSignIn')}
               </Button>
             </div>
           </CardContent>
@@ -180,9 +192,9 @@ export default function SetPassword() {
             <AppLogo size="md" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-semibold">Set Your Password</CardTitle>
+            <CardTitle className="text-2xl font-semibold">{t('setPassword.title')}</CardTitle>
             <p className="text-muted-foreground mt-2">
-              Welcome to Kourti AI! Please set your password to complete your account setup.
+              {t('setPassword.subtitle')}
             </p>
           </div>
         </CardHeader>
@@ -190,13 +202,13 @@ export default function SetPassword() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('common:fields.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder={t('password.placeholder')}
                   className="pl-10 pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -224,13 +236,13 @@ export default function SetPassword() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('password.confirm')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm your password"
+                  placeholder={t('setPassword.confirmPlaceholder')}
                   className="pl-10 pr-10"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -255,7 +267,7 @@ export default function SetPassword() {
             {password && confirmPassword && password === confirmPassword && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Passwords match</span>
+                <span>{t('password.match')}</span>
               </div>
             )}
 
@@ -264,7 +276,7 @@ export default function SetPassword() {
               className="w-full"
               disabled={loading || !password || !confirmPassword || password !== confirmPassword}
             >
-              {loading ? 'Setting password...' : 'Set Password & Continue'}
+              {loading ? t('setPassword.submitting') : t('setPassword.submit')}
             </Button>
           </form>
         </CardContent>

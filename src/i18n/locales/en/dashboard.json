@@ -1,0 +1,123 @@
+{
+  "title": "Dashboard",
+  "description": "Overview of your legal practice",
+  "loading": "Loading dashboard data...",
+  "error": {
+    "title": "Failed to load dashboard data",
+    "message": "There was an error loading your dashboard. Please try again or contact support if the problem persists."
+  },
+  "stats": {
+    "activeMatters": "Active Matters",
+    "activeMattersHint": "Currently in progress",
+    "totalClients": "Total Clients",
+    "totalMatters": "Total Matters",
+    "documentsHint": "Across all matters"
+  },
+  "focus": {
+    "hearingsThisWeek": "Hearings This Week",
+    "contractsExpiring": "Contracts Expiring Soon",
+    "todaysCalendar": "View Today's Calendar"
+  },
+  "charts": {
+    "monthlyActivity": "Monthly Activity",
+    "noActivity": "No activity data available",
+    "mattersByStatus": "Matters by Status",
+    "mattersByStatusDescription": "Distribution of matters by their current status",
+    "noMatters": "No matter data available",
+    "activityOverview": "Activity Overview",
+    "activityOverviewDescription": "Track new matters and contracts over time",
+    "monthly": "Monthly",
+    "weekly": "Weekly"
+  },
+  "status": {
+    "expired": "Expired"
+  },
+  "activityTypes": {
+    "other": "Other",
+    "note": "Note",
+    "call": "Call",
+    "email": "Email",
+    "meeting": "Meeting",
+    "document": "Document",
+    "voice_recording": "Voice recording"
+  },
+  "eventTypes": {
+    "meeting": "Meeting",
+    "hearing": "Hearing",
+    "deadline": "Deadline",
+    "deposition": "Deposition",
+    "review": "Review",
+    "consultation": "Consultation",
+    "other": "Other"
+  },
+  "recent": {
+    "title": "Recent Matters",
+    "description": "Latest matter activities",
+    "viewMatter": "View Matter",
+    "assignedTo": "Assigned to {{name}}",
+    "empty": "No recent matters found.",
+    "createMatter": "Create a Matter"
+  },
+  "upcoming": {
+    "events": "Upcoming Events",
+    "hearings": "Upcoming Hearings",
+    "contractRenewals": "Contract Renewals",
+    "nextDays_one": "Next {{count}} day",
+    "nextDays_other": "Next {{count}} days",
+    "expiringSoon": "Expiring soon",
+    "court": "Court",
+    "tbd": "TBD",
+    "endDate": "End Date",
+    "noEvents_one": "No upcoming events in the next {{count}} day.",
+    "noEvents_other": "No upcoming events in the next {{count}} days.",
+    "noHearings_one": "No upcoming hearings in the next {{count}} day.",
+    "noHearings_other": "No upcoming hearings in the next {{count}} days.",
+    "noContracts_one": "No contracts expiring in the next {{count}} day.",
+    "noContracts_other": "No contracts expiring in the next {{count}} days.",
+    "viewCalendar": "View Calendar",
+    "hearingItem": "Hearing: {{title}}",
+    "contractExpiringItem": "Contract Expiring: {{title}}"
+  },
+  "checklist": {
+    "title": "Getting Started with Kourti",
+    "description": "Complete these steps to get the most out of your workspace",
+    "progress": "{{done}}/{{total}} complete",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "dismiss": "Dismiss",
+    "steps": {
+      "complete_profile": {
+        "title": "Complete your profile",
+        "description": "Add your name and contact details"
+      },
+      "add_client": {
+        "title": "Add your first client",
+        "description": "Create a client record to get started"
+      },
+      "create_matter": {
+        "title": "Create a matter",
+        "description": "Open your first legal matter"
+      },
+      "upload_document": {
+        "title": "Upload a document",
+        "description": "Store and organize your legal documents"
+      },
+      "draft_contract": {
+        "title": "Draft a contract",
+        "description": "Create or upload a contract"
+      },
+      "explore_calendar": {
+        "title": "Explore the calendar",
+        "description": "View hearings and deadlines"
+      },
+      "try_ream_ai": {
+        "title": "Try Ream AI assistant",
+        "description": "Ask Ream AI a legal question"
+      },
+      "invite_team": {
+        "title": "Invite a team member",
+        "description": "Grow your workspace by adding colleagues"
+      }
+    }
+  }
+}

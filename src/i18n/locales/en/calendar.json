@@ -1,0 +1,263 @@
+{
+  "eventTypes": {
+    "meeting": "Meeting",
+    "hearing": "Hearing",
+    "deadline": "Deadline",
+    "deposition": "Deposition",
+    "review": "Review",
+    "consultation": "Consultation",
+    "event": "Event"
+  },
+  "eventTypesPlural": {
+    "all": "All Types",
+    "meeting": "Meetings",
+    "hearing": "Hearings",
+    "deadline": "Deadlines",
+    "deposition": "Depositions",
+    "review": "Reviews",
+    "consultation": "Consultations"
+  },
+  "views": {
+    "month": "Month",
+    "week": "Week",
+    "workWeek": "Work Week",
+    "day": "Day",
+    "list": "List",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events"
+  },
+  "page": {
+    "title": "Calendar",
+    "description": "Schedule and manage your legal events",
+    "scheduleMeeting": "Schedule Meeting",
+    "newEvent": "New Event",
+    "searchPlaceholder": "Search events...",
+    "filterByType": "Filter by type",
+    "weekOf": "Week of {{start}} - {{end}}",
+    "previous": "Previous",
+    "next": "Next",
+    "sync": "Sync",
+    "syncSettings": "Sync Settings",
+    "export": {
+      "title": "Export Calendar",
+      "download": "Download ICS (one-time)",
+      "subscribe": "Subscribe (auto-updates)"
+    },
+    "more_one": "+{{count}} more",
+    "more_other": "+{{count}} more",
+    "viewMore_one": "View {{count}} more",
+    "viewMore_other": "View {{count}} more",
+    "empty": {
+      "title": "No events found",
+      "filtered": "Try adjusting your search or filters to find events.",
+      "noEventsInMonth": "No events scheduled for {{month}}.",
+      "clearFilters": "Clear Filters",
+      "createEvent": "Create Event"
+    },
+    "noEventsToday": "No events today",
+    "upcoming": "Upcoming",
+    "next7Days": "Next 7 days",
+    "noUpcoming": "No upcoming events",
+    "eventTypes": "Event Types",
+    "syncDialogTitle": "Calendar Sync Settings",
+    "syncDialogDescription": "Configure calendar synchronization settings",
+    "toast": {
+      "syncedTitle": "Calendar Synced",
+      "syncedDescription": "External calendars have been synchronized.",
+      "syncFailedTitle": "Sync Failed",
+      "syncFailedDescription": "Unable to sync external calendars. Please try again."
+    }
+  },
+  "form": {
+    "titlePlaceholder": "Enter event title",
+    "eventType": "Event Type",
+    "eventTypePlaceholder": "Select event type",
+    "descriptionPlaceholder": "Enter event description",
+    "start": "Start Date & Time",
+    "end": "End Date & Time",
+    "location": "Location",
+    "locationPlaceholder": "Enter event location",
+    "relatedCase": "Related Case",
+    "casePlaceholder": "Select a case",
+    "noCase": "No case",
+    "relatedClient": "Related Client",
+    "clientPlaceholder": "Select a client",
+    "noClient": "No client",
+    "attendees": "Attendees",
+    "attendeePlaceholder": "Add team member email",
+    "validation": {
+      "titleRequired": "Title is required",
+      "startRequired": "Start date is required",
+      "endRequired": "End date is required",
+      "endAfterStart": "End date must be after the start date",
+      "frequencyRequired": "Recurrence frequency is required for recurring events",
+      "recurrenceEndAfterStart": "Recurrence end date must be after start date"
+    }
+  },
+  "create": {
+    "title": "Create New Event",
+    "description": "Schedule a new calendar event and optionally link it to a case or client.",
+    "creating": "Creating...",
+    "submit": "Create Event"
+  },
+  "edit": {
+    "title": "Edit Event",
+    "description": "Update the event details below.",
+    "updating": "Updating...",
+    "submit": "Update Event"
+  },
+  "view": {
+    "description": "Event details and information",
+    "edit": "Edit Event",
+    "delete": "Delete Event",
+    "deleteFailed": "Failed to delete event"
+  },
+  "recurrence": {
+    "recurringEvent": "Recurring Event",
+    "frequency": "Frequency",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "repeatEvery": "Repeat Every",
+    "endDate": "End Date (Optional)"
+  },
+  "reminders": {
+    "title": "Reminders",
+    "minutesBefore_one": "{{count}} minute before",
+    "minutesBefore_other": "{{count}} minutes before",
+    "hoursBefore_one": "{{count}} hour before",
+    "hoursBefore_other": "{{count}} hours before",
+    "daysBefore_one": "{{count}} day before",
+    "daysBefore_other": "{{count}} days before",
+    "methods": {
+      "in_app": "In-App",
+      "email": "Email",
+      "both": "Both"
+    }
+  },
+  "quickCreate": {
+    "placeholder": "Event title...",
+    "failed": "Failed to create event"
+  },
+  "dragDrop": {
+    "dropHere": "Drop here",
+    "drop": "Drop",
+    "moveHere": "Move here"
+  },
+  "findTime": {
+    "title": "Find Available Time",
+    "description": "Find the best time to schedule a meeting with your team members.",
+    "duration": "Meeting Duration",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "searchMembers": "Search team members...",
+    "noMembers": "No team members found",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "availableSlots": "Available Slots",
+    "selectAttendees": "Select attendees to see availability",
+    "conflicts_one": "{{count}} conflict",
+    "conflicts_other": "{{count}} conflicts",
+    "conflictsWith": "Conflicts with: {{names}}"
+  },
+  "sharing": {
+    "permissionLevel": "Permission level",
+    "viewOnly": "View only",
+    "viewOnlyHelp": "Can see your events",
+    "canEdit": "Can edit",
+    "canEditHelp": "Can add/edit events"
+  },
+  "share": {
+    "title": "Share Calendar",
+    "dialogTitle": "Share Your Calendar",
+    "description": "Share your calendar with team members to collaborate on scheduling.",
+    "searchLabel": "Search team members",
+    "searchPlaceholder": "Search by name or email...",
+    "selectMember": "Select a team member",
+    "sharing": "Sharing..."
+  },
+  "manageShares": {
+    "title": "Manage Calendar Access",
+    "description": "View and manage who has access to your calendar.",
+    "changeToViewOnly": "Change to view only",
+    "allowEditing": "Allow editing",
+    "revoke": "Revoke access",
+    "empty": {
+      "title": "No shared access",
+      "description": "You haven't shared your calendar with anyone yet."
+    }
+  },
+  "team": {
+    "title": "Team Calendars",
+    "shareMine": "Share my calendar",
+    "manageShares": "Manage shares",
+    "empty": {
+      "title": "No shared calendars yet",
+      "description": "Share your calendar or ask team members to share theirs"
+    }
+  },
+  "colorSettings": {
+    "title": "Calendar Color",
+    "description": "Choose a color to identify your calendar when shared with team members.",
+    "selectColor": "Select a color",
+    "preview": "Preview:",
+    "save": "Save Color",
+    "toast": {
+      "updated": "Calendar color updated successfully.",
+      "updateFailed": "Failed to update calendar color."
+    },
+    "colors": {
+      "blue": "Blue",
+      "red": "Red",
+      "green": "Green",
+      "yellow": "Yellow",
+      "purple": "Purple",
+      "pink": "Pink",
+      "orange": "Orange",
+      "cyan": "Cyan",
+      "indigo": "Indigo",
+      "teal": "Teal",
+      "lime": "Lime",
+      "rose": "Rose"
+    }
+  },
+  "connect": {
+    "title": "Connect {{provider}}",
+    "description": "Connect your {{provider}} account to sync events.",
+    "connected": "Connected",
+    "redirectNotice": "You'll be redirected to authorize access to your calendar.",
+    "connecting": "Connecting...",
+    "button": "Connect {{provider}} Calendar",
+    "toast": {
+      "failedTitle": "Connection Failed",
+      "unexpectedUrl": "Received an unexpected authorization URL. Please try again.",
+      "initiateFailed": "Failed to initiate calendar connection"
+    }
+  },
+  "sync": {
+    "title": "Calendar Sync Settings",
+    "description": "Connect and manage your calendar integrations",
+    "notConnected": "Not Connected",
+    "syncNow": "Sync Now",
+    "disconnect": "Disconnect",
+    "connect": "Connect",
+    "enableSync": "Enable Sync",
+    "enableSyncHelp": "Automatically sync events with {{provider}}",
+    "direction": "Sync Direction",
+    "directions": {
+      "import": "Import Only",
+      "export": "Export Only",
+      "bidirectional": "Bidirectional"
+    },
+    "lastSynced": "Last synced: {{date}}",
+    "toast": {
+      "disconnectedTitle": "Disconnected",
+      "disconnectedDescription": "{{provider}} calendar disconnected",
+      "disconnectFailed": "Failed to disconnect calendar",
+      "startedTitle": "Sync Started",
+      "startedDescription": "Syncing {{provider}} calendar...",
+      "startFailed": "Failed to start sync"
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { Users, Share2, Eye, Pencil, User } from 'lucide-react';
 import { useSharedCalendars, useOrganizationMembersForSharing } from '@/hooks/useCalendarSharing';
 import { ShareCalendarDialog } from './ShareCalendarDialog';
 import { ManageCalendarSharesDialog } from './ManageCalendarSharesDialog';
+import { useTranslation } from 'react-i18next';
 
 interface TeamCalendarsProps {
   selectedCalendars: string[];
@@ -17,6 +18,7 @@ export function TeamCalendars({ selectedCalendars, onCalendarToggle }: TeamCalen
   const [showManageDialog, setShowManageDialog] = useState(false);
   const { data: sharedCalendars, isLoading } = useSharedCalendars();
   const { data: members } = useOrganizationMembersForSharing();
+  const { t } = useTranslation('calendar');
 
   return (
     <Card className="shadow-sm">
@@ -24,7 +26,7 @@ export function TeamCalendars({ selectedCalendars, onCalendarToggle }: TeamCalen
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            Team Calendars
+            {t('team.title')}
           </CardTitle>
           <div className="flex gap-1">
             <Button
@@ -32,7 +34,8 @@ export function TeamCalendars({ selectedCalendars, onCalendarToggle }: TeamCalen
               size="icon"
               className="h-8 w-8"
               onClick={() => setShowShareDialog(true)}
-              title="Share my calendar"
+              title={t('team.shareMine')}
+              aria-label={t('team.shareMine')}
             >
               <Share2 className="h-4 w-4" />
             </Button>
@@ -41,7 +44,8 @@ export function TeamCalendars({ selectedCalendars, onCalendarToggle }: TeamCalen
               size="icon"
               className="h-8 w-8"
               onClick={() => setShowManageDialog(true)}
-              title="Manage shares"
+              title={t('team.manageShares')}
+              aria-label={t('team.manageShares')}
             >
               <User className="h-4 w-4" />
             </Button>
@@ -85,12 +89,12 @@ export function TeamCalendars({ selectedCalendars, onCalendarToggle }: TeamCalen
                       {calendar.permission_level === 'edit' ? (
                         <>
                           <Pencil className="h-3 w-3" />
-                          Can edit
+                          {t('sharing.canEdit')}
                         </>
                       ) : (
                         <>
                           <Eye className="h-3 w-3" />
-                          View only
+                          {t('sharing.viewOnly')}
                         </>
                       )}
                     </div>
@@ -102,9 +106,9 @@ export function TeamCalendars({ selectedCalendars, onCalendarToggle }: TeamCalen
         ) : (
           <div className="text-center py-4">
             <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No shared calendars yet</p>
+            <p className="text-sm text-muted-foreground">{t('team.empty.title')}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Share your calendar or ask team members to share theirs
+              {t('team.empty.description')}
             </p>
           </div>
         )}

@@ -1,5 +1,6 @@
 // src/components/layout/NotificationsDropdown.tsx
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useNotifications,
   useMarkAllNotificationsAsRead,
@@ -10,23 +11,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Check, Trash2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelative } from '@/i18n/dates';
 
 type FilterTab = 'all' | 'unread';
 
-function getDateGroup(dateStr: string): string {
+type DateGroup = 'today' | 'yesterday' | 'earlier';
+
+function getDateGroup(dateStr: string): DateGroup {
   const date = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (date >= today) return 'Today';
-  if (date >= yesterday) return 'Yesterday';
-  return 'Earlier';
+  if (date >= today) return 'today';
+  if (date >= yesterday) return 'yesterday';
+  return 'earlier';
 }
 
-const GROUP_ORDER = ['Today', 'Yesterday', 'Earlier'];
+const GROUP_ORDER: DateGroup[] = ['today', 'yesterday', 'earlier'];
 
 const NotificationsDropdown: React.FC = () => {
   const { data: notifications, isLoading } = useNotifications();
@@ -34,6 +37,7 @@ const NotificationsDropdown: React.FC = () => {
   const updateNotification = useUpdateNotification();
   const deleteNotification = useDeleteNotification();
   const [filter, setFilter] = useState<FilterTab>('all');
+  const { t } = useTranslation('notifications');
 
   const unreadCount = notifications?.filter((n) => n.status === 'unread').length || 0;
 
@@ -58,7 +62,13 @@ const NotificationsDropdown: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Button variant="ghost" size="icon" className={triggerClasses} disabled>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={triggerClasses}
+        disabled
+        aria-label={t('page.title')}
+      >
         <Bell className="h-5 w-5" />
       </Button>
     );
@@ -67,7 +77,7 @@ const NotificationsDropdown: React.FC = () => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className={triggerClasses}>
+        <Button variant="ghost" size="icon" className={triggerClasses} aria-label={t('page.title')}>
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
@@ -84,7 +94,7 @@ const NotificationsDropdown: React.FC = () => {
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/60 space-y-4">
           <div className="flex items-center justify-between pr-8">
             <div className="flex items-center gap-2">
-              <SheetTitle>Notifications</SheetTitle>
+              <SheetTitle>{t('page.title')}</SheetTitle>
               {unreadCount > 0 && (
                 <Badge variant="secondary" className="rounded-full text-xs">
                   {unreadCount}
@@ -98,7 +108,7 @@ const NotificationsDropdown: React.FC = () => {
                 className="text-xs h-7"
                 onClick={() => markAllAsRead.mutate()}
               >
-                Mark All Read
+                {t('actions.markAllRead')}
               </Button>
             )}
           </div>
@@ -111,7 +121,7 @@ const NotificationsDropdown: React.FC = () => {
               className="h-7 text-xs rounded-full px-3"
               onClick={() => setFilter('all')}
             >
-              All
+              {t('common:status.all')}
             </Button>
             <Button
               size="sm"
@@ -119,7 +129,7 @@ const NotificationsDropdown: React.FC = () => {
               className="h-7 text-xs rounded-full px-3"
               onClick={() => setFilter('unread')}
             >
-              Unread
+              {t('tabs.unread')}
             </Button>
           </div>
         </SheetHeader>
@@ -129,9 +139,9 @@ const NotificationsDropdown: React.FC = () => {
           {filteredNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-20">
               <Bell className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground font-medium">No notifications</p>
+              <p className="text-sm text-muted-foreground font-medium">{t('empty.title')}</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                {filter === 'unread' ? 'No unread notifications' : "You're all caught up!"}
+                {filter === 'unread' ? t('empty.noUnread') : t('empty.caughtUp')}
               </p>
             </div>
           ) : (
@@ -143,7 +153,7 @@ const NotificationsDropdown: React.FC = () => {
                   {/* Sticky group header */}
                   <div className="sticky top-0 z-10 bg-[hsl(var(--surface-muted))] px-6 py-2 border-b border-border/40">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {group}
+                      {t(`groups.${group}`)}
                     </span>
                   </div>
 
@@ -182,9 +192,7 @@ const NotificationsDropdown: React.FC = () => {
                           </p>
                         )}
                         <p className="text-[11px] text-muted-foreground/60 mt-1">
-                          {n.created_at
-                            ? formatDistanceToNow(new Date(n.created_at), { addSuffix: true })
-                            : 'Unknown date'}
+                          {n.created_at ? formatRelative(n.created_at) : t('unknownDate')}
                         </p>
                       </div>
 
@@ -196,7 +204,8 @@ const NotificationsDropdown: React.FC = () => {
                             variant="ghost"
                             className="h-7 w-7 p-0"
                             onClick={() => updateNotification.mutate({ id: n.id, status: 'read' })}
-                            title="Mark as read"
+                            title={t('actions.markAsRead')}
+                            aria-label={t('actions.markAsRead')}
                           >
                             <Check className="h-3.5 w-3.5" />
                           </Button>
@@ -206,7 +215,8 @@ const NotificationsDropdown: React.FC = () => {
                           variant="ghost"
                           className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                           onClick={() => deleteNotification.mutate(n.id)}
-                          title="Delete notification"
+                          title={t('actions.delete')}
+                          aria-label={t('actions.delete')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

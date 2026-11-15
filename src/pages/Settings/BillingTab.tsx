@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,41 +23,40 @@ import { useCurrentUserPlan } from '@/hooks/useUserPlans';
 import { PlanSelector } from '@/components/billing/PlanSelector';
 import { AddSeatsDialog } from '@/components/billing/AddSeatsDialog';
 import { PaymentHistory } from '@/components/billing/PaymentHistory';
+import i18n from '@/i18n';
+import { formatDate as formatLocalizedDate } from '@/i18n/dates';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const STATUS_VARIANTS: Record<string, { label: string; className: string }> = {
+// Status codes come from the API; labelKey is translated at render time.
+const STATUS_VARIANTS: Record<string, { labelKey: string; className: string }> = {
   active: {
-    label: 'Active',
+    labelKey: 'billing.status.active',
     className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   },
   trialing: {
-    label: 'Trialing',
+    labelKey: 'billing.status.trialing',
     className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   },
   past_due: {
-    label: 'Past Due',
+    labelKey: 'billing.status.pastDue',
     className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
   },
   paused: {
-    label: 'Paused',
+    labelKey: 'billing.status.paused',
     className: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
   },
   cancelled: {
-    label: 'Cancelled',
+    labelKey: 'billing.status.cancelled',
     className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
   },
 };
 
 function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  if (!dateString) return i18n.t('settings:billing.notAvailable');
+  return formatLocalizedDate(dateString, 'PPP');
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +68,7 @@ export default function BillingTab() {
   const { data: currentPlan, isLoading: planLoading } = useCurrentUserPlan();
   const { data: seatUsage } = useSeatUsage();
   const manageSubscription = useManageSubscription();
+  const { t } = useTranslation('settings');
 
   const [planSelectorOpen, setPlanSelectorOpen] = useState(false);
   const [addSeatsOpen, setAddSeatsOpen] = useState(false);
@@ -110,7 +111,7 @@ export default function BillingTab() {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading billing information...</span>
+        <span className="ml-2 text-sm text-muted-foreground">{t('billing.loading')}</span>
       </div>
     );
   }
@@ -126,13 +127,15 @@ export default function BillingTab() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Current Plan
+                {t('billing.currentPlan.title')}
               </CardTitle>
-              <CardDescription>Your active subscription and billing details</CardDescription>
+              <CardDescription>{t('billing.currentPlan.description')}</CardDescription>
             </div>
             {hasActiveSubscription && (
               <Badge className={STATUS_VARIANTS[subscription.status]?.className}>
-                {STATUS_VARIANTS[subscription.status]?.label ?? subscription.status}
+                {STATUS_VARIANTS[subscription.status]
+                  ? t(STATUS_VARIANTS[subscription.status].labelKey)
+                  : subscription.status}
               </Badge>
             )}
           </div>
@@ -143,33 +146,48 @@ export default function BillingTab() {
               {/* Plan details */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Plan</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t('billing.currentPlan.plan')}</p>
                   <p className="text-lg font-semibold">
                     {currentPlan.plan_display_name || currentPlan.plan_name}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Type</p>
-                  <p className="text-lg font-semibold capitalize">{currentPlan.plan_type}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Billing Interval</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t('common:fields.type')}</p>
                   <p className="text-lg font-semibold capitalize">
-                    {subscription.billing_interval}
+                    {t(`billing.planTypes.${currentPlan.plan_type}`, {
+                      defaultValue: currentPlan.plan_type,
+                    })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Next Billing Date</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t('billing.currentPlan.interval')}
+                  </p>
+                  <p className="text-lg font-semibold capitalize">
+                    {t(`billing.intervals.${subscription.billing_interval}`, {
+                      defaultValue: subscription.billing_interval,
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t('billing.currentPlan.nextBillingDate')}
+                  </p>
                   <p className="text-lg font-semibold flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {formatDate(subscription.current_period_end)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Seats</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t('billing.currentPlan.seats')}</p>
                   <p className="text-lg font-semibold flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    {seatUsage ? `${seatUsage.used} of ${seatUsage.seats} used` : '—'}
+                    {seatUsage
+                      ? t('billing.currentPlan.seatsUsed', {
+                          used: seatUsage.used,
+                          seats: seatUsage.seats,
+                        })
+                      : '—'}
                   </p>
                 </div>
               </div>
@@ -179,9 +197,12 @@ export default function BillingTab() {
                 <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-700 dark:bg-yellow-950">
                   <AlertTriangle className="mt-0.5 h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    Your subscription has been cancelled and will remain active until{' '}
-                    <strong>{formatDate(subscription.current_period_end)}</strong>. After that you
-                    will be moved to the Free plan.
+                    <Trans
+                      t={t}
+                      i18nKey="billing.cancelNotice"
+                      values={{ date: formatDate(subscription.current_period_end) }}
+                      components={{ strong: <strong /> }}
+                    />
                   </p>
                 </div>
               )}
@@ -192,7 +213,7 @@ export default function BillingTab() {
                   <Separator />
                   <div>
                     <p className="mb-2 text-sm font-medium text-muted-foreground">
-                      Included Features
+                      {t('billing.currentPlan.features')}
                     </p>
                     <ul className="grid gap-1 sm:grid-cols-2">
                       {currentPlan.features.map((feature, idx) => (
@@ -211,11 +232,11 @@ export default function BillingTab() {
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => setPlanSelectorOpen(true)}>
                   <ArrowUpRight className="mr-2 h-4 w-4" />
-                  Change Plan
+                  {t('billing.actions.changePlan')}
                 </Button>
                 <Button variant="outline" onClick={() => setAddSeatsOpen(true)}>
                   <Users className="mr-2 h-4 w-4" />
-                  Add team members
+                  {t('billing.actions.addSeats')}
                 </Button>
                 {!subscription.cancel_at_period_end && (
                   <Button
@@ -223,7 +244,7 @@ export default function BillingTab() {
                     className="text-destructive hover:text-destructive"
                     onClick={() => setCancelDialogOpen(true)}
                   >
-                    Cancel Subscription
+                    {t('billing.actions.cancelSubscription')}
                   </Button>
                 )}
               </div>
@@ -235,14 +256,14 @@ export default function BillingTab() {
                 <CreditCard className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">You&apos;re on the Free plan</h3>
+                <h3 className="text-lg font-semibold">{t('billing.free.title')}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade to unlock premium features and increase your team&apos;s productivity.
+                  {t('billing.free.description')}
                 </p>
               </div>
               <Button onClick={() => setPlanSelectorOpen(true)}>
                 <ArrowUpRight className="mr-2 h-4 w-4" />
-                Upgrade Now
+                {t('billing.free.upgrade')}
               </Button>
             </div>
           )}
@@ -267,11 +288,14 @@ export default function BillingTab() {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancel Subscription</DialogTitle>
+            <DialogTitle>{t('billing.cancelDialog.title')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel your subscription? Your plan will remain active until{' '}
-              <strong>{formatDate(subscription?.current_period_end)}</strong>. After that you will
-              be downgraded to the Free plan.
+              <Trans
+                t={t}
+                i18nKey="billing.cancelDialog.description"
+                values={{ date: formatDate(subscription?.current_period_end) }}
+                components={{ strong: <strong /> }}
+              />
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -280,7 +304,7 @@ export default function BillingTab() {
               onClick={() => setCancelDialogOpen(false)}
               disabled={manageSubscription.isPending}
             >
-              Keep Subscription
+              {t('billing.cancelDialog.keep')}
             </Button>
             <Button
               variant="destructive"
@@ -290,10 +314,10 @@ export default function BillingTab() {
               {manageSubscription.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Cancelling...
+                  {t('billing.cancelDialog.cancelling')}
                 </>
               ) : (
-                'Yes, Cancel'
+                t('billing.cancelDialog.confirm')
               )}
             </Button>
           </DialogFooter>

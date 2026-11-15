@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { toast } from 'sonner';
 import { getEmailOtpSetting, setEmailOtpSetting } from '@/lib/authClient';
 
 export function TwoFactorEmailCard() {
+  const { t } = useTranslation('auth');
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [pendingValue, setPendingValue] = useState<boolean | null>(null);
   const [password, setPassword] = useState('');
@@ -35,41 +37,38 @@ export function TwoFactorEmailCard() {
   const handleConfirm = async () => {
     if (pendingValue === null) return;
     if (!password) {
-      toast.error('Enter your current password to confirm.');
+      toast.error(t('twoFactor.enterPassword'));
       return;
     }
     setSaving(true);
     const { enabled: newEnabled, error } = await setEmailOtpSetting(pendingValue, password);
     setSaving(false);
     if (error) {
-      toast.error(error.message || 'Could not update 2FA setting');
+      toast.error(error.message || t('twoFactor.updateFailed'));
       return;
     }
     setEnabled(newEnabled);
     setPendingValue(null);
     setPassword('');
-    toast.success(`Email 2FA ${newEnabled ? 'enabled' : 'disabled'}`);
+    toast.success(newEnabled ? t('twoFactor.enabledToast') : t('twoFactor.disabledToast'));
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Two-Factor Authentication (Email)</CardTitle>
-        <CardDescription>
-          Require a one-time code sent to your email each time you sign in. We recommend keeping
-          this on — it also confirms your email address is correct.
-        </CardDescription>
+        <CardTitle>{t('twoFactor.title')}</CardTitle>
+        <CardDescription>{t('twoFactor.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Email one-time code</p>
+            <p className="text-sm font-medium">{t('twoFactor.label')}</p>
             <p className="text-xs text-muted-foreground">
               {enabled === null
-                ? 'Loading…'
+                ? t('common:status.loading')
                 : enabled
-                  ? 'Enabled — a code is sent to your email at every sign-in.'
-                  : 'Disabled — sign-in only requires your password.'}
+                  ? t('twoFactor.enabledHelp')
+                  : t('twoFactor.disabledHelp')}
             </p>
           </div>
           <Switch
@@ -81,18 +80,22 @@ export function TwoFactorEmailCard() {
 
         {pendingValue !== null && pendingValue !== enabled && (
           <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
-            <Label htmlFor="emailotp-password">Confirm with current password</Label>
+            <Label htmlFor="emailotp-password">{t('twoFactor.confirmLabel')}</Label>
             <Input
               id="emailotp-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Current password"
+              placeholder={t('twoFactor.currentPasswordPlaceholder')}
               autoComplete="current-password"
             />
             <div className="flex gap-2">
               <Button onClick={handleConfirm} disabled={saving || !password}>
-                {saving ? 'Saving…' : pendingValue ? 'Enable 2FA' : 'Disable 2FA'}
+                {saving
+                  ? t('common:status.saving')
+                  : pendingValue
+                    ? t('twoFactor.enable')
+                    : t('twoFactor.disable')}
               </Button>
               <Button
                 variant="outline"
@@ -102,7 +105,7 @@ export function TwoFactorEmailCard() {
                 }}
                 disabled={saving}
               >
-                Cancel
+                {t('common:actions.cancel')}
               </Button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ export function PageHeader({
   leading,
 }: PageHeaderProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation('nav');
 
   const handleBack = () => {
     if (typeof backHref === 'function') {
@@ -63,7 +65,7 @@ export function PageHeader({
             variant="ghost"
             size="icon"
             onClick={handleBack}
-            aria-label="Go back"
+            aria-label={t('goBack')}
             className="shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />

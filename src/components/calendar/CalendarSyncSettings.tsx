@@ -15,12 +15,15 @@ import { Calendar, Settings, RefreshCw, Trash2, CheckCircle2 } from 'lucide-reac
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { CalendarConnectDialog } from './CalendarConnectDialog';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/i18n/dates';
 
 export function CalendarSyncSettings() {
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<'google' | 'microsoft' | null>(null);
   const { integrations, updateSyncSettings, disconnectCalendar, triggerSync, isLoading } =
     useCalendarSync();
+  const { t } = useTranslation('calendar');
   const handleConnect = (provider: 'google' | 'microsoft') => {
     setSelectedProvider(provider);
     setConnectDialogOpen(true);
@@ -29,24 +32,28 @@ export function CalendarSyncSettings() {
   const handleDisconnect = async (provider: 'google' | 'microsoft') => {
     try {
       await disconnectCalendar.mutateAsync(provider);
-      toast.success('Disconnected', {
-        description: `${provider === 'google' ? 'Google' : 'Microsoft'} calendar disconnected`,
+      toast.success(t('sync.toast.disconnectedTitle'), {
+        description: t('sync.toast.disconnectedDescription', {
+          provider: provider === 'google' ? 'Google' : 'Microsoft',
+        }),
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to disconnect calendar';
-      toast.error('Error', { description: errorMessage });
+      const errorMessage = error instanceof Error ? error.message : t('sync.toast.disconnectFailed');
+      toast.error(t('common:toast.error'), { description: errorMessage });
     }
   };
 
   const handleSyncNow = async (provider: 'google' | 'microsoft') => {
     try {
       await triggerSync.mutateAsync(provider);
-      toast.success('Sync Started', {
-        description: `Syncing ${provider === 'google' ? 'Google' : 'Microsoft'} calendar...`,
+      toast.success(t('sync.toast.startedTitle'), {
+        description: t('sync.toast.startedDescription', {
+          provider: provider === 'google' ? 'Google' : 'Microsoft',
+        }),
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start sync';
-      toast.error('Error', { description: errorMessage });
+      const errorMessage = error instanceof Error ? error.message : t('sync.toast.startFailed');
+      toast.error(t('common:toast.error'), { description: errorMessage });
     }
   };
 
@@ -58,9 +65,9 @@ export function CalendarSyncSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
-          Calendar Sync Settings
+          {t('sync.title')}
         </CardTitle>
-        <CardDescription>Connect and manage your calendar integrations</CardDescription>
+        <CardDescription>{t('sync.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Google Calendar */}
@@ -72,10 +79,10 @@ export function CalendarSyncSettings() {
               {googleIntegration ? (
                 <Badge variant="default" className="gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Connected
+                  {t('connect.connected')}
                 </Badge>
               ) : (
-                <Badge variant="outline">Not Connected</Badge>
+                <Badge variant="outline">{t('sync.notConnected')}</Badge>
               )}
             </div>
             {googleIntegration ? (
@@ -87,7 +94,7 @@ export function CalendarSyncSettings() {
                   disabled={isLoading}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Sync Now
+                  {t('sync.syncNow')}
                 </Button>
                 <Button
                   size="sm"
@@ -96,12 +103,12 @@ export function CalendarSyncSettings() {
                   disabled={isLoading}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Disconnect
+                  {t('sync.disconnect')}
                 </Button>
               </div>
             ) : (
               <Button size="sm" onClick={() => handleConnect('google')}>
-                Connect
+                {t('sync.connect')}
               </Button>
             )}
           </div>
@@ -110,9 +117,9 @@ export function CalendarSyncSettings() {
             <div className="space-y-4 pl-7">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Enable Sync</Label>
+                  <Label>{t('sync.enableSync')}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Automatically sync events with Google Calendar
+                    {t('sync.enableSyncHelp', { provider: 'Google Calendar' })}
                   </p>
                 </div>
                 <Switch
@@ -128,7 +135,7 @@ export function CalendarSyncSettings() {
 
               {googleIntegration.sync_enabled && (
                 <div className="space-y-2">
-                  <Label>Sync Direction</Label>
+                  <Label>{t('sync.direction')}</Label>
                   <Select
                     value={googleIntegration.sync_direction || 'bidirectional'}
                     onValueChange={(value: 'import' | 'export' | 'bidirectional') =>
@@ -142,9 +149,9 @@ export function CalendarSyncSettings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="import">Import Only</SelectItem>
-                      <SelectItem value="export">Export Only</SelectItem>
-                      <SelectItem value="bidirectional">Bidirectional</SelectItem>
+                      <SelectItem value="import">{t('sync.directions.import')}</SelectItem>
+                      <SelectItem value="export">{t('sync.directions.export')}</SelectItem>
+                      <SelectItem value="bidirectional">{t('sync.directions.bidirectional')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -152,7 +159,7 @@ export function CalendarSyncSettings() {
 
               {googleIntegration.last_sync_at && (
                 <p className="text-sm text-muted-foreground">
-                  Last synced: {new Date(googleIntegration.last_sync_at).toLocaleString()}
+                  {t('sync.lastSynced', { date: formatDate(googleIntegration.last_sync_at, 'Pp') })}
                 </p>
               )}
             </div>
@@ -168,10 +175,10 @@ export function CalendarSyncSettings() {
               {microsoftIntegration ? (
                 <Badge variant="default" className="gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Connected
+                  {t('connect.connected')}
                 </Badge>
               ) : (
-                <Badge variant="outline">Not Connected</Badge>
+                <Badge variant="outline">{t('sync.notConnected')}</Badge>
               )}
             </div>
             {microsoftIntegration ? (
@@ -183,7 +190,7 @@ export function CalendarSyncSettings() {
                   disabled={isLoading}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Sync Now
+                  {t('sync.syncNow')}
                 </Button>
                 <Button
                   size="sm"
@@ -192,12 +199,12 @@ export function CalendarSyncSettings() {
                   disabled={isLoading}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Disconnect
+                  {t('sync.disconnect')}
                 </Button>
               </div>
             ) : (
               <Button size="sm" onClick={() => handleConnect('microsoft')}>
-                Connect
+                {t('sync.connect')}
               </Button>
             )}
           </div>
@@ -206,9 +213,9 @@ export function CalendarSyncSettings() {
             <div className="space-y-4 pl-7">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Enable Sync</Label>
+                  <Label>{t('sync.enableSync')}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Automatically sync events with Microsoft Teams
+                    {t('sync.enableSyncHelp', { provider: 'Microsoft Teams' })}
                   </p>
                 </div>
                 <Switch
@@ -224,7 +231,7 @@ export function CalendarSyncSettings() {
 
               {microsoftIntegration.sync_enabled && (
                 <div className="space-y-2">
-                  <Label>Sync Direction</Label>
+                  <Label>{t('sync.direction')}</Label>
                   <Select
                     value={microsoftIntegration.sync_direction || 'bidirectional'}
                     onValueChange={(value: 'import' | 'export' | 'bidirectional') =>
@@ -238,9 +245,9 @@ export function CalendarSyncSettings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="import">Import Only</SelectItem>
-                      <SelectItem value="export">Export Only</SelectItem>
-                      <SelectItem value="bidirectional">Bidirectional</SelectItem>
+                      <SelectItem value="import">{t('sync.directions.import')}</SelectItem>
+                      <SelectItem value="export">{t('sync.directions.export')}</SelectItem>
+                      <SelectItem value="bidirectional">{t('sync.directions.bidirectional')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -248,7 +255,7 @@ export function CalendarSyncSettings() {
 
               {microsoftIntegration.last_sync_at && (
                 <p className="text-sm text-muted-foreground">
-                  Last synced: {new Date(microsoftIntegration.last_sync_at).toLocaleString()}
+                  {t('sync.lastSynced', { date: formatDate(microsoftIntegration.last_sync_at, 'Pp') })}
                 </p>
               )}
             </div>

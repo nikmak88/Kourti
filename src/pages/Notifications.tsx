@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
+import { formatDate as formatLocalizedDate, formatRelative } from '@/i18n/dates';
 
 // Define local notification type to match database
 interface Notification {
@@ -57,6 +59,7 @@ export default function Notifications() {
   const updateNotification = useUpdateNotification();
   const deleteNotification = useDeleteNotification();
   const markAllAsRead = useMarkAllNotificationsAsRead();
+  const { t } = useTranslation('notifications');
 
   const markAsRead = (id: string) => {
     updateNotification.mutate({ id, status: 'read' });
@@ -101,23 +104,13 @@ export default function Notifications() {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.round(diffMs / 60000);
-    const diffHours = Math.round(diffMs / 3600000);
     const diffDays = Math.round(diffMs / 86400000);
 
-    if (diffMins < 60) {
-      return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-    } else if (diffDays < 7) {
-      return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-    } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+    // Recent: "3 hours ago" / "πριν από 3 ώρες"; older: localized date.
+    if (diffDays < 7) {
+      return formatRelative(date);
     }
+    return formatLocalizedDate(date, 'PP');
   };
 
   const handleMarkAllRead = () => {
@@ -132,11 +125,11 @@ export default function Notifications() {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Bell className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium">No notifications</h3>
+          <h3 className="text-lg font-medium">{t('empty.title')}</h3>
           <p className="text-muted-foreground mt-1 max-w-md">
             {activeTab === 'unread'
-              ? "You've read all your notifications. Check back later for updates."
-              : "You don't have any notifications in this category yet."}
+              ? t('empty.allRead')
+              : t('empty.noneInCategory')}
           </p>
         </div>
       );
@@ -167,7 +160,7 @@ export default function Notifications() {
                       onClick={() => markAsRead(notification.id)}
                     >
                       <CheckCheck className="h-3 w-3 mr-1" />
-                      Mark read
+                      {t('actions.markRead')}
                     </Button>
                   )}
                   <Button
@@ -175,7 +168,8 @@ export default function Notifications() {
                     size="sm"
                     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                     onClick={() => handleDelete(notification.id)}
-                    title="Delete notification"
+                    title={t('actions.delete')}
+                    aria-label={t('actions.delete')}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -186,8 +180,11 @@ export default function Notifications() {
                   {formatDate(notification.date)}
                 </span>
                 <Badge variant="outline" className="ml-2 text-xs py-0 px-1.5 h-5">
-                  {(notification.type ?? 'system').charAt(0).toUpperCase() +
-                    (notification.type ?? 'system').slice(1)}
+                  {t(`types.${notification.type ?? 'system'}`, {
+                    defaultValue:
+                      (notification.type ?? 'system').charAt(0).toUpperCase() +
+                      (notification.type ?? 'system').slice(1),
+                  })}
                 </Badge>
               </div>
             </div>
@@ -200,8 +197,8 @@ export default function Notifications() {
   return (
     <PageContainer size="narrow">
       <PageHeader
-        title="Notifications"
-        description="Stay updated with important events, cases, and document activities"
+        title={t('page.title')}
+        description={t('page.description')}
       />
 
       {/* Main content */}
@@ -210,7 +207,7 @@ export default function Notifications() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
-              Your Notifications
+              {t('page.yourNotifications')}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
@@ -221,7 +218,7 @@ export default function Notifications() {
                 disabled={!unreadNotifications.length}
               >
                 <CheckCircle className="h-4 w-4 mr-1.5" />
-                Mark all as read
+                {t('actions.markAllRead')}
               </Button>
               <Button
                 variant="outline"
@@ -230,12 +227,12 @@ export default function Notifications() {
                 onClick={() => notifications.forEach((n) => handleDelete(n.id))}
                 disabled={!notifications.length}
               >
-                Clear all
+                {t('actions.clearAll')}
               </Button>
             </div>
           </div>
           <CardDescription>
-            You have {unreadNotifications.length} unread notifications
+            {t('page.unreadCount', { count: unreadNotifications.length })}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -243,35 +240,35 @@ export default function Notifications() {
             <TabsList className="grid grid-cols-5 mb-6">
               <TabsTrigger value="all" className="flex items-center gap-1.5">
                 <Bell className="h-4 w-4" />
-                <span>All</span>
+                <span>{t('common:status.all')}</span>
                 <Badge variant="secondary" className="ml-1">
                   {allNotifications.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="unread" className="flex items-center gap-1.5">
                 <AlertTriangle className="h-4 w-4" />
-                <span>Unread</span>
+                <span>{t('tabs.unread')}</span>
                 <Badge variant="secondary" className="ml-1">
                   {unreadNotifications.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="cases" className="flex items-center gap-1.5">
                 <Briefcase className="h-4 w-4" />
-                <span>Cases</span>
+                <span>{t('common:entities.matters')}</span>
                 <Badge variant="secondary" className="ml-1">
                   {caseNotifications.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileText className="h-4 w-4" />
-                <span>Documents</span>
+                <span>{t('common:entities.documents')}</span>
                 <Badge variant="secondary" className="ml-1">
                   {documentNotifications.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="events" className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
-                <span>Events</span>
+                <span>{t('common:entities.events')}</span>
                 <Badge variant="secondary" className="ml-1">
                   {eventNotifications.length}
                 </Badge>
@@ -298,50 +295,50 @@ export default function Notifications() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
-            Notification Settings
+            {t('settings.title')}
           </CardTitle>
-          <CardDescription>Customize how and when you receive notifications</CardDescription>
+          <CardDescription>{t('settings.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Email Notifications</CardTitle>
+                <CardTitle className="text-base">{t('settings.email.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Receive important updates directly to your email inbox
+                  {t('settings.email.description')}
                 </p>
                 <Button className="w-full" variant="outline">
-                  Configure
+                  {t('settings.email.action')}
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Browser Notifications</CardTitle>
+                <CardTitle className="text-base">{t('settings.browser.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Get real-time notifications in your browser
+                  {t('settings.browser.description')}
                 </p>
                 <Button className="w-full" variant="outline">
-                  Enable
+                  {t('settings.browser.action')}
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Notification Filters</CardTitle>
+                <CardTitle className="text-base">{t('settings.filters.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Control which types of notifications you receive
+                  {t('settings.filters.description')}
                 </p>
                 <Button className="w-full" variant="outline">
-                  Customize
+                  {t('settings.filters.action')}
                 </Button>
               </CardContent>
             </Card>

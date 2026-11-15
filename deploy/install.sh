@@ -24,6 +24,7 @@ SMTP_HOST="" SMTP_PORT="" SMTP_USER="" SMTP_FROM="" SMTP_SECURE="" SMTP_TLS_VERI
 NO_SMTP=false
 ALLOW_SIGNUP=false
 ASSUME_YES=false
+DEFAULT_LANGUAGE=""      # en | el (empty on update = keep current)
 
 die() { echo "install: ERROR: $*" >&2; exit 1; }
 step() { echo; echo "==> $*"; }
@@ -65,6 +66,7 @@ Source
 
 Other
   --allow-signup           Keep public self-service sign-up enabled (default: disabled)
+  --language en|el         Default language for users and emails (default: en; users can switch)
   -y, --yes                Do not ask for confirmation
 EOF
 }
@@ -95,6 +97,7 @@ while [[ $# -gt 0 ]]; do
     --source) SOURCE="$2"; shift 2;;
     --dir) KOURTI_HOME="$2"; shift 2;;
     --allow-signup) ALLOW_SIGNUP=true; shift;;
+    --language) DEFAULT_LANGUAGE="$2"; shift 2;;
     -y|--yes) ASSUME_YES=true; shift;;
     -h|--help) usage; exit 0;;
     *) usage; die "unknown option: $1";;
@@ -160,6 +163,7 @@ echo "  source:      ${SOURCE:-$REPO @ $REF}"
 [[ -n "$FIRM_NAME" ]] && echo "  firm:        $FIRM_NAME — admin $ADMIN_EMAIL — $SEATS seats"
 echo "  email:       $([[ "$NO_SMTP" == true ]] && echo 'disabled (no SMTP)' || echo "SMTP $SMTP_HOST:$SMTP_PORT as $SMTP_FROM")"
 echo "  sign-up:     $($ALLOW_SIGNUP && echo enabled || echo disabled)"
+echo "  language:    ${DEFAULT_LANGUAGE:-unchanged (en on a new install)}"
 if ! $ASSUME_YES && [[ -t 0 ]]; then
   read -r -p "Continue? [y/N] " ok; [[ "$ok" =~ ^[Yy] ]] || exit 1
 fi
@@ -205,6 +209,10 @@ fi
 step "Writing configuration ($ENV_FILE)"
 secret() { openssl rand -hex 32; }
 keep() { local v; v=$(envget "$1"); [[ -n "$v" ]] && printf '%s' "$v" || "$2"; }
+# Language: --language wins, else keep the installed value, else English.
+DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-$(envget DEFAULT_LANGUAGE)}
+DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-en}
+[[ "$DEFAULT_LANGUAGE" == en || "$DEFAULT_LANGUAGE" == el ]] || die "--language must be en or el"
 POSTGRES_PASSWORD=$(keep POSTGRES_PASSWORD secret)
 JWT_SECRET=$(keep JWT_SECRET secret)
 JWT_REFRESH_SECRET=$(keep JWT_REFRESH_SECRET secret)
@@ -245,6 +253,8 @@ PUBLIC_BASE_URL=$PUBLIC_URL
 PORTAL_URL=$PUBLIC_URL/portal
 CORS_ORIGINS=$PUBLIC_URL
 SIGNUP_ENABLED=$ALLOW_SIGNUP
+# Default UI/email language for users who have not chosen one (en | el).
+DEFAULT_LANGUAGE=$DEFAULT_LANGUAGE
 
 POSTGRES_DB=kourti
 POSTGRES_USER=kourti

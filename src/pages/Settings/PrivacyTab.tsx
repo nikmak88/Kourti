@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ async function getValidToken(): Promise<string> {
 export default function PrivacyTab() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('settings');
 
   // Toggle states
   const [marketingEnabled, setMarketingEnabled] = useState<boolean | null>(null);
@@ -69,10 +71,12 @@ export default function PrivacyTab() {
         method: 'POST',
         body: { granted },
       });
-      toast.success(granted ? 'Marketing emails enabled' : 'Marketing emails disabled');
+      toast.success(
+        granted ? t('privacy.marketing.enabled') : t('privacy.marketing.disabled')
+      );
     } catch (err) {
       setMarketingEnabled(prev);
-      toast.error('Failed to update marketing preference', {
+      toast.error(t('privacy.marketing.updateFailed'), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -90,11 +94,11 @@ export default function PrivacyTab() {
         body: { restricted },
       });
       toast.success(
-        restricted ? 'Processing restriction applied' : 'Processing restriction lifted'
+        restricted ? t('privacy.restriction.applied') : t('privacy.restriction.lifted')
       );
     } catch (err) {
       setRestrictionEnabled(prev);
-      toast.error('Failed to update processing restriction', {
+      toast.error(t('privacy.restriction.updateFailed'), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -119,7 +123,9 @@ export default function PrivacyTab() {
           error?: string;
           message?: string;
         } | null;
-        throw new Error(data?.error || data?.message || `Export failed (${response.status})`);
+        throw new Error(
+          data?.error || data?.message || t('privacy.export.failedStatus', { status: response.status })
+        );
       }
 
       const blob = await response.blob();
@@ -134,9 +140,9 @@ export default function PrivacyTab() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success('Data export downloaded');
+      toast.success(t('privacy.export.downloaded'));
     } catch (err) {
-      toast.error('Export failed', {
+      toast.error(t('privacy.export.failed'), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -146,11 +152,11 @@ export default function PrivacyTab() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') {
-      toast.error('Type DELETE to confirm');
+      toast.error(t('privacy.delete.typeToConfirm'));
       return;
     }
     if (!deletePassword) {
-      toast.error('Password is required');
+      toast.error(t('privacy.delete.passwordRequired'));
       return;
     }
 
@@ -160,12 +166,12 @@ export default function PrivacyTab() {
         method: 'DELETE',
         body: { password: deletePassword, confirm: 'DELETE' },
       });
-      toast.success('Account deleted');
+      toast.success(t('privacy.delete.deleted'));
       setDeleteOpen(false);
       await signOut();
       navigate('/auth', { replace: true });
     } catch (err) {
-      toast.error('Failed to delete account', {
+      toast.error(t('privacy.delete.failed'), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -182,22 +188,22 @@ export default function PrivacyTab() {
       {/* Marketing emails */}
       <Card>
         <CardHeader>
-          <CardTitle>Marketing Communications</CardTitle>
+          <CardTitle>{t('privacy.marketing.title')}</CardTitle>
           <CardDescription>
-            Control whether you receive product updates and marketing emails from Kourti.
+            {t('privacy.marketing.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between gap-4">
             <Label htmlFor="marketing-toggle" className="text-sm leading-snug max-w-sm">
-              Receive product updates, feature announcements, and occasional marketing emails.
+              {t('privacy.marketing.toggleLabel')}
             </Label>
             <Switch
               id="marketing-toggle"
               checked={marketingEnabled ?? false}
               onCheckedChange={handleMarketingToggle}
               disabled={marketingLoading}
-              aria-label="Marketing emails"
+              aria-label={t('privacy.marketing.ariaLabel')}
             />
           </div>
         </CardContent>
@@ -206,24 +212,22 @@ export default function PrivacyTab() {
       {/* Processing restriction */}
       <Card>
         <CardHeader>
-          <CardTitle>Restrict Data Processing</CardTitle>
+          <CardTitle>{t('privacy.restriction.title')}</CardTitle>
           <CardDescription>
-            Under GDPR/NDPR you may request that we restrict processing of your personal data in
-            certain circumstances. Enabling this flag signals that restriction to our systems.
+            {t('privacy.restriction.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between gap-4">
             <Label htmlFor="restriction-toggle" className="text-sm leading-snug max-w-sm">
-              Restrict processing of my personal data (your account will remain accessible but
-              certain automated processing will be paused pending review).
+              {t('privacy.restriction.toggleLabel')}
             </Label>
             <Switch
               id="restriction-toggle"
               checked={restrictionEnabled ?? false}
               onCheckedChange={handleRestrictionToggle}
               disabled={restrictionLoading}
-              aria-label="Restrict data processing"
+              aria-label={t('privacy.restriction.ariaLabel')}
             />
           </div>
         </CardContent>
@@ -232,10 +236,9 @@ export default function PrivacyTab() {
       {/* Data export */}
       <Card>
         <CardHeader>
-          <CardTitle>Download My Data</CardTitle>
+          <CardTitle>{t('privacy.export.title')}</CardTitle>
           <CardDescription>
-            Export a copy of your personal data in JSON format (right of portability under
-            GDPR/NDPR).
+            {t('privacy.export.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -245,7 +248,7 @@ export default function PrivacyTab() {
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            {exportLoading ? 'Preparing export…' : 'Download my data'}
+            {exportLoading ? t('privacy.export.preparing') : t('privacy.export.button')}
           </Button>
         </CardContent>
       </Card>
@@ -257,12 +260,14 @@ export default function PrivacyTab() {
         <CardHeader>
           <CardTitle className="text-destructive flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
-            Delete Account
+            {t('privacy.delete.title')}
           </CardTitle>
           <CardDescription>
-            Permanently delete your account and all associated data. This action is{' '}
-            <strong>irreversible</strong>. All your data — cases, documents, billing history — will
-            be erased and cannot be recovered.
+            <Trans
+              t={t}
+              i18nKey="privacy.delete.description"
+              components={{ strong: <strong /> }}
+            />
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -275,7 +280,7 @@ export default function PrivacyTab() {
             }}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete my account
+            {t('privacy.delete.button')}
           </Button>
         </CardContent>
       </Card>
@@ -286,17 +291,22 @@ export default function PrivacyTab() {
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Delete Account — This Cannot Be Undone
+              {t('privacy.delete.dialogTitle')}
             </DialogTitle>
             <DialogDescription className="space-y-2 pt-1">
               <span className="block">
-                You are about to permanently delete your account and all data associated with it.
-                Once deleted, your cases, documents, team, and billing history{' '}
-                <strong>cannot be recovered</strong>.
+                <Trans
+                  t={t}
+                  i18nKey="privacy.delete.dialogWarning"
+                  components={{ strong: <strong /> }}
+                />
               </span>
               <span className="block font-medium text-foreground">
-                Type <span className="font-mono text-destructive">DELETE</span> and enter your
-                password to confirm.
+                <Trans
+                  t={t}
+                  i18nKey="privacy.delete.dialogInstructions"
+                  components={{ code: <span className="font-mono text-destructive" /> }}
+                />
               </span>
             </DialogDescription>
           </DialogHeader>
@@ -304,7 +314,7 @@ export default function PrivacyTab() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label htmlFor="delete-confirm" className="text-sm">
-                Type DELETE to confirm
+                {t('privacy.delete.typeToConfirm')}
               </Label>
               <Input
                 id="delete-confirm"
@@ -318,14 +328,14 @@ export default function PrivacyTab() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="delete-password" className="text-sm">
-                Your password
+                {t('privacy.delete.passwordLabel')}
               </Label>
               <Input
                 id="delete-password"
                 type="password"
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('privacy.delete.passwordPlaceholder')}
                 autoComplete="current-password"
               />
             </div>
@@ -333,7 +343,7 @@ export default function PrivacyTab() {
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>
-              Cancel
+              {t('common:actions.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -347,7 +357,7 @@ export default function PrivacyTab() {
               ) : (
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
-              {deleteLoading ? 'Deleting…' : 'Permanently delete account'}
+              {deleteLoading ? t('common:status.deleting') : t('privacy.delete.confirmButton')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { logError } from '@/lib/logger';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Home, ArrowLeft, Search } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
+  const { t } = useTranslation('nav');
 
   useEffect(() => {
     logError(
@@ -24,9 +26,9 @@ const NotFound = () => {
               <Search className="w-8 h-8 text-muted-foreground" />
             </div>
             <h1 className="text-6xl font-bold text-primary mb-2">404</h1>
-            <h2 className="text-xl font-semibold text-foreground mb-2">Page Not Found</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-2">{t('notFound.title')}</h2>
             <p className="text-muted-foreground mb-6">
-              The page you're looking for doesn't exist or has been moved.
+              {t('notFound.description')}
             </p>
             <div className="text-xs text-muted-foreground/60 mb-6 font-mono bg-muted/50 p-2 rounded">
               {location.pathname}
@@ -37,12 +39,12 @@ const NotFound = () => {
             <Button asChild className="w-full">
               <Link to="/">
                 <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
+                {t('notFound.backToDashboard')}
               </Link>
             </Button>
             <Button variant="outline" onClick={() => window.history.back()} className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back
+              {t('goBack')}
             </Button>
           </div>
         </CardContent>

@@ -578,6 +578,20 @@ usersRouter.get(
   })
 );
 
+// UI / email language chosen by the user ('en' | 'el'); null = install default.
+usersRouter.patch(
+  '/me/language',
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!;
+    const { language } = z.object({ language: z.enum(['en', 'el']).nullable() }).parse(req.body);
+    await db.query(
+      `update public.profiles set preferred_language = $2, updated_at = now() where user_id = $1`,
+      [auth.userId, language]
+    );
+    res.status(200).json({ language });
+  })
+);
+
 usersRouter.patch(
   '/me/profile',
   asyncHandler(async (req, res) => {

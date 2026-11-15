@@ -60,6 +60,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ModuleFilterBar } from '@/components/filters/ModuleFilterBar';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '@/i18n/dates';
 
 type CalendarView = 'month' | 'week' | 'day' | 'workWeek' | 'list';
 type EventTypeFilter =
@@ -72,6 +74,12 @@ type EventTypeFilter =
   | 'consultation';
 
 export default function Calendar() {
+  const { t, i18n } = useTranslation('calendar');
+  const locale = dateLocale();
+  // Greek weeks start on Monday; English keeps Sunday.
+  const weekStartsOn: 0 | 1 = i18n.language === 'el' ? 1 : 0;
+  const eventTypeLabel = (type?: string | null) =>
+    type ? t(`eventTypes.${type}`, { defaultValue: type }) : t('eventTypes.event');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | CalendarEventWithOwner | null>(
     null
@@ -230,13 +238,13 @@ export default function Calendar() {
       }
 
       if (syncedCount > 0) {
-        toast.success('Calendar Synced', {
-          description: 'External calendars have been synchronized.',
+        toast.success(t('page.toast.syncedTitle'), {
+          description: t('page.toast.syncedDescription'),
         });
       }
     } catch {
-      toast.error('Sync Failed', {
-        description: 'Unable to sync external calendars. Please try again.',
+      toast.error(t('page.toast.syncFailedTitle'), {
+        description: t('page.toast.syncFailedDescription'),
       });
     } finally {
       setIsSyncing(false);
@@ -291,15 +299,15 @@ export default function Calendar() {
 
   // Get days for month view
   const getDaysInMonth = (date: Date) => {
-    const start = startOfWeek(startOfMonth(date));
-    const end = endOfWeek(endOfMonth(date));
+    const start = startOfWeek(startOfMonth(date), { weekStartsOn });
+    const end = endOfWeek(endOfMonth(date), { weekStartsOn });
     return eachDayOfInterval({ start, end });
   };
 
   // Get days for week view
   const getDaysInWeek = (date: Date) => {
-    const start = startOfWeek(date);
-    const end = endOfWeek(date);
+    const start = startOfWeek(date, { weekStartsOn });
+    const end = endOfWeek(date, { weekStartsOn });
     return eachDayOfInterval({ start, end });
   };
 
@@ -355,7 +363,7 @@ export default function Calendar() {
     return (
       <PageContainer>
         <Breadcrumbs />
-        <PageHeader title="Calendar" description="Schedule and manage your legal events" />
+        <PageHeader title={t('page.title')} description={t('page.description')} />
         <TableSkeleton rows={6} columns={7} />
       </PageContainer>
     );
@@ -366,8 +374,8 @@ export default function Calendar() {
       <Breadcrumbs />
 
       <PageHeader
-        title="Calendar"
-        description="Schedule and manage your legal events"
+        title={t('page.title')}
+        description={t('page.description')}
         actions={
           <>
             <Button
@@ -376,12 +384,12 @@ export default function Calendar() {
               onClick={() => setShowFindTimeDialog(true)}
             >
               <CalendarDays className="h-4 w-4 mr-2" />
-              Schedule Meeting
+              {t('page.scheduleMeeting')}
             </Button>
             <EventCreateDialog>
               <Button className="shadow-sm">
                 <Plus className="h-4 w-4 mr-2" />
-                New Event
+                {t('page.newEvent')}
               </Button>
             </EventCreateDialog>
           </>
@@ -392,24 +400,24 @@ export default function Calendar() {
       <ModuleFilterBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Search events..."
+        searchPlaceholder={t('page.searchPlaceholder')}
         searchWidth="flex-1"
         filters={[
           {
             key: 'eventType',
-            placeholder: 'Filter by type',
+            placeholder: t('page.filterByType'),
             value: eventTypeFilter,
             onChange: (v) => setEventTypeFilter(v as EventTypeFilter),
             width: 'w-full sm:w-[180px]',
             icon: <Filter className="h-4 w-4" />,
             options: [
-              { value: 'all', label: 'All Types' },
-              { value: 'meeting', label: 'Meetings' },
-              { value: 'hearing', label: 'Hearings' },
-              { value: 'deadline', label: 'Deadlines' },
-              { value: 'deposition', label: 'Depositions' },
-              { value: 'review', label: 'Reviews' },
-              { value: 'consultation', label: 'Consultations' },
+              { value: 'all', label: t('eventTypesPlural.all') },
+              { value: 'meeting', label: t('eventTypesPlural.meeting') },
+              { value: 'hearing', label: t('eventTypesPlural.hearing') },
+              { value: 'deadline', label: t('eventTypesPlural.deadline') },
+              { value: 'deposition', label: t('eventTypesPlural.deposition') },
+              { value: 'review', label: t('eventTypesPlural.review') },
+              { value: 'consultation', label: t('eventTypesPlural.consultation') },
             ],
           },
         ]}
@@ -429,10 +437,13 @@ export default function Calendar() {
                   <CalendarIcon className="h-5 w-5 text-primary" />
                   <CardTitle>
                     {calendarView === 'month'
-                      ? format(currentDate, 'MMMM yyyy')
+                      ? format(currentDate, 'LLLL yyyy', { locale })
                       : calendarView === 'week'
-                        ? `Week of ${format(weekDays[0], 'MMM d')} - ${format(weekDays[6], 'MMM d, yyyy')}`
-                        : format(currentDate, 'MMMM yyyy')}
+                        ? t('page.weekOf', {
+                            start: format(weekDays[0], 'd MMM', { locale }),
+                            end: format(weekDays[6], 'PP', { locale }),
+                          })
+                        : format(currentDate, 'LLLL yyyy', { locale })}
                   </CardTitle>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -443,23 +454,23 @@ export default function Calendar() {
                     <TabsList className="flex-wrap">
                       <TabsTrigger value="month" className="gap-2">
                         <Grid3X3 className="h-4 w-4" />
-                        Month
+                        {t('views.month')}
                       </TabsTrigger>
                       <TabsTrigger value="week" className="gap-2">
                         <CalendarDays className="h-4 w-4" />
-                        Week
+                        {t('views.week')}
                       </TabsTrigger>
                       <TabsTrigger value="workWeek" className="gap-2">
                         <CalendarDays className="h-4 w-4" />
-                        Work Week
+                        {t('views.workWeek')}
                       </TabsTrigger>
                       <TabsTrigger value="day" className="gap-2">
                         <Clock className="h-4 w-4" />
-                        Day
+                        {t('views.day')}
                       </TabsTrigger>
                       <TabsTrigger value="list" className="gap-2">
                         <List className="h-4 w-4" />
-                        List
+                        {t('views.list')}
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
@@ -469,6 +480,7 @@ export default function Calendar() {
                       size="icon"
                       className="h-9 w-9"
                       onClick={() => navigateDate('prev')}
+                      aria-label={t('page.previous')}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -479,13 +491,14 @@ export default function Calendar() {
                       onClick={() => navigateDate('today')}
                     >
                       <CalendarDays className="h-4 w-4" />
-                      Today
+                      {t('common:time.today')}
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9"
                       onClick={() => navigateDate('next')}
+                      aria-label={t('page.next')}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -500,7 +513,7 @@ export default function Calendar() {
                         className="gap-2"
                       >
                         <RefreshCw className={cn('h-4 w-4', isSyncing && 'animate-spin')} />
-                        Sync
+                        {t('page.sync')}
                       </Button>
                       <Button
                         variant="outline"
@@ -509,7 +522,7 @@ export default function Calendar() {
                         className="gap-2"
                       >
                         <SettingsIcon className="h-4 w-4" />
-                        Sync Settings
+                        {t('page.syncSettings')}
                       </Button>
                     </>
                   )}
@@ -517,11 +530,11 @@ export default function Calendar() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-2">
                         <Download className="h-4 w-4" />
-                        Export
+                        {t('common:actions.export')}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Export Calendar</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t('page.export.title')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <a
@@ -530,12 +543,12 @@ export default function Calendar() {
                           rel="noreferrer"
                           className="cursor-pointer"
                         >
-                          Download ICS (one-time)
+                          {t('page.export.download')}
                         </a>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <a href={calendarSubscribeUrl} className="cursor-pointer">
-                          Subscribe (auto-updates)
+                          {t('page.export.subscribe')}
                         </a>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -548,12 +561,12 @@ export default function Calendar() {
                 <div className="space-y-2">
                   {/* Day headers */}
                   <div className="grid grid-cols-7 gap-1">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    {monthDays.slice(0, 7).map((day) => (
                       <div
-                        key={day}
+                        key={day.getDay()}
                         className="p-2 text-center text-sm font-semibold text-muted-foreground"
                       >
-                        {day}
+                        {format(day, 'EEE', { locale })}
                       </div>
                     ))}
                   </div>
@@ -604,12 +617,12 @@ export default function Calendar() {
                                 }}
                                 title={event.title}
                               >
-                                {format(new Date(event.start_date), 'h:mm a')} {event.title}
+                                {format(new Date(event.start_date), 'p', { locale })} {event.title}
                               </div>
                             ))}
                             {dayEvents.length > 3 && (
                               <div className="text-xs text-muted-foreground px-1">
-                                +{dayEvents.length - 3} more
+                                {t('page.more', { count: dayEvents.length - 3 })}
                               </div>
                             )}
                           </div>
@@ -636,7 +649,7 @@ export default function Calendar() {
                               isTodayDate && 'text-primary'
                             )}
                           >
-                            {format(day, 'EEE')}
+                            {format(day, 'EEE', { locale })}
                           </div>
                           <div
                             className={cn(
@@ -659,7 +672,7 @@ export default function Calendar() {
                               >
                                 <div className="font-medium truncate">{event.title}</div>
                                 <div className="text-xs opacity-90">
-                                  {format(new Date(event.start_date), 'h:mm a')}
+                                  {format(new Date(event.start_date), 'p', { locale })}
                                 </div>
                               </div>
                             ))}
@@ -705,10 +718,10 @@ export default function Calendar() {
                                 {format(new Date(event.start_date), 'd')}
                               </div>
                               <div className="text-xs text-muted-foreground uppercase">
-                                {format(new Date(event.start_date), 'MMM')}
+                                {format(new Date(event.start_date), 'LLL', { locale })}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {format(new Date(event.start_date), 'EEE')}
+                                {format(new Date(event.start_date), 'EEE', { locale })}
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
@@ -717,12 +730,12 @@ export default function Calendar() {
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 flex-shrink-0" />
                                   <span>
-                                    {format(new Date(event.start_date), 'h:mm a')} -{' '}
-                                    {format(new Date(event.end_date), 'h:mm a')}
+                                    {format(new Date(event.start_date), 'p', { locale })} -{' '}
+                                    {format(new Date(event.end_date), 'p', { locale })}
                                     {!isSameDay(
                                       new Date(event.start_date),
                                       new Date(event.end_date)
-                                    ) && ` (${format(new Date(event.end_date), 'MMM d')})`}
+                                    ) && ` (${format(new Date(event.end_date), 'd MMM', { locale })})`}
                                   </span>
                                 </div>
                                 {event.location && (
@@ -737,7 +750,7 @@ export default function Calendar() {
                                     <span className="truncate">
                                       {event.attendees.slice(0, 2).join(', ')}
                                       {event.attendees.length > 2 &&
-                                        ` +${event.attendees.length - 2} more`}
+                                        ` ${t('page.more', { count: event.attendees.length - 2 })}`}
                                     </span>
                                   </div>
                                 )}
@@ -755,7 +768,7 @@ export default function Calendar() {
                               getEventTypeColor(event.event_type || 'meeting')
                             )}
                           >
-                            {event.event_type || 'event'}
+                            {eventTypeLabel(event.event_type)}
                           </Badge>
                         </div>
                       </div>
@@ -763,16 +776,18 @@ export default function Calendar() {
                   ) : (
                     <EmptyState
                       icon={CalendarIcon}
-                      title="No events found"
+                      title={t('page.empty.title')}
                       description={
                         searchTerm || eventTypeFilter !== 'all'
-                          ? 'Try adjusting your search or filters to find events.'
-                          : `No events scheduled for ${format(currentDate, 'MMMM yyyy')}.`
+                          ? t('page.empty.filtered')
+                          : t('page.empty.noEventsInMonth', {
+                              month: format(currentDate, 'LLLL yyyy', { locale }),
+                            })
                       }
                       action={
                         searchTerm || eventTypeFilter !== 'all'
                           ? {
-                              label: 'Clear Filters',
+                              label: t('page.empty.clearFilters'),
                               onClick: () => {
                                 setSearchTerm('');
                                 setEventTypeFilter('all');
@@ -783,7 +798,7 @@ export default function Calendar() {
                       secondaryAction={
                         !searchTerm && eventTypeFilter === 'all'
                           ? {
-                              label: 'Create Event',
+                              label: t('page.empty.createEvent'),
                               onClick: () => {
                                 // The EventCreateDialog is already in the header, user can click it
                               },
@@ -811,7 +826,7 @@ export default function Calendar() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Clock className="h-5 w-5 text-primary" />
-                Today
+                {t('common:time.today')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -831,13 +846,13 @@ export default function Calendar() {
                             getEventTypeColor(event.event_type || 'meeting')
                           )}
                         >
-                          {event.event_type || 'event'}
+                          {eventTypeLabel(event.event_type)}
                         </Badge>
                       </div>
                       <div className="space-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(new Date(event.start_date), 'h:mm a')}
+                          {format(new Date(event.start_date), 'p', { locale })}
                         </div>
                         {event.location && (
                           <div className="flex items-center gap-1">
@@ -850,7 +865,7 @@ export default function Calendar() {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm text-center py-4">No events today</p>
+                <p className="text-muted-foreground text-sm text-center py-4">{t('page.noEventsToday')}</p>
               )}
             </CardContent>
           </Card>
@@ -858,8 +873,8 @@ export default function Calendar() {
           {/* Upcoming Events */}
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Upcoming</CardTitle>
-              <CardDescription>Next 7 days</CardDescription>
+              <CardTitle className="text-lg">{t('page.upcoming')}</CardTitle>
+              <CardDescription>{t('page.next7Days')}</CardDescription>
             </CardHeader>
             <CardContent>
               {upcomingEvents.length > 0 ? (
@@ -878,11 +893,11 @@ export default function Calendar() {
                             getEventTypeColor(event.event_type || 'meeting')
                           )}
                         >
-                          {event.event_type || 'event'}
+                          {eventTypeLabel(event.event_type)}
                         </Badge>
                       </div>
                       <div className="space-y-1 text-xs text-muted-foreground">
-                        <div>{format(new Date(event.start_date), 'MMM d, h:mm a')}</div>
+                        <div>{format(new Date(event.start_date), 'd MMM, p', { locale })}</div>
                         {event.location && (
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
@@ -902,12 +917,12 @@ export default function Calendar() {
                         setCurrentDate(new Date());
                       }}
                     >
-                      View {upcomingEvents.length - 5} more
+                      {t('page.viewMore', { count: upcomingEvents.length - 5 })}
                     </Button>
                   )}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm text-center py-4">No upcoming events</p>
+                <p className="text-muted-foreground text-sm text-center py-4">{t('page.noUpcoming')}</p>
               )}
             </CardContent>
           </Card>
@@ -915,7 +930,7 @@ export default function Calendar() {
           {/* Event Type Legend */}
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Event Types</CardTitle>
+              <CardTitle className="text-lg">{t('page.eventTypes')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -928,7 +943,7 @@ export default function Calendar() {
                           getEventTypeColor(type).split(' ')[0]
                         )}
                       />
-                      <span className="text-sm capitalize">{type}</span>
+                      <span className="text-sm">{eventTypeLabel(type)}</span>
                     </div>
                   )
                 )}
@@ -949,9 +964,9 @@ export default function Calendar() {
       {showSyncSettings && (
         <Dialog open={showSyncSettings} onOpenChange={setShowSyncSettings}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogTitle className="sr-only">Calendar Sync Settings</DialogTitle>
+            <DialogTitle className="sr-only">{t('page.syncDialogTitle')}</DialogTitle>
             <DialogDescription className="sr-only">
-              Configure calendar synchronization settings
+              {t('page.syncDialogDescription')}
             </DialogDescription>
             <CalendarSyncSettings />
           </DialogContent>

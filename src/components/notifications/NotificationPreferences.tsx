@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
@@ -23,6 +24,7 @@ export function NotificationPreferences() {
   const { data: organizationId } = useUserOrganization();
   const { data: preferences, isLoading } = useNotificationPreferences(organizationId || '');
   const updatePreferences = useUpdateNotificationPreferences();
+  const { t } = useTranslation('notifications');
   const [formData, setFormData] = useState({
     email_enabled: true,
     email_frequency: 'immediate' as 'immediate' | 'daily' | 'weekly' | 'never',
@@ -57,7 +59,7 @@ export function NotificationPreferences() {
 
   const handleSave = async () => {
     if (!organizationId) {
-      toast.error('Error', { description: 'Organization not found' });
+      toast.error(t('common:toast.error'), { description: t('preferences.toast.noOrganization') });
       return;
     }
 
@@ -66,9 +68,9 @@ export function NotificationPreferences() {
         organization_id: organizationId,
         ...formData,
       });
-      toast.success('Success', { description: 'Notification preferences saved' });
+      toast.success(t('common:toast.success'), { description: t('preferences.toast.saved') });
     } catch {
-      toast.error('Error', { description: 'Failed to save preferences' });
+      toast.error(t('common:toast.error'), { description: t('preferences.toast.saveFailed') });
     }
   };
 
@@ -76,11 +78,11 @@ export function NotificationPreferences() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Notification Preferences</CardTitle>
+          <CardTitle>{t('preferences.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading preferences...</div>
+            <div className="text-muted-foreground">{t('preferences.loading')}</div>
           </div>
         </CardContent>
       </Card>
@@ -92,22 +94,22 @@ export function NotificationPreferences() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          Notification Preferences
+          {t('preferences.title')}
         </CardTitle>
-        <CardDescription>Manage how and when you receive notifications</CardDescription>
+        <CardDescription>{t('preferences.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Email Settings */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-semibold">Email Notifications</h3>
+            <h3 className="font-semibold">{t('settings.email.title')}</h3>
           </div>
           <div className="space-y-4 pl-7">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="email-enabled">Enable email notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                <Label htmlFor="email-enabled">{t('preferences.email.enable')}</Label>
+                <p className="text-sm text-muted-foreground">{t('preferences.email.enableHelp')}</p>
               </div>
               <Switch
                 id="email-enabled"
@@ -117,7 +119,7 @@ export function NotificationPreferences() {
             </div>
             {formData.email_enabled && (
               <div className="space-y-2">
-                <Label htmlFor="email-frequency">Email frequency</Label>
+                <Label htmlFor="email-frequency">{t('preferences.email.frequency')}</Label>
                 <Select
                   value={formData.email_frequency}
                   onValueChange={(value: 'immediate' | 'daily' | 'weekly' | 'never') =>
@@ -128,10 +130,10 @@ export function NotificationPreferences() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="daily">Daily digest</SelectItem>
-                    <SelectItem value="weekly">Weekly digest</SelectItem>
-                    <SelectItem value="never">Never</SelectItem>
+                    <SelectItem value="immediate">{t('preferences.frequency.immediate')}</SelectItem>
+                    <SelectItem value="daily">{t('preferences.frequency.daily')}</SelectItem>
+                    <SelectItem value="weekly">{t('preferences.frequency.weekly')}</SelectItem>
+                    <SelectItem value="never">{t('preferences.frequency.never')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -145,14 +147,14 @@ export function NotificationPreferences() {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Smartphone className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-semibold">In-App Notifications</h3>
+            <h3 className="font-semibold">{t('preferences.inApp.title')}</h3>
           </div>
           <div className="pl-7">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="in-app-enabled">Enable in-app notifications</Label>
+                <Label htmlFor="in-app-enabled">{t('preferences.inApp.enable')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Show notifications in the application
+                  {t('preferences.inApp.enableHelp')}
                 </p>
               </div>
               <Switch
@@ -168,56 +170,56 @@ export function NotificationPreferences() {
 
         {/* Notification Types */}
         <div className="space-y-4">
-          <h3 className="font-semibold">Notification Types</h3>
+          <h3 className="font-semibold">{t('preferences.types.title')}</h3>
           <p className="text-sm text-muted-foreground">
-            Choose which types of notifications you want to receive
+            {t('preferences.types.description')}
           </p>
           <div className="space-y-3">
             <NotificationTypeToggle
-              label="Case notifications"
-              description="Updates about cases"
+              label={t('preferences.types.case.label')}
+              description={t('preferences.types.case.description')}
               checked={formData.case_notifications}
               onChange={(checked) => setFormData({ ...formData, case_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="Client notifications"
-              description="Updates about clients"
+              label={t('preferences.types.client.label')}
+              description={t('preferences.types.client.description')}
               checked={formData.client_notifications}
               onChange={(checked) => setFormData({ ...formData, client_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="Document notifications"
-              description="Updates about documents"
+              label={t('preferences.types.document.label')}
+              description={t('preferences.types.document.description')}
               checked={formData.document_notifications}
               onChange={(checked) => setFormData({ ...formData, document_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="Contract notifications"
-              description="Updates about contracts"
+              label={t('preferences.types.contract.label')}
+              description={t('preferences.types.contract.description')}
               checked={formData.contract_notifications}
               onChange={(checked) => setFormData({ ...formData, contract_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="Calendar notifications"
-              description="Updates about calendar events"
+              label={t('preferences.types.calendar.label')}
+              description={t('preferences.types.calendar.description')}
               checked={formData.calendar_notifications}
               onChange={(checked) => setFormData({ ...formData, calendar_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="Task notifications"
-              description="Updates about tasks"
+              label={t('preferences.types.task.label')}
+              description={t('preferences.types.task.description')}
               checked={formData.task_notifications}
               onChange={(checked) => setFormData({ ...formData, task_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="Invoice notifications"
-              description="Updates about invoices"
+              label={t('preferences.types.invoice.label')}
+              description={t('preferences.types.invoice.description')}
               checked={formData.invoice_notifications}
               onChange={(checked) => setFormData({ ...formData, invoice_notifications: checked })}
             />
             <NotificationTypeToggle
-              label="General notifications"
-              description="General system notifications"
+              label={t('preferences.types.general.label')}
+              description={t('preferences.types.general.description')}
               checked={formData.general_notifications}
               onChange={(checked) => setFormData({ ...formData, general_notifications: checked })}
             />
@@ -230,7 +232,7 @@ export function NotificationPreferences() {
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={updatePreferences.isPending}>
             <Save className="h-4 w-4 mr-2" />
-            {updatePreferences.isPending ? 'Saving...' : 'Save Preferences'}
+            {updatePreferences.isPending ? t('common:status.saving') : t('preferences.save')}
           </Button>
         </div>
       </CardContent>

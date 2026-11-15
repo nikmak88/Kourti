@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Briefcase,
@@ -52,11 +53,13 @@ import { cn } from '@/lib/utils';
 import { useTotalUnreadCount } from '@/hooks/useChat';
 
 interface NavigationItem {
-  title: string;
+  /** Translation key of the label, rendered with t() so it follows a language switch. */
+  titleKey: string;
   url: string;
   icon: LucideIcon;
   end?: boolean;
-  badge?: string;
+  /** Translation key of the badge text. */
+  badgeKey?: string;
   badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
   permission?: { resource: Resource; action: Action };
   /** Plan feature required; if the org lacks it, the item shows a lock. */
@@ -65,62 +68,62 @@ interface NavigationItem {
 
 // Main navigation — flat list, no group labels (Startbutton style)
 const mainNavItems: NavigationItem[] = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, end: true },
+  { titleKey: 'nav:items.dashboard', url: '/', icon: LayoutDashboard, end: true },
   {
-    title: 'Matters',
+    titleKey: 'nav:items.matters',
     url: '/matters',
     icon: Briefcase,
     permission: { resource: 'cases', action: 'read' },
   },
   {
-    title: 'Clients',
+    titleKey: 'nav:items.clients',
     url: '/clients',
     icon: UserCheck,
     permission: { resource: 'clients', action: 'read' },
   },
   {
-    title: 'Calendar',
+    titleKey: 'nav:items.calendar',
     url: '/calendar',
     icon: Calendar,
     permission: { resource: 'calendars', action: 'read' },
   },
   {
-    title: 'Documents',
+    titleKey: 'nav:items.documents',
     url: '/documents',
     icon: FileText,
     permission: { resource: 'documents', action: 'read' },
   },
   {
-    title: 'Contracts',
+    titleKey: 'nav:items.contracts',
     url: '/contracts',
     icon: FileCheck,
     permission: { resource: 'contracts', action: 'read' },
   },
   {
-    title: 'AI Agents',
+    titleKey: 'nav:items.aiAgents',
     url: '/agents',
     icon: Cpu,
-    badge: 'New',
+    badgeKey: 'nav:badges.new',
     badgeVariant: 'default',
     permission: { resource: 'agents', action: 'read' },
     feature: 'agents',
   },
   {
-    title: 'Negotiations',
+    titleKey: 'nav:items.negotiations',
     url: '/negotiations',
     icon: Handshake,
     permission: { resource: 'negotiations', action: 'read' },
     feature: 'negotiations',
   },
   {
-    title: 'Intelligence',
+    titleKey: 'nav:items.intelligence',
     url: '/intelligence',
     icon: Brain,
     permission: { resource: 'cases', action: 'read' },
     feature: 'intelligence',
   },
   {
-    title: 'Voice & Transcriptions',
+    titleKey: 'nav:items.voice',
     url: '/voice-recorder',
     icon: Mic,
     permission: { resource: 'documents', action: 'create' },
@@ -128,23 +131,27 @@ const mainNavItems: NavigationItem[] = [
 ];
 
 // Footer items
-const footerSettingsItem: NavigationItem = { title: 'Settings', url: '/settings', icon: Settings };
+const footerSettingsItem: NavigationItem = {
+  titleKey: 'nav:items.settings',
+  url: '/settings',
+  icon: Settings,
+};
 const footerAdminItems: NavigationItem[] = [
   {
-    title: 'Analytics',
+    titleKey: 'nav:items.analytics',
     url: '/analytics',
     icon: Gauge,
     permission: { resource: 'cases', action: 'manage' },
   },
   {
-    title: 'Users',
+    titleKey: 'nav:items.users',
     url: '/users',
     icon: Users,
     permission: { resource: 'users', action: 'manage' },
   },
 ];
 const footerPlatformAdminItem: NavigationItem = {
-  title: 'Platform Admin',
+  titleKey: 'nav:items.platformAdmin',
   url: '/thanos',
   icon: Shield,
 };
@@ -158,6 +165,7 @@ const AppSidebar: React.FC = () => {
   const [showInvoiceSoon, setShowInvoiceSoon] = React.useState(false);
   const totalUnreadCount = useTotalUnreadCount();
   const { data: entitlements } = useEntitlements();
+  const { t } = useTranslation('nav');
 
   const { data: userRoleData } = useUserRole();
   const role = userRoleData && 'role' in userRoleData ? userRoleData.role : null;
@@ -182,10 +190,10 @@ const AppSidebar: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast.success('Signed out', { description: 'You have been successfully signed out.' });
+      toast.success(t('signOut.successTitle'), { description: t('signOut.successDescription') });
       navigate('/auth', { replace: true });
     } catch {
-      toast.error('Error', { description: 'Failed to sign out. Please try again.' });
+      toast.error(t('common:toast.error'), { description: t('signOut.failed') });
     }
   };
 
@@ -250,16 +258,16 @@ const AppSidebar: React.FC = () => {
                   </span>
                 )}
               </div>
-              {!collapsed && <span className="truncate">{item.title}</span>}
+              {!collapsed && <span className="truncate">{t(item.titleKey)}</span>}
               {!collapsed && locked ? (
                 <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground/70" />
               ) : !collapsed && isLiveChat && totalUnreadCount > 0 ? (
                 <Badge variant="destructive" className="ml-auto text-[10px] min-w-5 justify-center">
                   {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
                 </Badge>
-              ) : !collapsed && item.badge ? (
+              ) : !collapsed && item.badgeKey ? (
                 <Badge variant={item.badgeVariant} className="ml-auto text-[10px]">
-                  {item.badge}
+                  {t(item.badgeKey)}
                 </Badge>
               ) : null}
             </NavLink>
@@ -288,13 +296,11 @@ const AppSidebar: React.FC = () => {
       <Dialog open={showInvoiceSoon} onOpenChange={setShowInvoiceSoon}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Coming Soon</DialogTitle>
-            <DialogDescription>
-              The invoicing & billing module will be available in an upcoming release.
-            </DialogDescription>
+            <DialogTitle>{t('comingSoon.title')}</DialogTitle>
+            <DialogDescription>{t('comingSoon.invoicing')}</DialogDescription>
           </DialogHeader>
           <Button className="mt-2 w-full" onClick={() => setShowInvoiceSoon(false)} autoFocus>
-            Close
+            {t('common:actions.close')}
           </Button>
         </DialogContent>
       </Dialog>
@@ -317,7 +323,7 @@ const AppSidebar: React.FC = () => {
                       <TooltipTrigger asChild>
                         <NavItemWithPermission item={item} />
                       </TooltipTrigger>
-                      {collapsed && <TooltipContent side="right">{item.title}</TooltipContent>}
+                      {collapsed && <TooltipContent side="right">{t(item.titleKey)}</TooltipContent>}
                     </Tooltip>
                   ))}
                 </SidebarMenu>
@@ -333,7 +339,7 @@ const AppSidebar: React.FC = () => {
                   <NavItemContent item={footerSettingsItem} />
                 </TooltipTrigger>
                 {collapsed && (
-                  <TooltipContent side="right">{footerSettingsItem.title}</TooltipContent>
+                  <TooltipContent side="right">{t(footerSettingsItem.titleKey)}</TooltipContent>
                 )}
               </Tooltip>
 
@@ -343,7 +349,7 @@ const AppSidebar: React.FC = () => {
                     <TooltipTrigger asChild>
                       <NavItemWithPermission item={item} />
                     </TooltipTrigger>
-                    {collapsed && <TooltipContent side="right">{item.title}</TooltipContent>}
+                    {collapsed && <TooltipContent side="right">{t(item.titleKey)}</TooltipContent>}
                   </Tooltip>
                 ))}
 
@@ -353,7 +359,9 @@ const AppSidebar: React.FC = () => {
                     <NavItemContent item={footerPlatformAdminItem} />
                   </TooltipTrigger>
                   {collapsed && (
-                    <TooltipContent side="right">{footerPlatformAdminItem.title}</TooltipContent>
+                    <TooltipContent side="right">
+                      {t(footerPlatformAdminItem.titleKey)}
+                    </TooltipContent>
                   )}
                 </Tooltip>
               )}
@@ -366,13 +374,14 @@ const AppSidebar: React.FC = () => {
                 >
                   <button
                     onClick={handleSignOut}
+                    aria-label={t('common:actions.signOut')}
                     className={cn(
                       'flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-normal text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-muted/50',
                       collapsed && 'justify-center px-0 gap-0'
                     )}
                   >
                     <LogOut className="h-5 w-5 flex-shrink-0 text-muted-foreground/60" />
-                    {!collapsed && <span>Logout</span>}
+                    {!collapsed && <span>{t('common:actions.signOut')}</span>}
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>

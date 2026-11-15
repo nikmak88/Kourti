@@ -11,6 +11,7 @@ import { Loader2, Calendar, CheckCircle2 } from 'lucide-react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { toast } from 'sonner';
 import { isSafeHttpsUrl, CALENDAR_OAUTH_ORIGINS } from '@/lib/safeUrl';
+import { useTranslation } from 'react-i18next';
 
 interface CalendarConnectDialogProps {
   open: boolean;
@@ -25,6 +26,8 @@ export function CalendarConnectDialog({
 }: CalendarConnectDialogProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const { connectCalendar, isConnected } = useCalendarSync();
+  const { t } = useTranslation('calendar');
+  const providerName = provider === 'google' ? 'Google Calendar' : 'Microsoft Teams';
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
@@ -34,15 +37,15 @@ export function CalendarConnectDialog({
       if (isSafeHttpsUrl(authUrl, CALENDAR_OAUTH_ORIGINS)) {
         window.location.href = authUrl;
       } else if (authUrl) {
-        toast.error('Connection Failed', {
-          description: 'Received an unexpected authorization URL. Please try again.',
+        toast.error(t('connect.toast.failedTitle'), {
+          description: t('connect.toast.unexpectedUrl'),
         });
         setIsConnecting(false);
       }
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to initiate calendar connection';
-      toast.error('Connection Failed', { description: errorMessage });
+        error instanceof Error ? error.message : t('connect.toast.initiateFailed');
+      toast.error(t('connect.toast.failedTitle'), { description: errorMessage });
       setIsConnecting(false);
     }
   };
@@ -55,11 +58,10 @@ export function CalendarConnectDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Connect {provider === 'google' ? 'Google Calendar' : 'Microsoft Teams'}
+            {t('connect.title', { provider: providerName })}
           </DialogTitle>
           <DialogDescription>
-            Connect your {provider === 'google' ? 'Google Calendar' : 'Microsoft Teams'} account to
-            sync events.
+            {t('connect.description', { provider: providerName })}
           </DialogDescription>
         </DialogHeader>
 
@@ -67,21 +69,21 @@ export function CalendarConnectDialog({
           {connected ? (
             <div className="flex items-center gap-2 text-green-600">
               <CheckCircle2 className="h-5 w-5" />
-              <span>Connected</span>
+              <span>{t('connect.connected')}</span>
             </div>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                You'll be redirected to authorize access to your calendar.
+                {t('connect.redirectNotice')}
               </p>
               <Button onClick={handleConnect} disabled={isConnecting} className="w-full">
                 {isConnecting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Connecting...
+                    {t('connect.connecting')}
                   </>
                 ) : (
-                  <>Connect {provider === 'google' ? 'Google' : 'Microsoft'} Calendar</>
+                  <>{t('connect.button', { provider: provider === 'google' ? 'Google' : 'Microsoft' })}</>
                 )}
               </Button>
             </div>

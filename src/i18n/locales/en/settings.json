@@ -1,0 +1,374 @@
+{
+  "nav": {
+    "title": "Settings",
+    "profile": { "label": "Profile", "description": "Personal details & security" },
+    "organization": { "label": "Organization", "description": "Workspace settings & branding" },
+    "billing": { "label": "Billing", "description": "Plans & payment history" },
+    "roles": { "label": "Roles & Team", "description": "Manage roles and members" },
+    "matterTypes": { "label": "Matter types", "description": "Types & issues for new matters" },
+    "permissions": { "label": "Permissions", "description": "Granular access control" },
+    "sso": { "label": "Single Sign-On", "description": "Identity provider setup" },
+    "monitoring": { "label": "Monitoring & Alerts", "description": "Deadlines, expirations & changes" },
+    "privacy": { "label": "Privacy & Data", "description": "Consent, export & deletion rights" }
+  },
+  "profile": {
+    "personal": {
+      "title": "Personal Information",
+      "description": "Update your personal details and contact information.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "emailReadOnlyTitle": "Email cannot be changed here. Contact support to update your email address.",
+      "emailReadOnlyHelp": "Email address cannot be changed. Contact support if you need to update it.",
+      "jobTitle": "Title",
+      "submit": "Update Profile",
+      "updating": "Updating..."
+    },
+    "password": {
+      "title": "Change Password",
+      "description": "Update your password to keep your account secure.",
+      "current": "Current Password",
+      "new": "New Password",
+      "confirm": "Confirm Password",
+      "submit": "Change Password",
+      "changing": "Changing..."
+    },
+    "validation": {
+      "firstNameMin": "First name must be at least 2 characters",
+      "lastNameMin": "Last name must be at least 2 characters",
+      "emailInvalid": "Invalid email address",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordMin": "Password must be at least 6 characters",
+      "confirmPasswordRequired": "Confirm password is required",
+      "passwordsMismatch": "Passwords don't match"
+    }
+  },
+  "org": {
+    "title": "Organization Settings",
+    "description": "Manage your organization's information and settings.",
+    "name": "Organization Name",
+    "notSet": "Not set",
+    "industry": "Industry",
+    "notSpecified": "Not specified"
+  },
+  "roles": {
+    "loadError": "There was an error loading role information. Please try refreshing the page.",
+    "adminOnly": "Only administrators can manage roles. Contact your organization administrator for access.",
+    "confirmDelete": "Are you sure you want to delete the \"{{name}}\" role?",
+    "roleName": "Role Name",
+    "actions": "Actions",
+    "sections": {
+      "roles": "Roles",
+      "users": "Users"
+    },
+    "system": {
+      "title": "System Roles",
+      "description": "Default roles provided by the system",
+      "badge": "System",
+      "superadmin": "Full system access",
+      "admin": "Organization administration",
+      "user": "Regular user access"
+    },
+    "options": {
+      "superadmin": "Super Admin",
+      "admin": "Admin",
+      "user": "Regular User"
+    },
+    "custom": {
+      "title": "Custom Roles",
+      "description": "Organization-specific roles",
+      "add": "Add Role",
+      "empty": "No custom roles have been created yet.",
+      "emptyHint": "Click \"Add Role\" to create your first custom role.",
+      "footer": "Custom roles allow you to create organization-specific access levels beyond the standard system roles."
+    },
+    "create": {
+      "title": "Create New Role",
+      "description": "Add a new role to your organization",
+      "namePlaceholder": "e.g. Legal Assistant",
+      "nameHelp": "A unique name for this role",
+      "descriptionPlaceholder": "Describe the permissions and responsibilities of this role",
+      "submit": "Create Role"
+    },
+    "team": {
+      "title": "Team Members",
+      "description": "Manage user roles for your team members",
+      "empty": "No users found in your organization.",
+      "jobTitle": "Title",
+      "you": "You",
+      "selectRole": "Select role",
+      "footerAdmin": "As an administrator, you can change user roles to control access levels.",
+      "footerUser": "Contact an administrator to change user roles."
+    },
+    "validation": {
+      "roleNameMin": "Role name must be at least 3 characters"
+    }
+  },
+  "permissions": {
+    "superAdminOnly": "Only super administrators can manage role permissions. Contact your organization super administrator for access.",
+    "selectRole": "Select Role",
+    "chooseRole": "Choose a role...",
+    "configuringFor": "Configuring permissions for:",
+    "unsavedChanges": "Unsaved changes",
+    "discard": "Discard",
+    "saveChanges": "Save Changes",
+    "resource": "Resource",
+    "toggleColumn": "Toggle all {{action}}",
+    "toggleRow": "Toggle all for {{resource}}",
+    "toggleCell": "{{action}} {{resource}}",
+    "superAdminNote": "Super Administrator has all permissions by default and cannot be modified.",
+    "adminNote": "Administrator has full permissions by default. Toggle switches off to restrict specific access.",
+    "userNote": "User has create, read, and update permissions by default (no delete/manage). Adjust as needed.",
+    "source": {
+      "global": "global",
+      "custom": "custom"
+    },
+    "actions": {
+      "create": "create",
+      "read": "read",
+      "update": "update",
+      "delete": "delete",
+      "manage": "manage"
+    },
+    "resources": {
+      "cases": "Cases",
+      "clients": "Clients",
+      "documents": "Documents",
+      "contracts": "Contracts",
+      "calendars": "Calendars",
+      "invoices": "Invoices",
+      "tasks": "Tasks",
+      "settings": "Settings",
+      "users": "Users",
+      "agents": "Agents",
+      "chat": "Chat",
+      "negotiations": "Negotiations"
+    },
+    "toast": {
+      "savedTitle": "Permissions saved",
+      "savedDescription": "All permission changes have been applied successfully.",
+      "saveFailedTitle": "Failed to save permissions",
+      "saveFailedDescription": "Some changes could not be saved. Please try again.",
+      "discardedTitle": "Changes discarded",
+      "discardedDescription": "All unsaved changes have been discarded."
+    }
+  },
+  "privacy": {
+    "marketing": {
+      "title": "Marketing Communications",
+      "description": "Control whether you receive product updates and marketing emails from Kourti.",
+      "toggleLabel": "Receive product updates, feature announcements, and occasional marketing emails.",
+      "ariaLabel": "Marketing emails",
+      "enabled": "Marketing emails enabled",
+      "disabled": "Marketing emails disabled",
+      "updateFailed": "Failed to update marketing preference"
+    },
+    "restriction": {
+      "title": "Restrict Data Processing",
+      "description": "Under GDPR/NDPR you may request that we restrict processing of your personal data in certain circumstances. Enabling this flag signals that restriction to our systems.",
+      "toggleLabel": "Restrict processing of my personal data (your account will remain accessible but certain automated processing will be paused pending review).",
+      "ariaLabel": "Restrict data processing",
+      "applied": "Processing restriction applied",
+      "lifted": "Processing restriction lifted",
+      "updateFailed": "Failed to update processing restriction"
+    },
+    "export": {
+      "title": "Download My Data",
+      "description": "Export a copy of your personal data in JSON format (right of portability under GDPR/NDPR).",
+      "button": "Download my data",
+      "preparing": "Preparing export…",
+      "downloaded": "Data export downloaded",
+      "failed": "Export failed",
+      "failedStatus": "Export failed ({{status}})"
+    },
+    "delete": {
+      "title": "Delete Account",
+      "description": "Permanently delete your account and all associated data. This action is <strong>irreversible</strong>. All your data — cases, documents, billing history — will be erased and cannot be recovered.",
+      "button": "Delete my account",
+      "dialogTitle": "Delete Account — This Cannot Be Undone",
+      "dialogWarning": "You are about to permanently delete your account and all data associated with it. Once deleted, your cases, documents, team, and billing history <strong>cannot be recovered</strong>.",
+      "dialogInstructions": "Type <code>DELETE</code> and enter your password to confirm.",
+      "typeToConfirm": "Type DELETE to confirm",
+      "passwordLabel": "Your password",
+      "passwordPlaceholder": "Enter your password",
+      "passwordRequired": "Password is required",
+      "confirmButton": "Permanently delete account",
+      "deleted": "Account deleted",
+      "failed": "Failed to delete account"
+    }
+  },
+  "sso": {
+    "superAdminOnly": "Only super administrators can configure Single Sign-On settings. Contact your organization administrator for access.",
+    "loading": "Loading SSO configuration...",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "redirectUriLabel": "Redirect URI",
+    "clientSecretLabel": "Client Secret",
+    "domainHintLabel": "Domain Hint",
+    "secretStoredPlaceholder": "Stored securely — enter a new secret to rotate",
+    "secretPlaceholder": "Paste the client secret",
+    "secretStoredHelp": "A client secret is already stored. Provide a new secret only when you want to rotate credentials.",
+    "rotate": "Rotate",
+    "testing": "Testing...",
+    "testConnection": "Test Connection",
+    "saveSettings": "Save Settings",
+    "toast": {
+      "successTitle": "Success",
+      "connectionSuccess": "Connection Successful",
+      "configurationIssues": "Configuration Issues",
+      "testFailed": "Test Failed"
+    },
+    "google": {
+      "description": "Enable OAuth-based sign-in for users managed in Google Workspace",
+      "enableLabel": "Enable Google Workspace SSO",
+      "enableHelp": "Users will be redirected to Google for authentication when this is enabled.",
+      "clientIdLabel": "OAuth Client ID",
+      "clientIdTooltip": "In Google Cloud Console, create an OAuth client under APIs & Services → Credentials. Use the Web application type.",
+      "redirectUriTooltip": "Copy the callback URL provided by Kourti AI into the Authorized redirect URIs list in Google Cloud.",
+      "clientSecretTooltip": "Download the credentials JSON from Google Cloud and paste the client secret here.",
+      "domainHintTooltip": "Restrict access to members of a specific Google Workspace domain (e.g. example.com). Optional but recommended.",
+      "domainHintHelp": "Optional. Restrict sign-in to a single Google Workspace domain.",
+      "saveFirst": "Please save your Google Workspace configuration first.",
+      "testFailed": "Failed to test Google SSO connection.",
+      "saved": "Google Workspace SSO configuration saved successfully.",
+      "saveFailed": "Failed to save Google SSO configuration. Please try again."
+    },
+    "microsoft": {
+      "description": "Connect Azure Active Directory for Microsoft account authentication",
+      "enableLabel": "Enable Microsoft Entra ID",
+      "enableHelp": "Redirect users to the Microsoft login page for authentication.",
+      "clientIdLabel": "Application (client) ID",
+      "clientIdTooltip": "In Azure Portal, under App registrations, create a new registration and copy the Application ID.",
+      "tenantIdLabel": "Directory (tenant) ID",
+      "tenantIdTooltip": "Find the Directory ID in Azure Portal under Azure Active Directory → Overview.",
+      "redirectUriTooltip": "Add this redirect URI to the list of allowed URIs in your Azure app's Authentication settings.",
+      "clientSecretTooltip": "Generate a new client secret in Azure Portal under Certificates & secrets, then paste it here.",
+      "domainHintTooltip": "Provide a preferred domain hint for the Microsoft sign-in page (e.g. contoso.com). Optional.",
+      "domainHintHelp": "Optional. Pre-fill the Microsoft login page with this domain.",
+      "saveFirst": "Please save your Microsoft Entra ID configuration first.",
+      "testFailed": "Failed to test Microsoft SSO connection.",
+      "saved": "Microsoft Entra ID SSO configuration saved successfully.",
+      "saveFailed": "Failed to save Microsoft SSO configuration. Please try again."
+    },
+    "validation": {
+      "googleClientIdRequired": "Client ID is required when enabling Google Workspace SSO.",
+      "googleRedirectUriRequired": "Redirect URI is required when enabling Google Workspace SSO.",
+      "googleClientSecretRequired": "Client secret is required the first time you enable Google Workspace SSO.",
+      "microsoftClientIdRequired": "Client ID is required when enabling Microsoft Entra ID.",
+      "microsoftRedirectUriRequired": "Redirect URI is required when enabling Microsoft Entra ID.",
+      "microsoftTenantIdRequired": "Tenant ID is required when enabling Microsoft Entra ID.",
+      "microsoftClientSecretRequired": "Client secret is required the first time you enable Microsoft Entra ID SSO.",
+      "redirectUriInvalid": "Enter a valid redirect URI (including https://)."
+    }
+  },
+  "billing": {
+    "loading": "Loading billing information...",
+    "notAvailable": "N/A",
+    "status": {
+      "active": "Active",
+      "trialing": "Trialing",
+      "pastDue": "Past Due",
+      "paused": "Paused",
+      "cancelled": "Cancelled"
+    },
+    "intervals": {
+      "monthly": "monthly",
+      "yearly": "yearly"
+    },
+    "planTypes": {
+      "free": "free",
+      "starter": "starter",
+      "professional": "professional",
+      "enterprise": "enterprise"
+    },
+    "currentPlan": {
+      "title": "Current Plan",
+      "description": "Your active subscription and billing details",
+      "plan": "Plan",
+      "interval": "Billing Interval",
+      "nextBillingDate": "Next Billing Date",
+      "seats": "Seats",
+      "seatsUsed": "{{used}} of {{seats}} used",
+      "features": "Included Features"
+    },
+    "cancelNotice": "Your subscription has been cancelled and will remain active until <strong>{{date}}</strong>. After that you will be moved to the Free plan.",
+    "actions": {
+      "changePlan": "Change Plan",
+      "addSeats": "Add team members",
+      "cancelSubscription": "Cancel Subscription"
+    },
+    "free": {
+      "title": "You're on the Free plan",
+      "description": "Upgrade to unlock premium features and increase your team's productivity.",
+      "upgrade": "Upgrade Now"
+    },
+    "cancelDialog": {
+      "title": "Cancel Subscription",
+      "description": "Are you sure you want to cancel your subscription? Your plan will remain active until <strong>{{date}}</strong>. After that you will be downgraded to the Free plan.",
+      "keep": "Keep Subscription",
+      "cancelling": "Cancelling...",
+      "confirm": "Yes, Cancel"
+    }
+  },
+  "matterTypes": {
+    "intro": "The types and issues offered in <strong>New Matter</strong>. Removing an item hides it from new matters; existing matters keep it, and it can be restored. Default items can be removed but not renamed - add your own instead.",
+    "addType": "Add matter type",
+    "importCsv": "Import CSV",
+    "exportCsv": "Export CSV",
+    "removeAllDefaults_one": "Remove all defaults ({{count}})",
+    "removeAllDefaults_other": "Remove all defaults ({{count}})",
+    "showRemoved": "Show removed",
+    "newTypePlaceholder": "New matter type, e.g. Construction disputes",
+    "newIssuePlaceholder": "New issue",
+    "empty": "No matter types. Add one or import a CSV - without types, new matters cannot be created.",
+    "noIssues": "No issues - matters of this type are created without one.",
+    "addIssue": "Issue",
+    "removeType": "Remove type",
+    "renameIssue": "Rename issue",
+    "removeIssue": "Remove issue",
+    "badges": {
+      "default": "Default",
+      "custom": "Custom",
+      "removed": "Removed"
+    },
+    "toast": {
+      "added": "\"{{name}}\" added",
+      "restored": "\"{{name}}\" restored"
+    },
+    "removal": {
+      "hidden": "\"{{name}}\" removed for your firm (default items can be restored).",
+      "retired_one": "\"{{name}}\" retired: no longer offered for new matters; {{count}} existing matter keeps it.",
+      "retired_other": "\"{{name}}\" retired: no longer offered for new matters; {{count}} existing matters keep it.",
+      "deleted": "\"{{name}}\" deleted."
+    },
+    "removeDefaults": {
+      "title_one": "Remove all {{count}} default matter types?",
+      "title_other": "Remove all {{count}} default matter types?",
+      "description": "They (and their issues) will no longer be offered for new matters. Existing matters keep their type. You can restore any of them later with \"Show removed\". Add or import your own types before your team creates new matters.",
+      "confirm": "Remove defaults",
+      "done_one": "{{count}} default type removed",
+      "done_other": "{{count}} default types removed"
+    },
+    "import": {
+      "title": "Import matter types from {{file}}",
+      "found": "{{types}} and {{issues}} found.",
+      "typeCount_one": "{{count}} type",
+      "typeCount_other": "{{count}} types",
+      "issueCount_one": "{{count}} issue",
+      "issueCount_other": "{{count}} issues",
+      "columnType": "Matter type",
+      "columnIssue": "Issue",
+      "moreRows_one": "… and {{count}} more row",
+      "moreRows_other": "… and {{count}} more rows",
+      "modeMerge": "<strong>Add to the current list</strong> - nothing is removed; existing names are reused.",
+      "modeReplace": "<strong>Replace the current list</strong> - every type and issue not in the file is removed (defaults hidden, unused custom ones deleted, ones used by matters retired).",
+      "replaceWithFile": "Replace with file",
+      "noRows": "No rows found",
+      "expectedColumns": "Expected columns: matter_type, matter_issue (optional descriptions after).",
+      "complete": "Import complete",
+      "summaryTypes": "Types: {{created}} new, {{restored}} restored, {{kept}} unchanged.",
+      "summaryTypesReplace": "Types: {{created}} new, {{restored}} restored, {{kept}} unchanged, {{removed}} removed.",
+      "summaryIssues": "Issues: {{created}} new, {{restored}} restored, {{kept}} unchanged.",
+      "summaryIssuesReplace": "Issues: {{created}} new, {{restored}} restored, {{kept}} unchanged, {{removed}} removed."
+    }
+  }
+}

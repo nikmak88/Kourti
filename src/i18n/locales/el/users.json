@@ -1,0 +1,101 @@
+{
+  "roles": {
+    "superadmin": "Κύριος διαχειριστής",
+    "admin": "Διαχειριστής",
+    "administrator": "Διαχειριστής",
+    "user": "Χρήστης",
+    "finance": "Οικονομικά",
+    "legal": "Νομικό τμήμα",
+    "customSuffix": " (Προσαρμοσμένος)"
+  },
+  "management": {
+    "title": "Διαχείριση χρηστών",
+    "description": "Διαχειριστείτε τα μέλη και τα δικαιώματα του γραφείου",
+    "invite": {
+      "title": "Πρόσκληση νέου χρήστη",
+      "description": "Προσθέστε ένα νέο μέλος στο γραφείο σας",
+      "seatsUsed": "{{used}} από {{seats}} θέσεις σε χρήση",
+      "departmentPlaceholder": "Νομικό, Ανθρώπινο δυναμικό κ.λπ.",
+      "submitting": "Αποστολή πρόσκλησης…",
+      "seatsFull": "Και οι {{seats}} θέσεις είναι σε χρήση. Προσθέστε θέσεις από Ρυθμίσεις → Χρεώσεις για να προσκαλέσετε περισσότερους χρήστες."
+    },
+    "list": {
+      "title": "Χρήστες γραφείου ({{count}})",
+      "description": "Όλοι οι χρήστες και οι εκκρεμείς προσκλήσεις του γραφείου σας",
+      "noName": "Χωρίς όνομα",
+      "disabled": "Απενεργοποιημένος",
+      "notSpecified": "Δεν έχει οριστεί",
+      "resend": "Επαναποστολή",
+      "sending": "Αποστολή…",
+      "typeInvitation": "Πρόσκληση",
+      "typeUser": "Χρήστης",
+      "openMenu": "Άνοιγμα μενού",
+      "resendInvitation": "Επαναποστολή πρόσκλησης",
+      "deleteInvitation": "Διαγραφή πρόσκλησης",
+      "enableUser": "Ενεργοποίηση χρήστη",
+      "disableUser": "Απενεργοποίηση χρήστη",
+      "empty": "Δεν βρέθηκαν χρήστες"
+    },
+    "columns": {
+      "user": "Χρήστης",
+      "added": "Προστέθηκε",
+      "actions": "Ενέργειες"
+    },
+    "verification": {
+      "verified": "Επαληθευμένος",
+      "pending": "Σε εκκρεμότητα",
+      "unverified": "Μη επαληθευμένος",
+      "expired": "Έληξε",
+      "unknown": "Άγνωστο"
+    },
+    "confirm": {
+      "resend": "Να σταλεί ξανά το email πρόσκλησης στον/στην {{name}} ({{email}});",
+      "changeRole": "Είστε βέβαιοι ότι θέλετε να αλλάξετε τον ρόλο του/της {{name}} σε «{{role}}»; Θα αλλάξουν τα δικαιώματα πρόσβασής του/της."
+    }
+  },
+  "invite": {
+    "trigger": "Πρόσκληση χρήστη",
+    "dialogTitle": "Πρόσκληση μέλους ομάδας",
+    "dialogDescription": "Στείλτε πρόσκληση συμμετοχής στο γραφείο σας. Ο χρήστης θα λάβει email με οδηγίες ρύθμισης.",
+    "firstName": "Όνομα",
+    "firstNamePlaceholder": "Γιάννης",
+    "lastName": "Επώνυμο",
+    "lastNamePlaceholder": "Παπαδόπουλος",
+    "email": "Διεύθυνση email",
+    "roleRequiredLabel": "Ρόλος *",
+    "selectRole": "Επιλέξτε ρόλο",
+    "departmentOptional": "Τμήμα (προαιρετικό)",
+    "departmentPlaceholder": "Νομικό, Ανθρώπινο δυναμικό, Οικονομικό…",
+    "departmentPlaceholderAlt": "Νομικό, Οικονομικό κ.λπ.",
+    "badgeGlobal": "Γενικός",
+    "badgeCustom": "Προσαρμοσμένος",
+    "send": "Αποστολή πρόσκλησης",
+    "sending": "Αποστολή…",
+    "tabs": {
+      "single": "Μεμονωμένη πρόσκληση",
+      "bulk": "Μαζική εισαγωγή"
+    },
+    "bulk": {
+      "formatLabel": "Μορφή μαζικής εισαγωγής",
+      "formatHelp": "Εισαγάγετε χρήστες σε μορφή CSV: email,firstName,lastName,role,department",
+      "preview_one": "Προεπισκόπηση ({{count}} χρήστης)",
+      "preview_other": "Προεπισκόπηση ({{count}} χρήστες)",
+      "submit_one": "Πρόσκληση {{count}} χρήστη",
+      "submit_other": "Πρόσκληση {{count}} χρηστών"
+    },
+    "toast": {
+      "successTitle": "Επιτυχία",
+      "successDescription": "Η πρόσκληση στάλθηκε",
+      "sendFailed": "Η αποστολή της πρόσκλησης απέτυχε",
+      "rowFailed": "Η πρόσκληση απέτυχε",
+      "bulkCompleteTitle": "Η μαζική πρόσκληση ολοκληρώθηκε",
+      "bulkCompleteDescription": "{{success}} επιτυχείς, {{failed}} αποτυχημένες"
+    },
+    "validation": {
+      "emailInvalid": "Εισαγάγετε έγκυρη διεύθυνση email",
+      "firstNameRequired": "Το όνομα είναι υποχρεωτικό",
+      "lastNameRequired": "Το επώνυμο είναι υποχρεωτικό",
+      "roleRequired": "Επιλέξτε ρόλο"
+    }
+  }
+}

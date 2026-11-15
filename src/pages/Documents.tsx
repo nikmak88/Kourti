@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { logError } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/i18n/dates';
 import { useSearch } from '@/hooks/use-search';
 import { useDocuments } from '@/hooks/useDocuments';
 import { getNodeDocumentSignedUrl } from '@/lib/backendApi';
@@ -43,6 +45,7 @@ import { ModuleFilterBar } from '@/components/filters/ModuleFilterBar';
 
 export default function Documents() {
   const navigate = useNavigate();
+  const { t } = useTranslation('documents');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -58,7 +61,7 @@ export default function Documents() {
 
     return documents.filter((doc: Document) => {
       const docTitle = doc.title || doc.name || '';
-      const matchesTerm = (t: string) => docTitle.toLowerCase().includes(t.toLowerCase());
+      const matchesTerm = (term: string) => docTitle.toLowerCase().includes(term.toLowerCase());
 
       const matchesLocal = searchTerm === '' || matchesTerm(searchTerm);
       const matchesGlobal = globalSearch === '' || matchesTerm(globalSearch);
@@ -91,9 +94,8 @@ export default function Documents() {
   const handleDownload = async (doc: Document) => {
     if (!doc.file_path) return;
     if (doc.storage_status === 'missing') {
-      toast.error('File unavailable', {
-        description:
-          'This document was uploaded before persistent storage was enabled. Please re-upload the original file.',
+      toast.error(t('toast.fileUnavailable'), {
+        description: t('toast.fileUnavailableDescription'),
       });
       return;
     }
@@ -143,7 +145,7 @@ export default function Documents() {
     return (
       <PageContainer>
         <Breadcrumbs />
-        <PageHeader title="Documents" description="Manage and organize your legal documents" />
+        <PageHeader title={t('list.title')} description={t('list.loadingDescription')} />
         <TableSkeleton rows={8} columns={5} />
       </PageContainer>
     );
@@ -153,8 +155,8 @@ export default function Documents() {
     <PageContainer>
       <Breadcrumbs />
       <PageHeader
-        title="Documents"
-        description="Manage and review legal documents with AI-powered analysis"
+        title={t('list.title')}
+        description={t('list.description')}
         actions={
           <>
             <Button
@@ -163,7 +165,7 @@ export default function Documents() {
               onClick={() => navigate('/contracts/review')}
             >
               <ScanSearch className="h-4 w-4 mr-2" />
-              AI Review
+              {t('list.aiReview')}
             </Button>
             <Button
               variant="outline"
@@ -171,7 +173,7 @@ export default function Documents() {
               onClick={() => navigate('/documents/upload')}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Upload Document
+              {t('list.uploadDocument')}
             </Button>
           </>
         }
@@ -186,7 +188,7 @@ export default function Documents() {
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Documents</p>
+                <p className="text-sm text-muted-foreground">{t('list.stats.total')}</p>
                 <p className="text-2xl font-bold">{documents.length}</p>
               </div>
             </div>
@@ -199,7 +201,7 @@ export default function Documents() {
                 <MessageSquare className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Under Review</p>
+                <p className="text-sm text-muted-foreground">{t('list.stats.underReview')}</p>
                 <p className="text-2xl font-bold">0</p>
               </div>
             </div>
@@ -212,7 +214,7 @@ export default function Documents() {
                 <Download className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">This Week</p>
+                <p className="text-sm text-muted-foreground">{t('common:time.thisWeek')}</p>
                 <p className="text-2xl font-bold">0</p>
               </div>
             </div>
@@ -224,38 +226,38 @@ export default function Documents() {
       <ModuleFilterBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Search documents, cases, or file names..."
+        searchPlaceholder={t('list.searchPlaceholder')}
         searchWidth="w-full sm:w-[280px]"
         filters={[
           {
             key: 'type',
-            placeholder: 'Type',
+            placeholder: t('common:fields.type'),
             value: typeFilter,
             onChange: setTypeFilter,
             width: 'w-[130px]',
             icon: <Filter className="h-4 w-4" />,
             options: [
-              { value: 'all', label: 'All Types' },
+              { value: 'all', label: t('list.filters.allTypes') },
               { value: 'pdf', label: 'PDF' },
-              { value: 'docx', label: 'Word' },
-              { value: 'doc', label: 'Word (.doc)' },
-              { value: 'jpg', label: 'Images' },
+              { value: 'docx', label: t('list.filters.word') },
+              { value: 'doc', label: t('list.filters.wordDoc') },
+              { value: 'jpg', label: t('list.filters.images') },
               { value: 'png', label: 'PNG' },
             ],
           },
           {
             key: 'status',
-            placeholder: 'Status',
+            placeholder: t('common:fields.status'),
             value: statusFilter,
             onChange: setStatusFilter,
             width: 'w-[150px]',
             options: [
-              { value: 'all', label: 'All Status' },
-              { value: 'draft', label: 'Draft' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'signed', label: 'Signed' },
-              { value: 'review', label: 'Under Review' },
-              { value: 'archived', label: 'Archived' },
+              { value: 'all', label: t('list.filters.allStatuses') },
+              { value: 'draft', label: t('status.draft') },
+              { value: 'pending', label: t('status.pending') },
+              { value: 'signed', label: t('status.signed') },
+              { value: 'review', label: t('status.review') },
+              { value: 'archived', label: t('status.archived') },
             ],
           },
         ]}
@@ -269,9 +271,9 @@ export default function Documents() {
       {/* Documents Table */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>All Documents ({filteredDocuments.length})</CardTitle>
+          <CardTitle>{t('list.allDocuments', { count: filteredDocuments.length })}</CardTitle>
           <CardDescription>
-            Documents linked to cases with AI-powered review capabilities
+            {t('list.tableDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -280,7 +282,7 @@ export default function Documents() {
               [
                 {
                   id: 'document',
-                  header: 'Document',
+                  header: t('common:entities.document'),
                   accessorFn: (doc) => doc.title || doc.name,
                   minWidth: '250px',
                   cell: (doc) => (
@@ -293,9 +295,9 @@ export default function Documents() {
                         <Badge
                           variant="destructive"
                           className="shrink-0 text-[10px]"
-                          title="The file bytes for this document were lost in a prior storage migration. Please re-upload."
+                          title={t('list.unavailableTooltip')}
                         >
-                          Unavailable
+                          {t('list.unavailable')}
                         </Badge>
                       )}
                     </div>
@@ -303,7 +305,7 @@ export default function Documents() {
                 },
                 {
                   id: 'case',
-                  header: 'Linked Case',
+                  header: t('list.columns.linkedCase'),
                   sortable: false,
                   minWidth: '150px',
                   cell: (doc) => {
@@ -319,24 +321,26 @@ export default function Documents() {
                         {docCase.title}
                       </Badge>
                     ) : (
-                      <span className="text-muted-foreground text-sm">No case linked</span>
+                      <span className="text-muted-foreground text-sm">{t('list.noCaseLinked')}</span>
                     );
                   },
                 },
                 {
                   id: 'status',
-                  header: 'Status',
+                  header: t('common:fields.status'),
                   accessorKey: 'status',
                   minWidth: '120px',
                   cell: (doc) => (
                     <Badge className="bg-muted text-muted-foreground" variant="secondary">
-                      {doc.status || 'Uploaded'}
+                      {doc.status
+                        ? t(`status.${doc.status.toLowerCase()}`, { defaultValue: doc.status })
+                        : t('status.uploaded')}
                     </Badge>
                   ),
                 },
                 {
                   id: 'uploadedBy',
-                  header: 'Uploaded By',
+                  header: t('list.columns.uploadedBy'),
                   sortable: false,
                   minWidth: '180px',
                   cell: (doc) => (
@@ -352,12 +356,12 @@ export default function Documents() {
                             ).profiles;
                             return profiles?.first_name && profiles?.last_name
                               ? `${profiles.first_name} ${profiles.last_name}`
-                              : 'Unknown User';
+                              : t('list.unknownUser');
                           })()}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(doc.created_at).toLocaleDateString()}
+                          {formatDate(doc.created_at, 'P')}
                         </div>
                       </div>
                     </div>
@@ -365,7 +369,7 @@ export default function Documents() {
                 },
                 {
                   id: 'comments',
-                  header: 'Comments',
+                  header: t('list.columns.comments'),
                   sortable: false,
                   minWidth: '100px',
                   cell: () => (
@@ -377,18 +381,18 @@ export default function Documents() {
                 },
                 {
                   id: 'lastAccessed',
-                  header: 'Last Accessed',
+                  header: t('list.columns.lastAccessed'),
                   accessorKey: 'created_at',
                   minWidth: '130px',
                   cell: (doc) => (
                     <span className="text-sm text-muted-foreground">
-                      {new Date(doc.created_at).toLocaleDateString()}
+                      {formatDate(doc.created_at, 'P')}
                     </span>
                   ),
                 },
                 {
                   id: 'actions',
-                  header: 'Actions',
+                  header: t('list.columns.actions'),
                   sortable: false,
                   minWidth: '80px',
                   cell: (doc) => (
@@ -401,7 +405,7 @@ export default function Documents() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => setSelectedDocument(doc)}>
                           <Eye className="h-4 w-4 mr-2" />
-                          View Document
+                          {t('list.menu.view')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -409,15 +413,15 @@ export default function Documents() {
                           }}
                         >
                           <MessageSquare className="h-4 w-4 mr-2" />
-                          AI Review
+                          {t('list.aiReview')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownload(doc)}>
                           <Download className="h-4 w-4 mr-2" />
-                          Download
+                          {t('common:actions.download')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleShare(doc)}>
                           <Share className="h-4 w-4 mr-2" />
-                          Share Internally
+                          {t('list.menu.shareInternally')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={async () => {
@@ -425,18 +429,20 @@ export default function Documents() {
                               await exportAsPdf(
                                 doc.content || '',
                                 (doc.name || 'document').replace(/[^a-z0-9]/gi, '_').toLowerCase(),
-                                doc.name || 'Document'
+                                doc.name || t('common:entities.document')
                               );
-                              toast.success('Success', {
-                                description: 'Document exported as PDF.',
+                              toast.success(t('common:toast.success'), {
+                                description: t('toast.exportedPdf'),
                               });
                             } catch {
-                              toast.error('Error', { description: 'Failed to export PDF.' });
+                              toast.error(t('common:toast.error'), {
+                                description: t('toast.exportPdfFailed'),
+                              });
                             }
                           }}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Export as PDF
+                          {t('list.menu.exportPdf')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={async () => {
@@ -445,16 +451,18 @@ export default function Documents() {
                                 doc.content || '',
                                 (doc.name || 'document').replace(/[^a-z0-9]/gi, '_').toLowerCase()
                               );
-                              toast.success('Success', {
-                                description: 'Document exported as DOCX.',
+                              toast.success(t('common:toast.success'), {
+                                description: t('toast.exportedDocx'),
                               });
                             } catch {
-                              toast.error('Error', { description: 'Failed to export DOCX.' });
+                              toast.error(t('common:toast.error'), {
+                                description: t('toast.exportDocxFailed'),
+                              });
                             }
                           }}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Export as DOCX
+                          {t('list.menu.exportDocx')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -470,10 +478,10 @@ export default function Documents() {
           {filteredDocuments.length === 0 && documents.length === 0 && (
             <EmptyState
               icon={FileText}
-              title="No documents yet"
-              description="Upload your first document to get started with AI-powered document management and analysis."
+              title={t('list.empty.title')}
+              description={t('list.empty.description')}
               action={{
-                label: 'Upload Document',
+                label: t('list.uploadDocument'),
                 onClick: () => navigate('/documents/upload'),
                 icon: Upload,
               }}
@@ -482,10 +490,10 @@ export default function Documents() {
           {filteredDocuments.length === 0 && documents.length > 0 && (
             <EmptyState
               icon={FileText}
-              title="No matching documents"
-              description={`No documents match "${searchTerm || globalSearch}". Try adjusting your search or filters.`}
+              title={t('list.noMatch.title')}
+              description={t('list.noMatch.description', { search: searchTerm || globalSearch })}
               action={{
-                label: 'Clear Filters',
+                label: t('list.noMatch.action'),
                 onClick: () => {
                   setSearchTerm('');
                   setTypeFilter('all');
@@ -501,31 +509,30 @@ export default function Documents() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
-            AI Document Review
+            {t('list.aiPanel.title')}
           </CardTitle>
           <CardDescription>
-            Get AI-powered insights and analysis for your legal documents
+            {t('list.aiPanel.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg border bg-muted/30">
-              <h4 className="font-medium mb-2">Key Clause Detection</h4>
+              <h4 className="font-medium mb-2">{t('list.aiPanel.clauses.title')}</h4>
               <p className="text-sm text-muted-foreground">
-                Automatically identify important clauses, terms, and conditions in contracts and
-                agreements.
+                {t('list.aiPanel.clauses.description')}
               </p>
             </div>
             <div className="p-4 rounded-lg border bg-muted/30">
-              <h4 className="font-medium mb-2">Risk Assessment</h4>
+              <h4 className="font-medium mb-2">{t('list.aiPanel.risk.title')}</h4>
               <p className="text-sm text-muted-foreground">
-                Flag potential legal risks and areas that require attorney review or attention.
+                {t('list.aiPanel.risk.description')}
               </p>
             </div>
             <div className="p-4 rounded-lg border bg-muted/30">
-              <h4 className="font-medium mb-2">Document Summarization</h4>
+              <h4 className="font-medium mb-2">{t('list.aiPanel.summary.title')}</h4>
               <p className="text-sm text-muted-foreground">
-                Generate concise summaries of lengthy legal documents for quick review.
+                {t('list.aiPanel.summary.description')}
               </p>
             </div>
           </div>
@@ -539,7 +546,7 @@ export default function Documents() {
           onOpenChange={() => setSelectedDocument(null)}
           document={{
             id: selectedDocument.id,
-            name: selectedDocument.name || selectedDocument.title || 'Untitled Document',
+            name: selectedDocument.name || selectedDocument.title || t('untitledDocument'),
             file_path: selectedDocument.file_path,
             mime_type: selectedDocument.file_type,
             file_size: selectedDocument.file_size,
@@ -556,7 +563,7 @@ export default function Documents() {
           onOpenChange={() => setShareDocument(null)}
           document={{
             id: shareDocument.id,
-            name: shareDocument.name || shareDocument.title || 'Untitled Document',
+            name: shareDocument.name || shareDocument.title || t('untitledDocument'),
           }}
         />
       )}

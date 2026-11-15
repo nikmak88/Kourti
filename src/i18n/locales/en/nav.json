@@ -1,0 +1,106 @@
+{
+  "items": {
+    "dashboard": "Dashboard",
+    "matters": "Matters",
+    "clients": "Clients",
+    "calendar": "Calendar",
+    "documents": "Documents",
+    "contracts": "Contracts",
+    "aiAssistant": "AI Assistant",
+    "aiAgents": "AI Agents",
+    "negotiations": "Negotiations",
+    "intelligence": "Intelligence",
+    "voice": "Voice & Transcriptions",
+    "liveChat": "Live Chat",
+    "invoicing": "Invoicing",
+    "settings": "Settings",
+    "adminPanel": "Admin Panel",
+    "analytics": "Analytics",
+    "users": "Users",
+    "platformAdmin": "Platform Admin"
+  },
+  "groups": {
+    "core": "Core",
+    "legalTools": "Legal Tools",
+    "workspace": "Workspace"
+  },
+  "badges": {
+    "new": "New",
+    "soon": "Soon"
+  },
+  "comingSoon": {
+    "title": "Coming Soon",
+    "invoicing": "The invoicing & billing module will be available in an upcoming release."
+  },
+  "mobile": {
+    "openMenu": "Open main navigation menu"
+  },
+  "header": {
+    "welcomeBack": "Welcome back",
+    "welcomeBackName": "Welcome back, {{name}}"
+  },
+  "userMenu": {
+    "profile": "Profile",
+    "theme": "Theme"
+  },
+  "signOut": {
+    "successTitle": "Signed out",
+    "successDescription": "You have been successfully signed out.",
+    "failed": "Failed to sign out. Please try again."
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "description": "Jump to common tasks and pages",
+    "newMatter": "New Matter",
+    "newClient": "New Client",
+    "uploadDocument": "Upload Document",
+    "newContract": "New Contract",
+    "voiceRecorder": "Voice Recorder"
+  },
+  "aiAssistant": {
+    "title": "AI Assistant",
+    "subtitle": "Ask anything about your legal practice",
+    "prompt": "What would you like help with?",
+    "suggestions": {
+      "summarize": "Summarize my active matters",
+      "draft": "Draft a legal document",
+      "review": "Review a contract",
+      "research": "Research a legal topic"
+    },
+    "openFull": "Open Full Assistant"
+  },
+  "search": {
+    "placeholder": "Search cases, documents, contracts, clients, calendar events, and voice content...",
+    "quickNavigation": "Quick Navigation",
+    "groups": {
+      "calendarEvents": "Calendar Events",
+      "voiceRecordings": "Voice Recordings",
+      "transcriptions": "Transcriptions"
+    },
+    "found_one": "Found {{count}} result",
+    "found_other": "Found {{count}} results",
+    "error": "Unable to search the workspace. Please try again.",
+    "searching": "Searching workspace...",
+    "keepTyping": "Keep typing to narrow down your results.",
+    "noResults": "No results found for your search."
+  },
+  "modules": {
+    "dashboard": { "label": "Dashboard Overview", "status": "Operational" },
+    "cases": { "label": "Case Management", "status": "Active Review" },
+    "clients": { "label": "Client Services", "status": "Engagement Focus" },
+    "calendar": { "label": "Calendar", "status": "Schedule Synced" },
+    "documents": { "label": "Document Control", "status": "Secure Vault" },
+    "contracts": { "label": "Contracts", "status": "Revision Cycle" },
+    "analytics": { "label": "Analytics", "status": "Insights Live" },
+    "users": { "label": "User Management", "status": "Access Governance" },
+    "settings": { "label": "Settings", "status": "Configuration" },
+    "reamAi": { "label": "Ream AI", "status": "Assistant Ready" },
+    "default": { "label": "Workspace", "status": "Operational" }
+  },
+  "goBack": "Go back",
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "backToDashboard": "Back to Dashboard"
+  }
+}

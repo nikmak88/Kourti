@@ -18,12 +18,14 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function CaseEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation('matters');
   const { data: caseData, isLoading, error } = useCase(id!);
   const updateCase = useUpdateCase();
 
@@ -31,10 +33,17 @@ export default function CaseEdit() {
   const [submitting, setSubmitting] = useState(false);
 
   // case type, issues & fields
-  const { data: caseTypes = [] } = useCaseTypes();
+  // Retired types/issues are offered only when the matter already uses them.
+  const { data: allCaseTypes = [] } = useCaseTypes({ includeRetired: true });
   const [caseTypeId, setCaseTypeId] = useState<string>('');
-  const { data: caseIssues = [] } = useCaseIssues(caseTypeId);
+  const { data: allCaseIssues = [] } = useCaseIssues(caseTypeId, { includeRetired: true });
   const [caseIssueId, setCaseIssueId] = useState<string>('');
+  const caseTypes = allCaseTypes.filter(
+    (ct) => !ct.retired || ct.id === (caseData as any)?.case_type_id
+  );
+  const caseIssues = allCaseIssues.filter(
+    (ci) => !ci.retired || ci.id === (caseData as any)?.case_issue_id
+  );
   const { data: caseFields = [] } = useCaseFields(caseTypeId);
   const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
 
@@ -75,7 +84,7 @@ export default function CaseEdit() {
   if (error || !caseData) {
     return (
       <PageContainer>
-        <div className="text-center text-destructive">Could not load case for editing.</div>
+        <div className="text-center text-destructive">{t('edit.loadFailed')}</div>
       </PageContainer>
     );
   }
@@ -108,20 +117,20 @@ export default function CaseEdit() {
       <div className="flex items-center gap-2 mb-4">
         <Button variant="ghost" size="sm" onClick={() => navigate(`/matters/${caseData.id}`)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Matter
+          {t('edit.backToMatter')}
         </Button>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          Edit Matter: {caseData.title}
+          {t('edit.title', { title: caseData.title })}
         </h1>
       </div>
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Edit Matter Information</CardTitle>
+          <CardTitle>{t('edit.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="font-medium">Matter Title</label>
+              <label className="font-medium">{t('form.titleLabel')}</label>
               <Input
                 value={form.title}
                 onChange={(e) => handleChange('title', e.target.value)}
@@ -129,34 +138,34 @@ export default function CaseEdit() {
               />
             </div>
             <div className="space-y-2">
-              <label className="font-medium">Status</label>
+              <label className="font-medium">{t('common:fields.status')}</label>
               <Select value={form.status} onValueChange={(val) => handleChange('status', val)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="open">{t('status.open')}</SelectItem>
+                  <SelectItem value="active">{t('status.active')}</SelectItem>
+                  <SelectItem value="review">{t('status.review')}</SelectItem>
+                  <SelectItem value="closed">{t('status.closed')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="font-medium">Priority</label>
+              <label className="font-medium">{t('common:fields.priority')}</label>
               <Select value={form.priority} onValueChange={(val) => handleChange('priority', val)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="high">{t('common:priority.high')}</SelectItem>
+                  <SelectItem value="medium">{t('common:priority.medium')}</SelectItem>
+                  <SelectItem value="low">{t('common:priority.low')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="font-medium">Next Hearing Date</label>
+              <label className="font-medium">{t('form.nextHearingLabel')}</label>
               <Input
                 type="date"
                 value={form.next_hearing_date}
@@ -164,7 +173,7 @@ export default function CaseEdit() {
               />
             </div>
             <div className="space-y-2">
-              <label className="font-medium">Description</label>
+              <label className="font-medium">{t('common:fields.description')}</label>
               <Textarea
                 value={form.description}
                 onChange={(e) => handleChange('description', e.target.value)}
@@ -175,7 +184,7 @@ export default function CaseEdit() {
             {/* Matter Type and Issue selectors */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="font-medium">Matter Type</label>
+                <label className="font-medium">{t('form.typeLabel')}</label>
                 <Select
                   value={caseTypeId}
                   onValueChange={(value) => {
@@ -187,7 +196,7 @@ export default function CaseEdit() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select matter type" />
+                    <SelectValue placeholder={t('form.typePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {caseTypes.map((ct) => (
@@ -201,14 +210,14 @@ export default function CaseEdit() {
 
               {caseTypeId && (
                 <div className="space-y-2">
-                  <label className="font-medium">Matter Issue</label>
+                  <label className="font-medium">{t('form.issueLabel')}</label>
                   <Select
                     value={caseIssueId}
                     onValueChange={setCaseIssueId}
                     disabled={!caseTypeId || caseIssues.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select matter issue" />
+                      <SelectValue placeholder={t('form.issuePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {caseIssues.map((issue) => (
@@ -243,10 +252,10 @@ export default function CaseEdit() {
                 variant="outline"
                 onClick={() => navigate(`/matters/${caseData.id}`)}
               >
-                Cancel
+                {t('common:actions.cancel')}
               </Button>
               <Button type="submit" disabled={submitting}>
-                Save Changes
+                {t('edit.saveChanges')}
               </Button>
             </div>
           </form>

@@ -1,4 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,21 +36,26 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
 
-const clientSchema = z.object({
-  name: z.string().min(1, 'Client name is required'),
-  status: z.string().min(1, 'Status is required'),
-  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  company: z.string().optional(),
-  notes: z.string().optional(),
-});
+// Built inside the component so validation messages follow the UI language.
+const makeClientSchema = (t: TFunction) =>
+  z.object({
+    name: z.string().min(1, t('clients:validation.nameRequired')),
+    status: z.string().min(1, t('clients:validation.statusRequired')),
+    email: z
+      .string()
+      .min(1, t('clients:validation.emailRequired'))
+      .email(t('clients:validation.emailInvalid')),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    company: z.string().optional(),
+    notes: z.string().optional(),
+  });
 
-type ClientFormData = z.infer<typeof clientSchema>;
+type ClientFormData = z.infer<ReturnType<typeof makeClientSchema>>;
 
 export default function ClientEdit() {
   const navigate = useNavigate();
@@ -56,6 +63,8 @@ export default function ClientEdit() {
   const { data: client, isLoading } = useClient(clientId!);
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
+  const { t } = useTranslation('clients');
+  const clientSchema = useMemo(() => makeClientSchema(t), [t]);
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -127,8 +136,8 @@ export default function ClientEdit() {
     return (
       <PageContainer>
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Client not found</h1>
-          <Button onClick={() => navigate('/clients')}>Back to Clients</Button>
+          <h1 className="text-2xl font-bold mb-4">{t('details.notFound')}</h1>
+          <Button onClick={() => navigate('/clients')}>{t('details.backToClients')}</Button>
         </div>
       </PageContainer>
     );
@@ -145,32 +154,34 @@ export default function ClientEdit() {
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              Edit Client
+              {t('actions.editClient')}
             </h1>
-            <p className="text-muted-foreground">Update {client.name}'s information</p>
+            <p className="text-muted-foreground">
+              {t('edit.description', { name: client.name })}
+            </p>
           </div>
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete Client
+              {t('actions.deleteClient')}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Client</AlertDialogTitle>
+              <AlertDialogTitle>{t('actions.deleteClient')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete {client.name}? This action cannot be undone.
+                {t('delete.confirmDescription', { name: client.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Delete
+                {t('common:actions.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -180,7 +191,7 @@ export default function ClientEdit() {
       {/* Form */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Client Details</CardTitle>
+          <CardTitle>{t('form.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -191,9 +202,9 @@ export default function ClientEdit() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client Name *</FormLabel>
+                      <FormLabel>{t('form.nameLabel')} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter client name" {...field} />
+                        <Input placeholder={t('form.namePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -205,9 +216,9 @@ export default function ClientEdit() {
                   name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company</FormLabel>
+                      <FormLabel>{t('common:fields.company')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter company name" {...field} />
+                        <Input placeholder={t('form.companyPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -219,9 +230,9 @@ export default function ClientEdit() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email *</FormLabel>
+                      <FormLabel>{t('common:fields.email')} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter email address" type="email" {...field} />
+                        <Input placeholder={t('form.emailPlaceholder')} type="email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -233,9 +244,9 @@ export default function ClientEdit() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>{t('common:fields.phone')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
+                        <Input placeholder={t('form.phonePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -247,17 +258,17 @@ export default function ClientEdit() {
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status</FormLabel>
+                      <FormLabel>{t('common:fields.status')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder={t('form.statusPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="prospective">Prospective</SelectItem>
+                          <SelectItem value="active">{t('common:status.active')}</SelectItem>
+                          <SelectItem value="inactive">{t('common:status.inactive')}</SelectItem>
+                          <SelectItem value="prospective">{t('status.prospective')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -271,10 +282,10 @@ export default function ClientEdit() {
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel>{t('common:fields.address')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter client address"
+                        placeholder={t('form.addressPlaceholder')}
                         className="min-h-[80px]"
                         {...field}
                       />
@@ -289,10 +300,10 @@ export default function ClientEdit() {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes</FormLabel>
+                    <FormLabel>{t('common:fields.notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter any additional notes"
+                        placeholder={t('form.notesPlaceholder')}
                         className="min-h-[100px]"
                         {...field}
                       />
@@ -308,10 +319,10 @@ export default function ClientEdit() {
                   variant="outline"
                   onClick={() => navigate(`/clients/${clientId}`)}
                 >
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
                 <Button type="submit" disabled={updateClient.isPending}>
-                  {updateClient.isPending ? 'Updating...' : 'Update Client'}
+                  {updateClient.isPending ? t('edit.submitting') : t('edit.submit')}
                 </Button>
               </div>
             </form>

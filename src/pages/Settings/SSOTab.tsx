@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,86 +40,89 @@ const urlValidator = (value: string | undefined | null) => {
   }
 };
 
-const googleSchema = z
-  .object({
-    enabled: z.boolean(),
-    clientId: z.string().optional(),
-    clientSecret: z.string().optional(),
-    redirectUri: z.string().optional(),
-    domainHint: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.enabled) {
-      if (!data.clientId?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['clientId'],
-          message: 'Client ID is required when enabling Google Workspace SSO.',
-        });
+// Schemas are built inside the component so validation messages follow the UI language.
+const createGoogleSchema = (t: TFunction) =>
+  z
+    .object({
+      enabled: z.boolean(),
+      clientId: z.string().optional(),
+      clientSecret: z.string().optional(),
+      redirectUri: z.string().optional(),
+      domainHint: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.enabled) {
+        if (!data.clientId?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['clientId'],
+            message: t('settings:sso.validation.googleClientIdRequired'),
+          });
+        }
+        if (!data.redirectUri?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['redirectUri'],
+            message: t('settings:sso.validation.googleRedirectUriRequired'),
+          });
+        }
       }
-      if (!data.redirectUri?.trim()) {
+
+      if (data.redirectUri && !urlValidator(data.redirectUri)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['redirectUri'],
-          message: 'Redirect URI is required when enabling Google Workspace SSO.',
+          message: t('settings:sso.validation.redirectUriInvalid'),
         });
       }
-    }
+    });
 
-    if (data.redirectUri && !urlValidator(data.redirectUri)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['redirectUri'],
-        message: 'Enter a valid redirect URI (including https://).',
-      });
-    }
-  });
-
-const microsoftSchema = z
-  .object({
-    enabled: z.boolean(),
-    clientId: z.string().optional(),
-    clientSecret: z.string().optional(),
-    redirectUri: z.string().optional(),
-    domainHint: z.string().optional(),
-    tenantId: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.enabled) {
-      if (!data.clientId?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['clientId'],
-          message: 'Client ID is required when enabling Microsoft Entra ID.',
-        });
+const createMicrosoftSchema = (t: TFunction) =>
+  z
+    .object({
+      enabled: z.boolean(),
+      clientId: z.string().optional(),
+      clientSecret: z.string().optional(),
+      redirectUri: z.string().optional(),
+      domainHint: z.string().optional(),
+      tenantId: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.enabled) {
+        if (!data.clientId?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['clientId'],
+            message: t('settings:sso.validation.microsoftClientIdRequired'),
+          });
+        }
+        if (!data.redirectUri?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['redirectUri'],
+            message: t('settings:sso.validation.microsoftRedirectUriRequired'),
+          });
+        }
+        if (!data.tenantId?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['tenantId'],
+            message: t('settings:sso.validation.microsoftTenantIdRequired'),
+          });
+        }
       }
-      if (!data.redirectUri?.trim()) {
+
+      if (data.redirectUri && !urlValidator(data.redirectUri)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['redirectUri'],
-          message: 'Redirect URI is required when enabling Microsoft Entra ID.',
+          message: t('settings:sso.validation.redirectUriInvalid'),
         });
       }
-      if (!data.tenantId?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['tenantId'],
-          message: 'Tenant ID is required when enabling Microsoft Entra ID.',
-        });
-      }
-    }
+    });
 
-    if (data.redirectUri && !urlValidator(data.redirectUri)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['redirectUri'],
-        message: 'Enter a valid redirect URI (including https://).',
-      });
-    }
-  });
-
-type GoogleFormValues = z.infer<typeof googleSchema>;
-type MicrosoftFormValues = z.infer<typeof microsoftSchema>;
+type GoogleFormValues = z.infer<ReturnType<typeof createGoogleSchema>>;
+type MicrosoftFormValues = z.infer<ReturnType<typeof createMicrosoftSchema>>;
 
 const HelperLabel = ({ label, tooltip }: { label: string; tooltip?: string }) => {
   if (!tooltip) {
@@ -146,6 +151,9 @@ export default function SSOTab() {
   // Check if user is superadmin - MUST be before any conditional returns
   const { data: roleData } = useUserRoleAssignments();
   const isSuperAdmin = roleData?.isSuperAdmin || false;
+  const { t } = useTranslation('settings');
+  const googleSchema = useMemo(() => createGoogleSchema(t), [t]);
+  const microsoftSchema = useMemo(() => createMicrosoftSchema(t), [t]);
 
   // Extract Google and Microsoft configs from array
   const googleConfig = configs?.find((c) => c.provider === 'google');
@@ -205,22 +213,14 @@ export default function SSOTab() {
   const googleEnabled = googleForm.watch('enabled');
   const microsoftEnabled = microsoftForm.watch('enabled');
 
-  const googleDomainHintHelper = useMemo(
-    () =>
-      'Restrict access to members of a specific Google Workspace domain (e.g. example.com). Optional but recommended.',
-    []
-  );
-  const microsoftDomainHintHelper = useMemo(
-    () =>
-      'Provide a preferred domain hint for the Microsoft sign-in page (e.g. contoso.com). Optional.',
-    []
-  );
+  const googleDomainHintHelper = useMemo(() => t('sso.google.domainHintTooltip'), [t]);
+  const microsoftDomainHintHelper = useMemo(() => t('sso.microsoft.domainHintTooltip'), [t]);
 
   // Test connection handlers
   const handleTestGoogle = async () => {
     if (!googleConfig?.id) {
-      toast.error('Error', {
-        description: 'Please save your Google Workspace configuration first.',
+      toast.error(t('common:toast.error'), {
+        description: t('sso.google.saveFirst'),
       });
       return;
     }
@@ -229,18 +229,18 @@ export default function SSOTab() {
       const result = await testMutation.mutateAsync(googleConfig.id);
 
       if (result.success) {
-        toast.success('Connection Successful', {
+        toast.success(t('sso.toast.connectionSuccess'), {
           description: result.message,
         });
       } else {
-        toast.error('Configuration Issues', {
+        toast.error(t('sso.toast.configurationIssues'), {
           description: result.errors?.join(', ') || result.message,
         });
       }
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to test Google SSO connection.';
-      toast.error('Test Failed', {
+        error instanceof Error ? error.message : t('sso.google.testFailed');
+      toast.error(t('sso.toast.testFailed'), {
         description: errorMessage,
       });
     }
@@ -248,8 +248,8 @@ export default function SSOTab() {
 
   const handleTestMicrosoft = async () => {
     if (!microsoftConfig?.id) {
-      toast.error('Error', {
-        description: 'Please save your Microsoft Entra ID configuration first.',
+      toast.error(t('common:toast.error'), {
+        description: t('sso.microsoft.saveFirst'),
       });
       return;
     }
@@ -258,18 +258,18 @@ export default function SSOTab() {
       const result = await testMutation.mutateAsync(microsoftConfig.id);
 
       if (result.success) {
-        toast.success('Connection Successful', {
+        toast.success(t('sso.toast.connectionSuccess'), {
           description: result.message,
         });
       } else {
-        toast.error('Configuration Issues', {
+        toast.error(t('sso.toast.configurationIssues'), {
           description: result.errors?.join(', ') || result.message,
         });
       }
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to test Microsoft SSO connection.';
-      toast.error('Test Failed', {
+        error instanceof Error ? error.message : t('sso.microsoft.testFailed');
+      toast.error(t('sso.toast.testFailed'), {
         description: errorMessage,
       });
     }
@@ -281,8 +281,7 @@ export default function SSOTab() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Only super administrators can configure Single Sign-On settings. Contact your organization
-          administrator for access.
+          {t('sso.superAdminOnly')}
         </AlertDescription>
       </Alert>
     );
@@ -299,7 +298,7 @@ export default function SSOTab() {
 
     if (trimmed.enabled && !trimmed.clientSecret && !googleSecretStored) {
       googleForm.setError('clientSecret', {
-        message: 'Client secret is required the first time you enable Google Workspace SSO.',
+        message: t('settings:sso.validation.googleClientSecretRequired'),
         type: 'manual',
       });
       return;
@@ -321,16 +320,16 @@ export default function SSOTab() {
         googleForm.setValue('clientSecret', '');
       }
 
-      toast.success('Success', {
-        description: 'Google Workspace SSO configuration saved successfully.',
+      toast.success(t('sso.toast.successTitle'), {
+        description: t('sso.google.saved'),
       });
     } catch (error: unknown) {
       console.error('Google SSO update error:', error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to save Google SSO configuration. Please try again.';
-      toast.error('Error', {
+          : t('sso.google.saveFailed');
+      toast.error(t('common:toast.error'), {
         description: errorMessage,
       });
     }
@@ -348,7 +347,7 @@ export default function SSOTab() {
 
     if (trimmed.enabled && !trimmed.clientSecret && !microsoftSecretStored) {
       microsoftForm.setError('clientSecret', {
-        message: 'Client secret is required the first time you enable Microsoft Entra ID SSO.',
+        message: t('settings:sso.validation.microsoftClientSecretRequired'),
         type: 'manual',
       });
       return;
@@ -356,7 +355,7 @@ export default function SSOTab() {
 
     if (trimmed.enabled && !trimmed.tenantId) {
       microsoftForm.setError('tenantId', {
-        message: 'Tenant ID is required when enabling Microsoft Entra ID.',
+        message: t('settings:sso.validation.microsoftTenantIdRequired'),
         type: 'manual',
       });
       return;
@@ -379,16 +378,16 @@ export default function SSOTab() {
         microsoftForm.setValue('clientSecret', '');
       }
 
-      toast.success('Success', {
-        description: 'Microsoft Entra ID SSO configuration saved successfully.',
+      toast.success(t('sso.toast.successTitle'), {
+        description: t('sso.microsoft.saved'),
       });
     } catch (error: unknown) {
       console.error('Microsoft SSO update error:', error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to save Microsoft SSO configuration. Please try again.';
-      toast.error('Error', {
+          : t('sso.microsoft.saveFailed');
+      toast.error(t('common:toast.error'), {
         description: errorMessage,
       });
     }
@@ -400,7 +399,7 @@ export default function SSOTab() {
         {isLoading ? (
           <Card>
             <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Loading SSO configuration...
+              {t('sso.loading')}
             </CardContent>
           </Card>
         ) : (
@@ -413,12 +412,12 @@ export default function SSOTab() {
                       <div>
                         <CardTitle>Google Workspace</CardTitle>
                         <CardDescription className="mt-1">
-                          Enable OAuth-based sign-in for users managed in Google Workspace
+                          {t('sso.google.description')}
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={googleEnabled ? 'default' : 'outline'} className="shrink-0">
-                          {googleEnabled ? 'Enabled' : 'Disabled'}
+                          {googleEnabled ? t('sso.enabled') : t('sso.disabled')}
                         </Badge>
                         <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
                       </div>
@@ -438,10 +437,9 @@ export default function SSOTab() {
                           render={({ field }) => (
                             <FormItem className="flex items-center justify-between rounded-lg border p-3">
                               <div className="space-y-0.5">
-                                <FormLabel>Enable Google Workspace SSO</FormLabel>
+                                <FormLabel>{t('sso.google.enableLabel')}</FormLabel>
                                 <FormDescription>
-                                  Users will be redirected to Google for authentication when this is
-                                  enabled.
+                                  {t('sso.google.enableHelp')}
                                 </FormDescription>
                               </div>
                               <FormControl>
@@ -459,8 +457,8 @@ export default function SSOTab() {
                               <FormItem>
                                 <FormLabel>
                                   <HelperLabel
-                                    label="OAuth Client ID"
-                                    tooltip="In Google Cloud Console, create an OAuth client under APIs & Services → Credentials. Use the Web application type."
+                                    label={t('sso.google.clientIdLabel')}
+                                    tooltip={t('sso.google.clientIdTooltip')}
                                   />
                                 </FormLabel>
                                 <FormControl>
@@ -480,8 +478,8 @@ export default function SSOTab() {
                               <FormItem>
                                 <FormLabel>
                                   <HelperLabel
-                                    label="Redirect URI"
-                                    tooltip="Copy the callback URL provided by Kourti AI into the Authorized redirect URIs list in Google Cloud."
+                                    label={t('sso.redirectUriLabel')}
+                                    tooltip={t('sso.google.redirectUriTooltip')}
                                   />
                                 </FormLabel>
                                 <FormControl>
@@ -503,8 +501,8 @@ export default function SSOTab() {
                             <FormItem>
                               <FormLabel>
                                 <HelperLabel
-                                  label="Client Secret"
-                                  tooltip="Download the credentials JSON from Google Cloud and paste the client secret here."
+                                  label={t('sso.clientSecretLabel')}
+                                  tooltip={t('sso.google.clientSecretTooltip')}
                                 />
                               </FormLabel>
                               <FormControl>
@@ -513,8 +511,8 @@ export default function SSOTab() {
                                     type="password"
                                     placeholder={
                                       googleSecretStored
-                                        ? 'Stored securely — enter a new secret to rotate'
-                                        : 'Paste the client secret'
+                                        ? t('sso.secretStoredPlaceholder')
+                                        : t('sso.secretPlaceholder')
                                     }
                                     {...field}
                                   />
@@ -528,14 +526,13 @@ export default function SSOTab() {
                                     }}
                                   >
                                     <RefreshCcw className="mr-2 h-4 w-4" />
-                                    Rotate
+                                    {t('sso.rotate')}
                                   </Button>
                                 </div>
                               </FormControl>
                               {googleSecretStored && (
                                 <FormDescription>
-                                  A client secret is already stored. Provide a new secret only when
-                                  you want to rotate credentials.
+                                  {t('sso.secretStoredHelp')}
                                 </FormDescription>
                               )}
                               <FormMessage />
@@ -549,13 +546,16 @@ export default function SSOTab() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                <HelperLabel label="Domain Hint" tooltip={googleDomainHintHelper} />
+                                <HelperLabel
+                                  label={t('sso.domainHintLabel')}
+                                  tooltip={googleDomainHintHelper}
+                                />
                               </FormLabel>
                               <FormControl>
                                 <Input placeholder="example.com" {...field} />
                               </FormControl>
                               <FormDescription>
-                                Optional. Restrict sign-in to a single Google Workspace domain.
+                                {t('sso.google.domainHintHelp')}
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -570,10 +570,10 @@ export default function SSOTab() {
                             disabled={testMutation.isPending || !googleConfig?.id}
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
-                            {testMutation.isPending ? 'Testing...' : 'Test Connection'}
+                            {testMutation.isPending ? t('sso.testing') : t('sso.testConnection')}
                           </Button>
                           <Button type="submit" disabled={updateMutation.isPending}>
-                            {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+                            {updateMutation.isPending ? t('common:status.saving') : t('sso.saveSettings')}
                           </Button>
                         </div>
                       </form>
@@ -591,7 +591,7 @@ export default function SSOTab() {
                       <div>
                         <CardTitle>Microsoft Entra ID</CardTitle>
                         <CardDescription className="mt-1">
-                          Connect Azure Active Directory for Microsoft account authentication
+                          {t('sso.microsoft.description')}
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
@@ -599,7 +599,7 @@ export default function SSOTab() {
                           variant={microsoftEnabled ? 'default' : 'outline'}
                           className="shrink-0"
                         >
-                          {microsoftEnabled ? 'Enabled' : 'Disabled'}
+                          {microsoftEnabled ? t('sso.enabled') : t('sso.disabled')}
                         </Badge>
                         <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
                       </div>
@@ -619,9 +619,9 @@ export default function SSOTab() {
                           render={({ field }) => (
                             <FormItem className="flex items-center justify-between rounded-lg border p-3">
                               <div className="space-y-0.5">
-                                <FormLabel>Enable Microsoft Entra ID</FormLabel>
+                                <FormLabel>{t('sso.microsoft.enableLabel')}</FormLabel>
                                 <FormDescription>
-                                  Redirect users to the Microsoft login page for authentication.
+                                  {t('sso.microsoft.enableHelp')}
                                 </FormDescription>
                               </div>
                               <FormControl>
@@ -639,8 +639,8 @@ export default function SSOTab() {
                               <FormItem>
                                 <FormLabel>
                                   <HelperLabel
-                                    label="Application (client) ID"
-                                    tooltip="In Azure Portal, under App registrations, create a new registration and copy the Application ID."
+                                    label={t('sso.microsoft.clientIdLabel')}
+                                    tooltip={t('sso.microsoft.clientIdTooltip')}
                                   />
                                 </FormLabel>
                                 <FormControl>
@@ -660,8 +660,8 @@ export default function SSOTab() {
                               <FormItem>
                                 <FormLabel>
                                   <HelperLabel
-                                    label="Directory (tenant) ID"
-                                    tooltip="Find the Directory ID in Azure Portal under Azure Active Directory → Overview."
+                                    label={t('sso.microsoft.tenantIdLabel')}
+                                    tooltip={t('sso.microsoft.tenantIdTooltip')}
                                   />
                                 </FormLabel>
                                 <FormControl>
@@ -683,8 +683,8 @@ export default function SSOTab() {
                             <FormItem>
                               <FormLabel>
                                 <HelperLabel
-                                  label="Redirect URI"
-                                  tooltip="Add this redirect URI to the list of allowed URIs in your Azure app's Authentication settings."
+                                  label={t('sso.redirectUriLabel')}
+                                  tooltip={t('sso.microsoft.redirectUriTooltip')}
                                 />
                               </FormLabel>
                               <FormControl>
@@ -705,8 +705,8 @@ export default function SSOTab() {
                             <FormItem>
                               <FormLabel>
                                 <HelperLabel
-                                  label="Client Secret"
-                                  tooltip="Generate a new client secret in Azure Portal under Certificates & secrets, then paste it here."
+                                  label={t('sso.clientSecretLabel')}
+                                  tooltip={t('sso.microsoft.clientSecretTooltip')}
                                 />
                               </FormLabel>
                               <FormControl>
@@ -715,8 +715,8 @@ export default function SSOTab() {
                                     type="password"
                                     placeholder={
                                       microsoftSecretStored
-                                        ? 'Stored securely — enter a new secret to rotate'
-                                        : 'Paste the client secret'
+                                        ? t('sso.secretStoredPlaceholder')
+                                        : t('sso.secretPlaceholder')
                                     }
                                     {...field}
                                   />
@@ -730,14 +730,13 @@ export default function SSOTab() {
                                     }}
                                   >
                                     <RefreshCcw className="mr-2 h-4 w-4" />
-                                    Rotate
+                                    {t('sso.rotate')}
                                   </Button>
                                 </div>
                               </FormControl>
                               {microsoftSecretStored && (
                                 <FormDescription>
-                                  A client secret is already stored. Provide a new secret only when
-                                  you want to rotate credentials.
+                                  {t('sso.secretStoredHelp')}
                                 </FormDescription>
                               )}
                               <FormMessage />
@@ -752,7 +751,7 @@ export default function SSOTab() {
                             <FormItem>
                               <FormLabel>
                                 <HelperLabel
-                                  label="Domain Hint"
+                                  label={t('sso.domainHintLabel')}
                                   tooltip={microsoftDomainHintHelper}
                                 />
                               </FormLabel>
@@ -760,7 +759,7 @@ export default function SSOTab() {
                                 <Input placeholder="contoso.com" {...field} />
                               </FormControl>
                               <FormDescription>
-                                Optional. Pre-fill the Microsoft login page with this domain.
+                                {t('sso.microsoft.domainHintHelp')}
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -775,10 +774,10 @@ export default function SSOTab() {
                             disabled={testMutation.isPending || !microsoftConfig?.id}
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
-                            {testMutation.isPending ? 'Testing...' : 'Test Connection'}
+                            {testMutation.isPending ? t('sso.testing') : t('sso.testConnection')}
                           </Button>
                           <Button type="submit" disabled={updateMutation.isPending}>
-                            {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+                            {updateMutation.isPending ? t('common:status.saving') : t('sso.saveSettings')}
                           </Button>
                         </div>
                       </form>

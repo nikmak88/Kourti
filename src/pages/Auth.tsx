@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -9,30 +10,28 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { AppLogo } from '@/components/ui/AppLogo';
 import { EmailOtpChallenge } from '@/components/auth/EmailOtpChallenge';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import type { MfaRequiredResponse } from '@/lib/authClient';
 import { isSafePath } from '@/lib/safeUrl';
 import { SIGNUP_ENABLED } from '@/lib/features';
 
+// Texts: auth:signIn.features.<key>.title / .description
 const FEATURES = [
   {
     icon: Bot,
-    title: 'AI-Powered Contracts',
-    description: 'Generate, review, and compare contracts with intelligent AI assistance.',
+    key: 'contracts',
   },
   {
     icon: Briefcase,
-    title: 'Smart Case Management',
-    description: 'Organize matters, track deadlines, and manage your caseload effortlessly.',
+    key: 'caseManagement',
   },
   {
     icon: FileCheck,
-    title: 'Document Analysis',
-    description: 'Extract clauses, surface risks, and generate redlines automatically.',
+    key: 'documentAnalysis',
   },
   {
     icon: ShieldCheck,
-    title: 'Enterprise-Grade Security',
-    description: 'Role-based access, SSO integration, and end-to-end data protection.',
+    key: 'security',
   },
 ];
 
@@ -77,6 +76,7 @@ export default function Auth() {
   }, []);
 
   const { signIn, user } = useAuth();
+  const { t } = useTranslation('auth');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -118,8 +118,8 @@ export default function Auth() {
     e.preventDefault();
 
     if (isLockedOut) {
-      toast.error('Too many failed attempts', {
-        description: `Please wait ${lockoutRemaining} seconds before trying again.`,
+      toast.error(t('signIn.toast.tooManyAttempts'), {
+        description: t('signIn.toast.waitSeconds', { count: lockoutRemaining }),
       });
       return;
     }
@@ -146,13 +146,15 @@ export default function Auth() {
         // navigate yet.
         if (result.mfa) {
           setMfa(result.mfa);
-          toast.info('Check your email', {
-            description: 'We sent you a verification code to finish signing in.',
+          toast.info(t('signIn.toast.checkEmail'), {
+            description: t('signIn.toast.checkEmailDescription'),
           });
           return;
         }
 
-        toast.success('Welcome back!', { description: 'You have successfully signed in.' });
+        toast.success(t('signIn.toast.welcomeBack'), {
+          description: t('signIn.toast.signedIn'),
+        });
         navigate('/dashboard', { replace: true });
       } else {
         const newFailedAttempts = failedAttempts + 1;
@@ -161,18 +163,18 @@ export default function Auth() {
         if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
           startLockout();
           setFailedAttempts(0);
-          toast.error('Too many failed attempts', {
-            description: `Account temporarily locked. Please wait ${LOCKOUT_DURATION} seconds before trying again.`,
+          toast.error(t('signIn.toast.tooManyAttempts'), {
+            description: t('signIn.toast.lockedDescription', { count: LOCKOUT_DURATION }),
           });
         } else if (
           result.error.message?.includes('timeout') ||
           result.error.message?.includes('504')
         ) {
-          toast.error('Server busy', {
-            description: 'The server is taking too long to respond. Please try again in a moment.',
+          toast.error(t('signIn.toast.serverBusy'), {
+            description: t('signIn.toast.serverBusyDescription'),
           });
         } else {
-          toast.error('Authentication Error', { description: result.error.message });
+          toast.error(t('signIn.toast.authError'), { description: result.error.message });
         }
       }
     } catch {
@@ -184,7 +186,9 @@ export default function Auth() {
         setFailedAttempts(0);
       }
 
-      toast.error('Error', { description: 'An unexpected error occurred. Please try again.' });
+      toast.error(t('common:toast.error'), {
+        description: t('signIn.toast.unexpectedError'),
+      });
     } finally {
       setLoading(false);
     }
@@ -198,7 +202,9 @@ export default function Auth() {
         purpose="login"
         onSuccess={() => {
           setMfa(null);
-          toast.success('Welcome back!', { description: 'You have successfully signed in.' });
+          toast.success(t('signIn.toast.welcomeBack'), {
+            description: t('signIn.toast.signedIn'),
+          });
           navigate('/dashboard', { replace: true });
         }}
         onCancel={() => setMfa(null)}
@@ -230,26 +236,28 @@ export default function Auth() {
         <div className="relative z-10">
           <img src={'/kourti-dark-full.png'} alt="Kourti AI" className="h-10 xl:h-12 w-auto mb-4" />
           <p className="text-white/60 text-sm font-medium tracking-wide uppercase">
-            Next-Gen Legal Operations Platform
+            {t('signIn.brand.tagline')}
           </p>
         </div>
 
         {/* Middle: Feature highlights */}
         <div className="relative z-10 space-y-6 xl:space-y-8 my-auto py-8">
           <h2 className="text-2xl xl:text-3xl font-semibold leading-snug max-w-md">
-            Everything your legal team needs, powered by AI.
+            {t('signIn.brand.headline')}
           </h2>
 
           <div className="space-y-5">
             {FEATURES.map((feature) => (
-              <div key={feature.title} className="flex items-start gap-4 group">
+              <div key={feature.key} className="flex items-start gap-4 group">
                 <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/10 group-hover:bg-white/15 transition-colors">
                   <feature.icon className="w-5 h-5 text-[#afc8f0]" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white/95 text-[15px]">{feature.title}</h3>
+                  <h3 className="font-medium text-white/95 text-[15px]">
+                    {t(`signIn.features.${feature.key}.title`)}
+                  </h3>
                   <p className="text-white/50 text-sm leading-relaxed mt-0.5">
-                    {feature.description}
+                    {t(`signIn.features.${feature.key}.description`)}
                   </p>
                 </div>
               </div>
@@ -270,13 +278,20 @@ export default function Auth() {
             ))}
           </div>
           <p className="text-white/50 text-sm">
-            Trusted by <span className="text-white/80 font-medium">500+</span> legal professionals
+            <Trans
+              t={t}
+              i18nKey="signIn.brand.trustedBy"
+              components={{ b: <span className="text-white/80 font-medium" /> }}
+            />
           </p>
         </div>
       </section>
 
       {/* ───────── Right Panel: Auth Form ───────── */}
-      <section className="flex-1 flex items-center justify-center bg-background p-6 sm:p-8 lg:p-12">
+      <section className="relative flex-1 flex items-center justify-center bg-background p-6 sm:p-8 lg:p-12">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher persist={false} compact />
+        </div>
         <div className="w-full max-w-[420px] space-y-8">
           {/* Mobile logo (hidden on desktop since left panel shows it) */}
           <div className="flex flex-col items-center lg:items-start gap-3 lg:hidden">
@@ -286,12 +301,12 @@ export default function Auth() {
           {/* Heading */}
           <div className="space-y-2 text-center lg:text-left">
             <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
-              {isInvited ? 'Accept Invitation' : 'Welcome back'}
+              {isInvited ? t('signIn.inviteTitle') : t('signIn.title')}
             </h1>
             <p className="text-muted-foreground text-[15px]">
               {isInvited
-                ? 'Set your password to complete your account setup.'
-                : 'Sign in to your Kourti AI account to continue.'}
+                ? t('signIn.inviteSubtitle')
+                : t('signIn.subtitle')}
             </p>
           </div>
 
@@ -299,14 +314,14 @@ export default function Auth() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium">
-                Email address
+                {t('email.label')}
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@company.com"
+                  placeholder={t('email.example')}
                   className="pl-10 h-11"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -319,14 +334,14 @@ export default function Auth() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-sm font-medium">
-                  Password
+                  {t('common:fields.password')}
                 </Label>
                 {!isInvited && (
                   <Link
                     to="/forgot-password"
                     className="text-xs text-primary hover:text-primary/80 hover:underline font-medium"
                   >
-                    Forgot password?
+                    {t('signIn.forgotPassword')}
                   </Link>
                 )}
               </div>
@@ -335,7 +350,7 @@ export default function Auth() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder={t('password.placeholder')}
                   className="pl-10 pr-10 h-11"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -360,8 +375,7 @@ export default function Auth() {
 
             {isLockedOut && (
               <p className="text-sm text-destructive text-center bg-destructive/10 rounded-lg py-2.5 px-3">
-                Too many failed attempts. Please wait {lockoutRemaining} second
-                {lockoutRemaining !== 1 ? 's' : ''} before trying again.
+                {t('signIn.lockoutNotice', { count: lockoutRemaining })}
               </p>
             )}
 
@@ -371,10 +385,10 @@ export default function Auth() {
               disabled={loading || isLockedOut}
             >
               {loading
-                ? 'Signing in...'
+                ? t('signIn.submitting')
                 : isLockedOut
-                  ? `Locked (${lockoutRemaining}s)`
-                  : 'Sign In'}
+                  ? t('signIn.locked', { seconds: lockoutRemaining })
+                  : t('signIn.submit')}
             </Button>
           </form>
 
@@ -382,9 +396,9 @@ export default function Auth() {
             <>
               <Separator />
               <p className="text-center text-sm text-muted-foreground">
-                Don&apos;t have an account?{' '}
+                {t('signIn.noAccount')}{' '}
                 <Link to="/onboarding" className="text-primary hover:underline font-medium">
-                  Create account
+                  {t('signIn.createAccount')}
                 </Link>
               </p>
             </>

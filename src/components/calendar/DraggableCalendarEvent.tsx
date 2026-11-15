@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { CalendarEventWithOwner } from '@/types/calendar-sharing';
 import { format, parseISO } from 'date-fns';
+import { dateLocale } from '@/i18n/dates';
 import { Clock, GripVertical } from 'lucide-react';
 
 interface DraggableCalendarEventProps {
@@ -75,8 +76,8 @@ export function DraggableCalendarEvent({
 
         <div className={cn('text-xs opacity-90 flex items-center gap-1 mt-0.5', textColor)}>
           <Clock className="h-3 w-3" />
-          {format(parseISO(event.start_date), 'h:mm a')} -{' '}
-          {format(parseISO(event.end_date), 'h:mm a')}
+          {format(parseISO(event.start_date), 'p', { locale: dateLocale() })} -{' '}
+          {format(parseISO(event.end_date), 'p', { locale: dateLocale() })}
         </div>
 
         {event.location && (

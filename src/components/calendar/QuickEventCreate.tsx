@@ -5,6 +5,7 @@ import { X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCreateCalendarEvent } from '@/hooks/useCalendar';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface QuickEventCreateProps {
   slotTime: Date;
@@ -23,6 +24,7 @@ export function QuickEventCreate({
   const [eventType, setEventType] = useState('meeting');
   const inputRef = useRef<HTMLInputElement>(null);
   const createEvent = useCreateCalendarEvent();
+  const { t } = useTranslation('calendar');
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -49,8 +51,8 @@ export function QuickEventCreate({
 
       onSuccess();
     } catch {
-      toast.error('Error', {
-        description: 'Failed to create event',
+      toast.error(t('common:toast.error'), {
+        description: t('quickCreate.failed'),
       });
     }
   };
@@ -92,7 +94,7 @@ export function QuickEventCreate({
         value={title}
         onChange={(e) => handleTitleChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Event title..."
+        placeholder={t('quickCreate.placeholder')}
         className="mb-2 text-sm"
         autoComplete="off"
       />
@@ -109,14 +111,22 @@ export function QuickEventCreate({
                 getEventTypeColor(type).split(' ')[0],
                 eventType === type && 'ring-2 ring-offset-1 ring-foreground'
               )}
-              title={type}
+              title={t(`eventTypes.${type}`)}
+              aria-label={t(`eventTypes.${type}`)}
             />
           ))}
         </div>
 
         <div className="flex-1" />
 
-        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onCancel}
+          aria-label={t('common:actions.cancel')}
+        >
           <X className="h-4 w-4" />
         </Button>
 
@@ -125,6 +135,7 @@ export function QuickEventCreate({
           size="icon"
           className="h-7 w-7"
           disabled={!title.trim() || createEvent.isPending}
+          aria-label={t('common:actions.create')}
         >
           <Check className="h-4 w-4" />
         </Button>

@@ -70,6 +70,7 @@ services:
         VITE_USE_NODE_BACKEND: "true"
         VITE_API_TIMEOUT: "30000"
         VITE_SIGNUP_ENABLED: ${SIGNUP_ENABLED:-false}
+        VITE_DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
     restart: unless-stopped
     environment:
       PORT: 80

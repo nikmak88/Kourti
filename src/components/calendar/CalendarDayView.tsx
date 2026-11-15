@@ -4,6 +4,8 @@ import { format, isToday, startOfDay, parseISO, isSameDay, differenceInMinutes }
 import { DroppableTimeSlot } from './DroppableSlots';
 import { DraggableCalendarEvent } from './DraggableCalendarEvent';
 import { QuickEventCreate } from './QuickEventCreate';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '@/i18n/dates';
 
 interface CalendarDayViewProps {
   date: Date;
@@ -23,6 +25,8 @@ export function CalendarDayView({
 }: CalendarDayViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [quickCreateSlot, setQuickCreateSlot] = useState<Date | null>(null);
+  const { t } = useTranslation('calendar');
+  const locale = dateLocale();
 
   const dayEvents = useMemo(() => {
     return events
@@ -82,14 +86,14 @@ export function CalendarDayView({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-muted/50">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">{format(date, 'EEEE, MMMM d, yyyy')}</h3>
+          <h3 className="text-lg font-semibold">{format(date, 'EEEE, PPP', { locale })}</h3>
           {isToday(date) && (
             <span className="px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-full">
-              Today
+              {t('common:time.today')}
             </span>
           )}
         </div>
-        <div className="text-sm text-muted-foreground">{dayEvents.length} events</div>
+        <div className="text-sm text-muted-foreground">{t('views.eventCount', { count: dayEvents.length })}</div>
       </div>
 
       {/* Time grid */}
@@ -108,7 +112,7 @@ export function CalendarDayView({
               <div className="flex items-center">
                 <div className="w-16 text-right pr-2">
                   <span className="text-xs font-semibold text-primary">
-                    {format(new Date(), 'h:mm a')}
+                    {format(new Date(), 'p', { locale })}
                   </span>
                 </div>
                 <div className="flex-1 h-0.5 bg-primary" />
@@ -129,7 +133,7 @@ export function CalendarDayView({
               <div className="w-16 flex-shrink-0 border-r border-border/50 bg-muted/30">
                 <div className="h-full flex items-start justify-end pr-2 pt-1">
                   <span className="text-xs text-muted-foreground">
-                    {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+                    {format(new Date().setHours(hour, 0, 0, 0), 'p', { locale })}
                   </span>
                 </div>
               </div>

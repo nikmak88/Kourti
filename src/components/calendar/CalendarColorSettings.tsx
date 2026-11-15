@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getSession } from '@/lib/authClient';
 import { invokeNodeApi } from '@/lib/backendApi';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 const CALENDAR_COLORS = [
   { name: 'Blue', value: '#3b82f6' },
@@ -27,6 +28,7 @@ export function CalendarColorSettings() {
   const [selectedColor, setSelectedColor] = useState<string>('#3b82f6');
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
+  const { t } = useTranslation('calendar');
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -44,12 +46,12 @@ export function CalendarColorSettings() {
       queryClient.invalidateQueries({ queryKey: ['calendar-viewers'] });
       queryClient.invalidateQueries({ queryKey: ['organization-members'] });
 
-      toast.success('Success', {
-        description: 'Calendar color updated successfully.',
+      toast.success(t('common:toast.success'), {
+        description: t('colorSettings.toast.updated'),
       });
     } catch (error: unknown) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to update calendar color.',
+      toast.error(t('common:toast.error'), {
+        description: error instanceof Error ? error.message : t('colorSettings.toast.updateFailed'),
       });
     } finally {
       setIsLoading(false);
@@ -61,15 +63,15 @@ export function CalendarColorSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Palette className="h-5 w-5 text-primary" />
-          Calendar Color
+          {t('colorSettings.title')}
         </CardTitle>
         <CardDescription>
-          Choose a color to identify your calendar when shared with team members.
+          {t('colorSettings.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Select a color</Label>
+          <Label>{t('colorSettings.selectColor')}</Label>
           <div className="grid grid-cols-6 gap-3">
             {CALENDAR_COLORS.map((color) => (
               <button
@@ -81,7 +83,7 @@ export function CalendarColorSettings() {
                     : 'border-transparent'
                 }`}
                 style={{ backgroundColor: color.value }}
-                title={color.name}
+                title={t(`colorSettings.colors.${color.name.toLowerCase()}`, { defaultValue: color.name })}
               />
             ))}
           </div>
@@ -89,7 +91,7 @@ export function CalendarColorSettings() {
 
         <div className="flex items-center gap-4 pt-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Preview:</span>
+            <span className="text-sm text-muted-foreground">{t('colorSettings.preview')}</span>
             <div
               className="w-6 h-6 rounded-full border"
               style={{ backgroundColor: selectedColor }}
@@ -99,10 +101,10 @@ export function CalendarColorSettings() {
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                {t('common:status.saving')}
               </>
             ) : (
-              'Save Color'
+              t('colorSettings.save')
             )}
           </Button>
         </div>

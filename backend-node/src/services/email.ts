@@ -2,6 +2,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { Resend } from 'resend';
 import { emailProvider, env } from '../config/env.js';
 import { logEmailDelivery } from './emailLog.js';
+import { emailTexts, languageForEmail, type EmailLang } from './emailI18n.js';
 
 type ResendSendPayload = Parameters<Resend['emails']['send']>[0];
 
@@ -118,9 +119,10 @@ const BRAND = {
 
 // ── Email templates ─────────────────────────────────────────────────────────
 
-function wrapHtml(title: string, body: string): string {
+function wrapHtml(title: string, body: string, lang: EmailLang = 'en'): string {
+  const tx = emailTexts(lang);
   return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title}</title></head>
+<html lang="${lang}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title}</title></head>
 <body style="margin:0;padding:0;background:${BRAND.lightBg};font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.lightBg};padding:40px 0;">
 <tr><td align="center">
@@ -150,12 +152,12 @@ function wrapHtml(title: string, body: string): string {
   <table width="100%" cellpadding="0" cellspacing="0" style="margin:36px 0 0;border-top:1px solid ${BRAND.border};padding-top:24px;">
   <tr><td>
     <p style="color:${BRAND.mutedText};font-size:12px;line-height:1.5;margin:0;">
-      &copy; ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.
+      &copy; ${new Date().getFullYear()} ${BRAND_NAME}. ${tx.footerRights}
     </p>
     <p style="color:${BRAND.mutedText};font-size:11px;line-height:1.5;margin:8px 0 0;">
-      <a href="${APP_URL}/settings" style="color:${BRAND.primary};text-decoration:none;">Manage preferences</a>
+      <a href="${APP_URL}/settings" style="color:${BRAND.primary};text-decoration:none;">${tx.footerPreferences}</a>
       &nbsp;&middot;&nbsp;
-      <a href="${APP_URL}" style="color:${BRAND.primary};text-decoration:none;">Open ${BRAND_NAME}</a>
+      <a href="${APP_URL}" style="color:${BRAND.primary};text-decoration:none;">${tx.footerOpen(BRAND_NAME)}</a>
     </p>
   </td></tr>
   </table>
@@ -183,23 +185,26 @@ export async function sendPasswordResetEmail(
 ): Promise<{ messageId?: string }> {
   const resetUrl = `${APP_URL}/auth/reset-password?token=${resetToken}`;
   const displayName = orgName || BRAND_NAME;
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
 
   const html = wrapHtml(
-    `Reset Your ${displayName} Password`,
+    tx.resetSubject(displayName),
     `
-    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi,</p>
-    <p style="color:#374151;font-size:15px;line-height:1.6;">We received a request to reset your password for your <strong>${displayName}</strong> account.</p>
-    ${ctaButton('Reset Password', resetUrl)}
-    <p style="color:#6b7280;font-size:13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-    <p style="color:#6b7280;font-size:12px;word-break:break-all;">Direct link: ${resetUrl}</p>
-    `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.hi}</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.resetIntro(displayName)}</p>
+    ${ctaButton(tx.resetButton, resetUrl)}
+    <p style="color:#6b7280;font-size:13px;">${tx.resetExpires}</p>
+    <p style="color:#6b7280;font-size:12px;word-break:break-all;">${tx.directLink} ${resetUrl}</p>
+    `,
+    lang
   );
 
   return sendResendEmail(
     {
       from: `${displayName} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
-      subject: `Reset Your ${displayName} Password`,
+      subject: tx.resetSubject(displayName),
       html,
     },
     'password_reset'
@@ -211,34 +216,28 @@ export async function sendEmailOtpEmail(
   code: string,
   purpose: 'login' | 'signup' | 'enable_2fa'
 ): Promise<{ messageId?: string }> {
-  const subjectByPurpose: Record<typeof purpose, string> = {
-    login: `Your ${BRAND_NAME} sign-in code`,
-    signup: `Verify your email for ${BRAND_NAME}`,
-    enable_2fa: `Enable email 2FA for ${BRAND_NAME}`,
-  };
-  const introByPurpose: Record<typeof purpose, string> = {
-    login: 'Use the code below to finish signing in:',
-    signup: 'Use the code below to verify your email address and finish creating your account:',
-    enable_2fa: 'Use the code below to confirm enabling email two-factor authentication:',
-  };
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const subject = tx.otpSubject[purpose](BRAND_NAME);
 
   const html = wrapHtml(
-    subjectByPurpose[purpose],
+    subject,
     `
-    <p style="color:#374151;font-size:15px;line-height:1.6;">${introByPurpose[purpose]}</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.otpIntro[purpose]}</p>
     <div style="margin:24px 0;padding:20px 24px;background:${BRAND.lightBg};border:1px solid ${BRAND.border};border-radius:12px;text-align:center;">
       <div style="font-family:'SFMono-Regular',Consolas,Menlo,monospace;font-size:32px;letter-spacing:8px;font-weight:700;color:${BRAND.dark};">${code}</div>
     </div>
-    <p style="color:#6b7280;font-size:13px;">This code expires in 10 minutes and can only be used once.</p>
-    <p style="color:#6b7280;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
-    `
+    <p style="color:#6b7280;font-size:13px;">${tx.codeExpires}</p>
+    <p style="color:#6b7280;font-size:13px;">${tx.ignoreIfNotRequested}</p>
+    `,
+    lang
   );
 
   return sendResendEmail(
     {
       from: `${BRAND_NAME} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
-      subject: subjectByPurpose[purpose],
+      subject,
       html,
     },
     `otp_${purpose}`
@@ -249,29 +248,29 @@ export async function sendWelcomeEmail(
   email: string,
   firstName?: string
 ): Promise<{ messageId?: string }> {
-  const greeting = firstName ? `Hi ${firstName}` : 'Hi';
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const greeting = firstName ? tx.hiName(escapeHtml(firstName)) : tx.hi;
 
   const html = wrapHtml(
-    `Welcome to ${BRAND_NAME}!`,
+    tx.welcomeSubject(BRAND_NAME),
     `
-    <p style="color:#374151;font-size:15px;line-height:1.6;">${greeting},</p>
-    <p style="color:#374151;font-size:15px;line-height:1.6;">Welcome to <strong>${BRAND_NAME}</strong>! We're excited to have you on board.</p>
-    <p style="color:#374151;font-size:15px;line-height:1.6;">Here's what you can do:</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${greeting}</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.welcomeIntro(BRAND_NAME)}</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.welcomeWhat}</p>
     <ul style="color:#374151;font-size:15px;line-height:1.8;">
-      <li>Manage your cases and clients</li>
-      <li>Use AI-powered contract analysis</li>
-      <li>Collaborate with your team</li>
-      <li>Track documents and deadlines</li>
+      ${tx.welcomeItems.map((i) => `<li>${i}</li>`).join('')}
     </ul>
-    ${ctaButton('Get Started', APP_URL)}
-    `
+    ${ctaButton(tx.welcomeButton, APP_URL)}
+    `,
+    lang
   );
 
   return sendResendEmail(
     {
       from: `${BRAND_NAME} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
-      subject: `Welcome to ${BRAND_NAME}!`,
+      subject: tx.welcomeSubject(BRAND_NAME),
       html,
     },
     'welcome'
@@ -297,21 +296,24 @@ export async function sendInvitationEmail(
     ? `${baseUrl}${separator}token=${encodeURIComponent(options.token)}&type=invite&email=${encodeURIComponent(email)}&invited=true`
     : `${baseUrl}${separator}invite=true&email=${encodeURIComponent(email)}&invited=true`;
 
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
   const html = wrapHtml(
-    `You've been invited to ${orgName}`,
+    tx.inviteTitle(escapeHtml(orgName)),
     `
-    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi,</p>
-    <p style="color:#374151;font-size:15px;line-height:1.6;"><strong>${inviterName}</strong> has invited you to join <strong>${orgName}</strong>${role ? ` as a <strong>${role}</strong>` : ''} on ${BRAND_NAME}.</p>
-    ${ctaButton('Accept Invitation', joinUrl)}
-    <p style="color:#6b7280;font-size:13px;">If you don't have an account yet, you'll be able to create one when you click the button above.</p>
-    `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.hi}</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.inviteBody(escapeHtml(inviterName), escapeHtml(orgName), role ? escapeHtml(role) : undefined, BRAND_NAME)}</p>
+    ${ctaButton(tx.inviteButton, joinUrl)}
+    <p style="color:#6b7280;font-size:13px;">${tx.inviteNote}</p>
+    `,
+    lang
   );
 
   return sendResendEmail(
     {
       from: `${orgName} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
-      subject: `You've been invited to ${orgName} on ${BRAND_NAME}`,
+      subject: tx.inviteSubject(orgName, BRAND_NAME),
       html,
     },
     'invitation'
@@ -325,13 +327,16 @@ export async function sendNotificationEmail(
   actionUrl?: string,
   actionText?: string
 ): Promise<{ messageId?: string }> {
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
   const html = wrapHtml(
     title,
     `
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">Hi,</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.hi}</p>
     <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${message}</p>
-    ${actionUrl ? ctaButton(actionText || 'View Details', actionUrl) : ''}
-    `
+    ${actionUrl ? ctaButton(actionText || tx.viewDetails, actionUrl) : ''}
+    `,
+    lang
   );
 
   return sendResendEmail(
@@ -656,18 +661,21 @@ export async function sendClientOtpEmail(
   email: string,
   code: string
 ): Promise<{ messageId?: string }> {
-  const subject = 'Your secure sign-in code';
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const subject = tx.clientOtpSubject;
 
   const html = wrapHtml(
     subject,
     `
-    <p style="color:#374151;font-size:15px;line-height:1.6;">Use the code below to finish signing in to your client portal:</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">${tx.clientOtpIntro}</p>
     <div style="margin:24px 0;padding:20px 24px;background:${BRAND.lightBg};border:1px solid ${BRAND.border};border-radius:12px;text-align:center;">
       <div style="font-family:'SFMono-Regular',Consolas,Menlo,monospace;font-size:32px;letter-spacing:8px;font-weight:700;color:${BRAND.dark};">${code}</div>
     </div>
-    <p style="color:#6b7280;font-size:13px;">This code expires in 10 minutes and can only be used once.</p>
-    <p style="color:#6b7280;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
-    `
+    <p style="color:#6b7280;font-size:13px;">${tx.codeExpires}</p>
+    <p style="color:#6b7280;font-size:13px;">${tx.ignoreIfNotRequested}</p>
+    `,
+    lang
   );
 
   return sendResendEmail(
@@ -695,26 +703,26 @@ export async function sendClientPortalInviteEmail(args: {
   const { email, firmName, inviterName, matterTitle, inviteToken } = args;
   const safeFirm = escapeHtml(firmName);
   const acceptUrl = `${PORTAL_URL}/accept-invite?token=${encodeURIComponent(inviteToken)}`;
-  const intro = inviterName
-    ? `<strong>${escapeHtml(inviterName)}</strong> at <strong>${safeFirm}</strong> has invited you`
-    : `<strong>${safeFirm}</strong> has invited you`;
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const intro = tx.portalInviteIntro(inviterName ? escapeHtml(inviterName) : null, safeFirm);
 
   // Scope the wording: a specific matter when given, otherwise a generic
   // client-portal invite covering all of the client's matters.
   const scopeSentence = matterTitle
-    ? `${intro} to follow your matter <strong>&ldquo;${escapeHtml(matterTitle)}&rdquo;</strong> on a secure client portal.`
-    : `${intro} to a secure client portal where you can follow your matters.`;
+    ? tx.portalInviteScopeMatter(intro, escapeHtml(matterTitle))
+    : tx.portalInviteScopeAll(intro);
   const subject = matterTitle
-    ? `${firmName} invited you to view "${matterTitle}"`
-    : `${firmName} invited you to your client portal`;
+    ? tx.portalInviteSubjectMatter(firmName, matterTitle)
+    : tx.portalInviteSubjectAll(firmName);
 
   const body = `
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">Hi,</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.hi}</p>
     <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${scopeSentence}</p>
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">You can view real-time updates, important documents, and communicate directly with your legal team — all in one place.</p>
-    ${ctaButton('Accept invitation &amp; set password', acceptUrl)}
-    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">This invitation link expires in 24 hours. If you weren't expecting this email, you can safely ignore it.</p>
-    <p style="color:${BRAND.mutedText};font-size:12px;word-break:break-all;">Direct link: ${acceptUrl}</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.portalInviteBenefits}</p>
+    ${ctaButton(tx.portalInviteButton, acceptUrl)}
+    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">${tx.portalInviteExpires}</p>
+    <p style="color:${BRAND.mutedText};font-size:12px;word-break:break-all;">${tx.directLink} ${acceptUrl}</p>
   `;
 
   return sendResendEmail(
@@ -722,7 +730,7 @@ export async function sendClientPortalInviteEmail(args: {
       from: `${safeFirm} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
       subject,
-      html: wrapHtml(subject, body),
+      html: wrapHtml(subject, body, lang),
     },
     'client_portal_invite'
   );
@@ -740,18 +748,17 @@ export async function sendClientPortalAccessGrantedEmail(args: {
   const { email, firmName, inviterName } = args;
   const safeFirm = escapeHtml(firmName);
   const loginUrl = `${PORTAL_URL}/login`;
-  const intro = inviterName
-    ? `<strong>${escapeHtml(inviterName)}</strong> at <strong>${safeFirm}</strong> has given you`
-    : `<strong>${safeFirm}</strong> has given you`;
-  const subject = `${firmName} gave you access to your client portal`;
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const subject = tx.accessSubject(firmName);
 
   const body = `
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">Hi,</p>
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${intro} access to your matters on a secure client portal.</p>
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">You already have an account — just sign in with your existing email and password.</p>
-    ${ctaButton('Sign in to your portal', loginUrl)}
-    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">If you've forgotten your password, use “Forgot password” on the sign-in page. If you weren't expecting this, you can ignore it.</p>
-    <p style="color:${BRAND.mutedText};font-size:12px;word-break:break-all;">Direct link: ${loginUrl}</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.hi}</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.accessIntro(inviterName ? escapeHtml(inviterName) : null, safeFirm)}</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.accessExisting}</p>
+    ${ctaButton(tx.accessButton, loginUrl)}
+    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">${tx.accessForgot}</p>
+    <p style="color:${BRAND.mutedText};font-size:12px;word-break:break-all;">${tx.directLink} ${loginUrl}</p>
   `;
 
   return sendResendEmail(
@@ -759,7 +766,7 @@ export async function sendClientPortalAccessGrantedEmail(args: {
       from: `${safeFirm} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
       subject,
-      html: wrapHtml(subject, body),
+      html: wrapHtml(subject, body, lang),
     },
     'client_portal_invite'
   );
@@ -772,21 +779,23 @@ export async function sendClientPasswordResetEmail(
   resetToken: string
 ): Promise<{ messageId?: string }> {
   const resetUrl = `${PORTAL_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
 
   const body = `
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">Hi,</p>
-    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">We received a request to reset the password for your client portal account.</p>
-    ${ctaButton('Reset password', resetUrl)}
-    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-    <p style="color:${BRAND.mutedText};font-size:12px;word-break:break-all;">Direct link: ${resetUrl}</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.hi}</p>
+    <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${tx.clientResetIntro}</p>
+    ${ctaButton(tx.resetButton, resetUrl)}
+    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">${tx.resetExpires}</p>
+    <p style="color:${BRAND.mutedText};font-size:12px;word-break:break-all;">${tx.directLink} ${resetUrl}</p>
   `;
 
   return sendResendEmail(
     {
       from: `${BRAND_NAME} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
-      subject: 'Reset your client portal password',
-      html: wrapHtml('Reset your client portal password', body),
+      subject: tx.clientResetSubject,
+      html: wrapHtml(tx.clientResetSubject, body, lang),
     },
     'client_password_reset'
   );
@@ -825,15 +834,17 @@ export async function sendClientUpdateEmail(args: {
   const { email, firmName, clientName, matterTitle, subject, bodyMarkdown, caseId } = args;
   const safeFirm = escapeHtml(firmName);
   const safeMatter = escapeHtml(matterTitle);
-  const greeting = clientName ? `Hi ${escapeHtml(clientName)},` : 'Hi,';
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const greeting = clientName ? tx.hiName(escapeHtml(clientName)) : tx.hi;
   const matterUrl = `${PORTAL_URL}/matters/${encodeURIComponent(caseId)}`;
 
   const body = `
     <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${greeting}</p>
-    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;margin:0 0 16px;">Matter: <strong style="color:${BRAND.lightText};">${safeMatter}</strong> &mdash; ${safeFirm}</p>
+    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;margin:0 0 16px;">${tx.updateMatter} <strong style="color:${BRAND.lightText};">${safeMatter}</strong> &mdash; ${safeFirm}</p>
     ${renderSimpleMarkdown(bodyMarkdown)}
-    ${ctaButton('View your matter', matterUrl)}
-    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">Questions? Reply to this email or message your legal team directly through the portal.</p>
+    ${ctaButton(tx.updateButton, matterUrl)}
+    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">${tx.updateQuestions}</p>
   `;
 
   return sendResendEmail(
@@ -841,7 +852,7 @@ export async function sendClientUpdateEmail(args: {
       from: `${safeFirm} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
       subject,
-      html: wrapHtml(subject, body),
+      html: wrapHtml(subject, body, lang),
     },
     'client_update'
   );
@@ -862,10 +873,11 @@ export async function sendPortalNotificationEmail(args: {
   const { email, clientName, items } = args;
   if (items.length === 0) return {};
 
-  const greeting = clientName ? `Hi ${escapeHtml(clientName)},` : 'Hi,';
+  const lang = await languageForEmail(email);
+  const tx = emailTexts(lang);
+  const greeting = clientName ? tx.hiName(escapeHtml(clientName)) : tx.hi;
   const count = items.length;
-  const subject =
-    count === 1 ? `New update: ${items[0].title}` : `You have ${count} new updates on your matters`;
+  const subject = count === 1 ? tx.portalNotifSubjectOne(items[0].title) : tx.portalNotifSubjectMany(count);
 
   const rows = items
     .map((it) => {
@@ -888,10 +900,10 @@ export async function sendPortalNotificationEmail(args: {
 
   const body = `
     <p style="color:${BRAND.lightText};font-size:15px;line-height:1.6;">${greeting}</p>
-    <p style="color:${BRAND.mutedText};font-size:14px;line-height:1.6;margin:0 0 8px;">Here's what's new across your matters:</p>
+    <p style="color:${BRAND.mutedText};font-size:14px;line-height:1.6;margin:0 0 8px;">${tx.portalNotifIntro}</p>
     <table role="presentation" width="100%" style="border-collapse:collapse;margin:0 0 8px;">${rows}</table>
-    ${ctaButton('Open your client portal', PORTAL_URL)}
-    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">You're receiving this because you follow these matters on your client portal. You can turn these emails off from the notifications menu in the portal.</p>
+    ${ctaButton(tx.portalNotifButton, PORTAL_URL)}
+    <p style="color:${BRAND.mutedText};font-size:13px;line-height:1.6;">${tx.portalNotifWhy}</p>
   `;
 
   return sendResendEmail(
@@ -899,7 +911,7 @@ export async function sendPortalNotificationEmail(args: {
       from: `${BRAND_NAME} <${FROM_EMAIL}>`,
       to: [email.toLowerCase()],
       subject,
-      html: wrapHtml(subject, body),
+      html: wrapHtml(subject, body, lang),
     },
     'portal_notification'
   );

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,15 +35,17 @@ import { Badge } from '@/components/ui/badge';
 import { useAllRoles } from '@/hooks/useAllRoles';
 import { useUserRole } from '@/hooks/useUserManagement';
 
-const inviteSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  role: z.string().min(1, 'Please select a role'),
-  department: z.string().optional(),
-});
+// Built inside the component so validation messages follow the UI language.
+const createInviteSchema = (t: TFunction) =>
+  z.object({
+    email: z.string().email(t('users:invite.validation.emailInvalid')),
+    firstName: z.string().min(1, t('users:invite.validation.firstNameRequired')),
+    lastName: z.string().min(1, t('users:invite.validation.lastNameRequired')),
+    role: z.string().min(1, t('users:invite.validation.roleRequired')),
+    department: z.string().optional(),
+  });
 
-type InviteFormData = z.infer<typeof inviteSchema>;
+type InviteFormData = z.infer<ReturnType<typeof createInviteSchema>>;
 
 interface InviteUserDialogProps {
   onInvite: (data: {
@@ -58,6 +62,11 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
   const { data: allRoles = [] } = useAllRoles();
   const { data: userRole } = useUserRole();
   const isSuperAdmin = userRole?.role === 'superadmin';
+  const { t } = useTranslation('users');
+  const inviteSchema = useMemo(() => createInviteSchema(t), [t]);
+  // Role codes are API values: translate known ones, show the stored name otherwise.
+  const roleLabel = (code: string, fallback?: string) =>
+    t(`roles.${code}`, { defaultValue: fallback || code });
 
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema),
@@ -81,7 +90,7 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
       )
       .map((role) => ({
         value: role.role || role.role_name,
-        label: role.display_name || role.role_name || role.role,
+        label: roleLabel(role.role || role.role_name, role.display_name || role.role_name || role.role),
       })),
     // Custom roles
     ...allRoles
@@ -113,15 +122,14 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
       <DialogTrigger asChild>
         <Button size="sm">
           <UserPlus2Icon className="h-4 w-4 mr-2" />
-          Invite User
+          {t('invite.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogTitle>{t('invite.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Send an invitation to join your organization. They'll receive an email with setup
-            instructions.
+            {t('invite.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -133,9 +141,9 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>{t('invite.firstName')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="John" {...field} />
+                      <Input placeholder={t('invite.firstNamePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -147,9 +155,9 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel>{t('invite.lastName')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Doe" {...field} />
+                      <Input placeholder={t('invite.lastNamePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,7 +170,7 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel>{t('invite.email')}</FormLabel>
                   <FormControl>
                     <Input type="email" placeholder="john.doe@company.com" {...field} />
                   </FormControl>
@@ -176,11 +184,11 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role *</FormLabel>
+                  <FormLabel>{t('invite.roleRequiredLabel')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder={t('invite.selectRole')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -190,12 +198,12 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
                             {role.label}
                             {['superadmin', 'admin', 'user'].includes(role.value) && (
                               <Badge variant="secondary" className="text-xs">
-                                Global
+                                {t('invite.badgeGlobal')}
                               </Badge>
                             )}
                             {!['superadmin', 'admin', 'user'].includes(role.value) && (
                               <Badge variant="outline" className="text-xs">
-                                Custom
+                                {t('invite.badgeCustom')}
                               </Badge>
                             )}
                           </div>
@@ -213,9 +221,9 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department (Optional)</FormLabel>
+                  <FormLabel>{t('invite.departmentOptional')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Legal, HR, Finance..." {...field} />
+                    <Input placeholder={t('invite.departmentPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -224,9 +232,9 @@ export function InviteUserDialog({ onInvite }: InviteUserDialogProps) {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
+                {t('common:actions.cancel')}
               </Button>
-              <Button type="submit">Send Invitation</Button>
+              <Button type="submit">{t('invite.send')}</Button>
             </DialogFooter>
           </form>
         </Form>

@@ -44,10 +44,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/i18n/dates';
 
 export default function App() {
   // Changed to App for React component export
   const navigate = useNavigate();
+  const { t } = useTranslation('matters');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -77,14 +80,13 @@ export default function App() {
   // Effect to display toast notifications for errors and reset global search term
   useEffect(() => {
     if (error) {
-      toast.error('Error', {
-        description:
-          error instanceof Error ? error.message : 'Failed to load matters. Please try again.',
+      toast.error(t('common:toast.error'), {
+        description: error instanceof Error ? error.message : t('toast.loadFailedDescription'),
       });
     }
     // Reset global search term when the component mounts or if setTerm changes
     setTerm('');
-  }, [error, setTerm]); // Added setTerm to dependencies
+  }, [error, setTerm, t]); // Added setTerm to dependencies
 
   type CaseRow = {
     id: string;
@@ -102,17 +104,15 @@ export default function App() {
   const caseRows: CaseRow[] = cases.map((c) => ({
     id: String(c.id || c.case_number || ''),
     name: c.title as string,
-    client: String(c.client?.name || c.client || 'Unknown Client'),
+    client: String(c.client?.name || c.client || t('list.unknownClient')),
     clientId: c.client_id || c.client?.id,
     status: c.status as string,
     priority: c.priority as string,
     assignedTo: c.assigned_user
       ? [c.assigned_user.first_name, c.assigned_user.last_name].filter(Boolean).join(' ')
-      : 'Unassigned',
-    startDate: c.created_at ? new Date(c.created_at).toLocaleDateString() : '',
-    dueDate: c.next_hearing_date
-      ? new Date(c.next_hearing_date).toLocaleDateString()
-      : 'No date set',
+      : t('list.unassigned'),
+    startDate: c.created_at ? formatDate(c.created_at, 'PP') : '',
+    dueDate: c.next_hearing_date ? formatDate(c.next_hearing_date, 'PP') : t('list.noDateSet'),
     documentsCount: 0,
   }));
 
@@ -127,14 +127,14 @@ export default function App() {
   const handleDeleteCase = async (caseId: string) => {
     try {
       await deleteCase.mutateAsync(caseId);
-      toast.success('Matter Deleted', {
-        description: 'The matter has been successfully deleted.',
+      toast.success(t('toast.deletedTitle'), {
+        description: t('toast.deletedDescription'),
       });
     } catch {
       // The useDeleteCase hook should handle its own error toasts,
       // but a generic fallback is good here if needed.
-      toast.error('Deletion Failed', {
-        description: 'Could not delete the matter. Please try again.',
+      toast.error(t('toast.deleteFailedTitle'), {
+        description: t('toast.deleteFailedDescription'),
       });
     }
   };
@@ -144,7 +144,7 @@ export default function App() {
     return (
       <PageContainer>
         <Breadcrumbs />
-        <PageHeader title="Matters" description="Manage and track all your legal matters" />
+        <PageHeader title={t('list.title')} description={t('list.description')} />
         <TableSkeleton rows={8} columns={6} />
       </PageContainer>
     );
@@ -156,11 +156,11 @@ export default function App() {
       <PageContainer>
         <Breadcrumbs />
         <ErrorState
-          title="Failed to load matters"
+          title={t('list.loadFailedTitle')}
           message={
             error instanceof Error
               ? error.message
-              : 'An unexpected error occurred while loading matters.'
+              : t('list.loadFailedMessage')
           }
           error={error}
           onRetry={() => refetch()}
@@ -234,8 +234,8 @@ export default function App() {
     <PageContainer>
       <Breadcrumbs />
       <PageHeader
-        title="Matters"
-        description="Manage and track all your legal matters"
+        title={t('list.title')}
+        description={t('list.description')}
         actions={
           <>
             <Button
@@ -244,14 +244,14 @@ export default function App() {
               onClick={() => navigate('/bulk-import?type=matters')}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Bulk Import
+              {t('list.bulkImport')}
             </Button>
             <Button
               className="shadow-md flex-1 sm:flex-none"
               onClick={() => navigate('/matters/create')}
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Matter
+              {t('list.newMatter')}
             </Button>
           </>
         }
@@ -261,32 +261,35 @@ export default function App() {
       <ModuleFilterBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Search matters, clients, or IDs..."
+        searchPlaceholder={t('filters.searchPlaceholder')}
         searchWidth="w-full sm:w-[320px]"
         filters={[
           {
             key: 'status',
-            placeholder: 'Status',
+            placeholder: t('common:fields.status'),
             value: statusFilter,
             onChange: setStatusFilter,
             width: 'w-[150px]',
             icon: <Filter className="h-4 w-4" />,
             options: [
-              { value: 'all', label: 'All Status' },
-              ...statuses.map((s) => ({ value: s.toLowerCase(), label: s })),
+              { value: 'all', label: t('filters.allStatuses') },
+              ...statuses.map((s) => ({
+                value: s.toLowerCase(),
+                label: t(`status.${s.toLowerCase()}`, { defaultValue: s }),
+              })),
             ],
           },
           {
             key: 'priority',
-            placeholder: 'Priority',
+            placeholder: t('common:fields.priority'),
             value: priorityFilter,
             onChange: setPriorityFilter,
             width: 'w-[140px]',
             options: [
-              { value: 'all', label: 'All Priorities' },
-              { value: 'high', label: 'High' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'low', label: 'Low' },
+              { value: 'all', label: t('filters.allPriorities') },
+              { value: 'high', label: t('common:priority.high') },
+              { value: 'medium', label: t('common:priority.medium') },
+              { value: 'low', label: t('common:priority.low') },
             ],
           },
         ]}
@@ -298,7 +301,7 @@ export default function App() {
         trailing={
           clientQuery ? (
             <Badge variant="secondary" className="px-3 py-1 text-base rounded-full">
-              Client: <span className="font-semibold ml-1">{clientFilterName}</span>
+              {t('filters.clientLabel')} <span className="font-semibold ml-1">{clientFilterName}</span>
             </Badge>
           ) : undefined
         }
@@ -307,8 +310,8 @@ export default function App() {
       {/* Matters Table */}
       <Card className="shadow-lg rounded-lg">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">All Matters ({totalCount})</CardTitle>
-          <CardDescription>Overview of all matters in your organization</CardDescription>
+          <CardTitle className="text-xl font-semibold">{t('list.allMatters', { count: totalCount })}</CardTitle>
+          <CardDescription>{t('list.allMattersDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -316,7 +319,7 @@ export default function App() {
               [
                 {
                   id: 'name',
-                  header: 'Matter Name',
+                  header: t('list.columns.name'),
                   accessorKey: 'name',
                   minWidth: '200px',
                   cell: (case_item) => (
@@ -331,7 +334,7 @@ export default function App() {
                 },
                 {
                   id: 'client',
-                  header: 'Client',
+                  header: t('common:entities.client'),
                   accessorKey: 'client',
                   minWidth: '150px',
                   cell: (case_item) => (
@@ -342,27 +345,33 @@ export default function App() {
                 },
                 {
                   id: 'status',
-                  header: 'Status',
+                  header: t('common:fields.status'),
                   accessorKey: 'status',
                   minWidth: '120px',
                   cell: (case_item) => (
-                    <Badge className={getStatusColor(case_item.status)}>{case_item.status}</Badge>
+                    <Badge className={getStatusColor(case_item.status)}>
+                      {t(`status.${case_item.status?.toLowerCase()}`, {
+                        defaultValue: case_item.status,
+                      })}
+                    </Badge>
                   ),
                 },
                 {
                   id: 'priority',
-                  header: 'Priority',
+                  header: t('common:fields.priority'),
                   accessorKey: 'priority',
                   minWidth: '120px',
                   cell: (case_item) => (
                     <Badge className={getPriorityColor(case_item.priority)}>
-                      {case_item.priority}
+                      {t(`common:priority.${case_item.priority?.toLowerCase()}`, {
+                        defaultValue: case_item.priority,
+                      })}
                     </Badge>
                   ),
                 },
                 {
                   id: 'assignedTo',
-                  header: 'Assigned To',
+                  header: t('common:fields.assignedTo'),
                   accessorKey: 'assignedTo',
                   minWidth: '150px',
                   cell: (case_item) => (
@@ -376,7 +385,7 @@ export default function App() {
                 },
                 {
                   id: 'dueDate',
-                  header: 'Due Date',
+                  header: t('common:time.dueDate'),
                   accessorKey: 'dueDate',
                   minWidth: '150px',
                   cell: (case_item) => (
@@ -388,7 +397,7 @@ export default function App() {
                 },
                 {
                   id: 'documentsCount',
-                  header: 'Documents',
+                  header: t('common:entities.documents'),
                   accessorKey: 'documentsCount',
                   minWidth: '120px',
                   cell: (case_item) => (
@@ -400,7 +409,7 @@ export default function App() {
                 },
                 {
                   id: 'actions',
-                  header: 'Actions',
+                  header: t('list.columns.actions'),
                   sortable: false,
                   minWidth: '80px',
                   className: 'text-right',
@@ -425,7 +434,7 @@ export default function App() {
                             className="flex items-center cursor-pointer px-2 py-1.5 text-sm hover:bg-muted rounded-sm"
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            View Details
+                            {t('list.actions.viewDetails')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
@@ -434,7 +443,7 @@ export default function App() {
                             className="flex items-center cursor-pointer px-2 py-1.5 text-sm hover:bg-muted rounded-sm"
                           >
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit Matter
+                            {t('list.actions.edit')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
@@ -443,7 +452,7 @@ export default function App() {
                             className="flex items-center cursor-pointer px-2 py-1.5 text-sm hover:bg-muted rounded-sm"
                           >
                             <FileText className="h-4 w-4 mr-2" />
-                            View Documents
+                            {t('list.actions.viewDocuments')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -454,24 +463,23 @@ export default function App() {
                               className="text-destructive flex items-center cursor-pointer px-2 py-1.5 text-sm hover:bg-destructive/10 rounded-sm"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Matter
+                              {t('list.actions.delete')}
                             </DropdownMenuItem>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogTitle>{t('list.deleteDialog.title')}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the
-                                matter and remove all associated data.
+                                {t('list.deleteDialog.description')}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDeleteCase(case_item.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                Delete Matter
+                                {t('list.actions.delete')}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -483,7 +491,7 @@ export default function App() {
               ] as ColumnDef<CaseRow>[]
             }
             data={filteredCases}
-            emptyMessage="No matters found matching your criteria."
+            emptyMessage={t('list.emptyFiltered')}
             getRowKey={(row) => row.id}
           />
 
@@ -491,10 +499,10 @@ export default function App() {
           {filteredCases.length === 0 && cases.length === 0 && (
             <EmptyState
               icon={Briefcase}
-              title="No matters yet"
-              description="Get started by creating your first matter to track legal cases and manage client work."
+              title={t('list.empty.title')}
+              description={t('list.empty.description')}
               action={{
-                label: 'Create First Matter',
+                label: t('list.empty.action'),
                 onClick: () => navigate('/matters/create'),
                 icon: Plus,
               }}
@@ -503,10 +511,10 @@ export default function App() {
           {filteredCases.length === 0 && cases.length > 0 && (
             <EmptyState
               icon={Briefcase}
-              title="No matching matters"
-              description={`No matters match your current filters. Try adjusting your search or filter criteria.`}
+              title={t('list.noMatches.title')}
+              description={t('list.noMatches.description')}
               action={{
-                label: 'Clear Filters',
+                label: t('list.noMatches.action'),
                 onClick: () => {
                   setSearchTerm('');
                   setStatusFilter('all');
@@ -525,10 +533,10 @@ export default function App() {
                 disabled={page === 1}
                 className="shadow-sm"
               >
-                Previous
+                {t('common:actions.previous')}
               </Button>
               <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                {t('list.pageOf', { page, total: totalPages })}
               </span>
               <Button
                 variant="outline"
@@ -536,7 +544,7 @@ export default function App() {
                 disabled={page >= totalPages}
                 className="shadow-sm"
               >
-                Next
+                {t('common:actions.next')}
               </Button>
             </div>
           )}

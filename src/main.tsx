@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@/index.css';
+// Translations must be initialised before any component renders.
+import '@/i18n';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { logInfo, logError } from '@/lib/logger';
