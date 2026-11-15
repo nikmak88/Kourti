@@ -43,7 +43,8 @@ sudo -E bash install.sh \
   --admin-email admin@dupont.be --admin-first Marie --admin-last Dupont \
   --seats 10 \
   --smtp-host smtp.office365.com --smtp-port 587 \
-  --smtp-user kourti@dupont.be --smtp-from kourti@dupont.be
+  --smtp-user kourti@dupont.be --smtp-from kourti@dupont.be \
+  --language el                                # default language: el (Greek) or en
 ```
 
 The first build takes 5–10 minutes. At the end the installer prints the URL,

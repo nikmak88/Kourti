@@ -71,6 +71,8 @@ services:
         VITE_API_TIMEOUT: "30000"
         VITE_SIGNUP_ENABLED: ${SIGNUP_ENABLED:-false}
         VITE_DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
+        # Upstream's Microsoft Clarity / Mixpanel analytics: off for self-hosted firms.
+        VITE_ANALYTICS_ENABLED: "false"
     restart: unless-stopped
     environment:
       PORT: 80

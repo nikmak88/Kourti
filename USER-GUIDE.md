@@ -19,9 +19,12 @@ Detailed references: [deploy/README.md](deploy/README.md) (install procedure),
 | Seats | Each firm gets a permanent licence with N seats (no payment provider needed). Fixes the greyed-out **Invite** button. |
 | Email | Sends through **any SMTP server** (Microsoft 365, Google Workspace, your host, a relay) — previously only the Resend cloud service. |
 | Users | `kourtictl delete-user` — permanent deletion that frees the seat (the app itself can only disable). |
+| Matter types | **Settings → Matter types**: add, rename, remove and restore types and issues, remove all defaults, CSV import (add or replace) and export. Removals never lose data. |
 | Voice → tasks | **Extract tasks & events** on a transcript: the AI proposes tasks (with assignee and due date), calendar events and the matter. The user reviews them before anything is created. |
 | AI | One provider can serve everything: chat, agents, document search and voice transcription all work with OpenAI alone (previously search and voice required OpenRouter). `kourtictl ai endpoint` points the OpenAI slot at DeepSeek, Mistral or a local model server. |
 | Database | Upstream deleted its full database schema in May 2026, and its own setup only rebuilds part of it. On a fresh install, creating a client, invoices, matter activity and time entries, document search, **Disable User**, changing roles and more failed. `backend-node/src/db/schemaCompletion.ts` adds the missing tables, columns and functions on every start; it only adds and never changes existing data. Postgres now includes **pgvector** (`deploy/postgres/`) for document search. |
+| Privacy | Upstream's built-in **Microsoft Clarity / Mixpanel analytics** (sent to the upstream project's accounts) and its cookie banner are **off** for self-hosted installs (`VITE_ANALYTICS_ENABLED=false`). The favicon and loading logo are served locally instead of hot-linked. A page load now contacts only the firm's own server. |
+| Language | Per-user **English / Ελληνικά** switch, install default via `--language` or `kourtictl language` (§3.0b). |
 | Fixes | Postgres TLS off on the private Docker network (`DB_SSL=false`); missing `invitations` columns on Docker installs; crash when opened over plain HTTP; invitation emails opened the sign-in form instead of the set-password page; forced password change at first sign-in looped forever; password forms said 8 characters while the server requires 12; re-running the installer dropped AI model and `config set` values; the Voice & Transcriptions page was broken end to end (table never created, transcript field name mismatch, playback blocked by the security policy, summary and save calls pointing at missing endpoints). |
 
 ## 2. Installing for a client (summary)
@@ -66,24 +69,60 @@ digit) and then signs in with the emailed code. The link is valid for **24 hours
 
 ### 3.0 Matter types and issues
 
-**New Matter** asks for a **matter type** (Litigation, Family Law, Tax, …) and
-then a **matter issue** within it (Family Law → Divorce, Maintenance, …).
+**New Matter** asks for a **matter type** (Litigation, Family Law, …) and then a
+**matter issue** within it (Family Law → Divorce, Maintenance, …). A fresh install
+comes with 15 default types, each with 5–7 issues plus **Other**.
 
-- **Defaults:** every install gets 15 types and 5–7 issues per type, plus
-  **Other**, so a matter can always be created.
-- **Who manages what:** the platform super-admin (`/thanos` → Case types)
-  manages the types. The app has **no screen for issues**.
-- **Adding firm-specific issues:** do it on the VM. They appear only for that
-  firm:
+Firm admins manage them in **Settings → Matter types**:
 
-```sh
-sudo kourtictl psql
+| Action | Effect |
+|---|---|
+| **Add matter type** / **+ Issue** | Adds your own type, or an issue under a type |
+| ✏️ Rename | Your own items only. Defaults can't be renamed: remove them and add your own |
+| 🗑 Remove | Never loses data. **Defaults** are hidden for your firm. **Your own** items are deleted if no matter uses them, otherwise *retired*. Removed items disappear from New Matter; existing matters keep showing them |
+| **Show removed** → Restore | Brings any removed item back |
+| **Remove all defaults** | Hides all 15 default types in one go. Add or import your own types first |
+| **Export CSV** | Downloads the current list. A good starting template |
+| **Import CSV** | Shows a preview, then either **Add to the current list** (nothing removed; existing names reused) or **Replace the current list** (everything not in the file is removed as above) |
+
+**CSV format.** One row per issue: repeat the type on each row. A row with an
+empty issue creates only the type. The header row is optional. Comma, semicolon
+or tab separators all work.
+
+```csv
+matter_type;matter_issue;type_description;issue_description
+Αστικό Δίκαιο;Αγωγή αποζημίωσης;;
+Αστικό Δίκαιο;Διαταγή πληρωμής;;
+Οικογενειακό Δίκαιο;Διαζύγιο;;
+Μισθώσεις;;Εμπορικές και κατοικίας;
 ```
-```sql
-insert into case_issues (case_type_id, organization_id, name)
-select id, (select id from organizations where name = 'Dupont & Associés'), 'Construction defects'
-  from case_types where name = 'Real Estate & Property';
-```
+
+In Excel use **Save As → CSV UTF-8** so Greek characters are kept. Importing
+the same file twice changes nothing. Removed defaults stay removed after
+restarts and updates.
+
+### 3.0b Language (English / Ελληνικά)
+
+Each user picks their language with the **EN / ΕΛ switch**, found in the top bar,
+in **Settings → Profile → Language**, and on the sign-in page. The choice is
+saved to their account, so it follows them to other devices. It also decides:
+
+- **Emails:** sign-in codes, password resets, invitations and notifications.
+- **AI chat:** the assistant answers in that language.
+- **Dates and numbers:** for example *15 Νοεμβρίου 2026*, *1.234,50 €* and a
+  24-hour clock.
+
+People who haven't chosen use the **install default**. Invitations and
+client-portal emails also use it, since the recipient has no account yet. Set
+it at install with `--language el`, or later with `sudo kourtictl language el`.
+Changing it rebuilds the web app, which takes 1–3 minutes.
+
+Translated so far (phase 1): sign-in and passwords, the menu and top bar,
+dashboard and notifications, matters and tasks, clients, documents, calendar,
+voice and transcriptions, users and all Settings tabs, and the emails above.
+Other screens (contracts and AI review, agents, analytics, invoices, help,
+platform admin, client portal) still show English and follow in later phases.
+AI summaries and extracted tasks follow the language of the recording.
 
 ### 3.1 Removing a user
 
