@@ -43,6 +43,7 @@ import { filesRouter } from './routes/api/files.js';
 import { invoicesRouter } from './routes/api/invoices.js';
 import { miscRouter } from './routes/api/misc.js';
 import { transcriptActionsRouter } from './routes/api/transcriptActions.js';
+import { matterTaxonomyRouter } from './routes/api/matterTaxonomy.js';
 import { paystackWebhookRouter } from './routes/api/paystackWebhook.js';
 import { onboardingRouter } from './routes/api/onboarding.js';
 import { billingRouter } from './routes/api/billing.js';
@@ -338,6 +339,7 @@ export function createApp() {
   // Gated behind active subscription / live trial.
   app.use('/api/v1/contracts', requireAuth, requireActiveSubscription, contractsRouter);
   app.use('/api/v1/cases', requireAuth, requireActiveSubscription, casesRouter);
+  app.use('/api/v1/matter-taxonomy', requireAuth, matterTaxonomyRouter);
   app.use('/api/v1/documents', requireAuth, requireActiveSubscription, documentsRouter);
   app.use('/api/v1/search', requireAuth, requireActiveSubscription, searchRouter);
   app.use(

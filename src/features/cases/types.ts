@@ -1,5 +1,7 @@
 export interface CaseType {
   id: string;
+  /** Removed by the firm (Settings → Matter types); only with includeRetired. */
+  retired?: boolean;
   organization_id: string | null; // Made nullable for global case types
   name: string;
   description?: string | null;
@@ -12,6 +14,8 @@ export interface CaseType {
 
 export interface CaseIssue {
   id: string;
+  /** Removed by the firm (Settings → Matter types); only with includeRetired. */
+  retired?: boolean;
   case_type_id: string;
   name: string;
   description?: string | null;

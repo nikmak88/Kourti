@@ -270,6 +270,22 @@ export const schemaCompletionStatements: string[] = [
   `alter table public.invoice_items add column if not exists organization_id uuid`,
   `alter table public.invoices add column if not exists amount numeric(10,2)`,
   `alter table public.impersonation_sessions add column if not exists target_email text`,
+  // Matter taxonomy management (routes/api/matterTaxonomy.ts): a firm can hide
+  // the default (global) types/issues without deleting them - deleting would
+  // be undone by the boot-time seed and would affect other firms on a shared
+  // install - and retire its own items that matters still use.
+  `
+  create table if not exists public.organization_taxonomy_hidden (
+    organization_id uuid not null,
+    item_type text not null check (item_type in ('type', 'issue')),
+    item_id uuid not null,
+    created_by uuid,
+    created_at timestamptz not null default now(),
+    primary key (organization_id, item_type, item_id)
+  )
+  `,
+  `alter table public.case_issues add column if not exists is_active boolean not null default true`,
+
   // Firm-specific issues (null = global, shared by every firm).
   `alter table public.case_issues add column if not exists organization_id uuid`,
   `create index if not exists idx_case_issues_org on public.case_issues (organization_id)`,

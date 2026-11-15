@@ -7,12 +7,17 @@ import { AppError, tryCatch } from '@/lib/error-handling';
  * Hook to fetch case types from the Node backend
  * @returns Case types query result
  */
-export function useCaseTypes() {
+export function useCaseTypes(options?: { includeRetired?: boolean }) {
+  const includeRetired = options?.includeRetired ?? false;
   return useQuery<CaseType[], AppError>({
-    queryKey: ['caseTypes'],
+    // includeRetired: also return types the firm removed (flagged `retired`),
+    // so existing matters still show their type name.
+    queryKey: ['caseTypes', { includeRetired }],
     queryFn: async () => {
       const [data, error] = await tryCatch(async () => {
-        return invokeNodeApi<CaseType[]>('/api/v1/misc/case-types');
+        return invokeNodeApi<CaseType[]>('/api/v1/misc/case-types', {
+          query: includeRetired ? { includeRetired: 'true' } : undefined,
+        });
       });
 
       if (error) {

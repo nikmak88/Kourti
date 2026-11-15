@@ -1294,18 +1294,21 @@ miscRouter.get(
   '/case-types',
   asyncHandler(async (req, res) => {
     const auth = req.auth!;
-    // Return both this firm's own types and the platform-managed GLOBAL types.
-    // Inactive types (admin-disabled) are hidden from the matter dropdown.
-    const result = await db
-      .query(
-        `SELECT * FROM public.case_types
-         WHERE (organization_id = $1 OR is_global = true)
-           AND coalesce(is_active, true) = true
-         ORDER BY name`,
-        [auth.organizationId]
-      )
-      .catch(() => ({ rows: [] }));
-    res.status(200).json(result.rows);
+    // This firm's own types plus the GLOBAL ones, minus those the firm removed
+    // (Settings → Matter types). ?includeRetired=true also returns removed ones
+    // flagged `retired`, so existing matters can still show their type name.
+    const includeRetired = req.query.includeRetired === 'true';
+    const result = await db.query(
+      `SELECT ct.*,
+              (coalesce(ct.is_active, true) = false
+               or exists (select 1 from public.organization_taxonomy_hidden h
+                           where h.organization_id = $1 and h.item_type = 'type' and h.item_id = ct.id)) as retired
+         FROM public.case_types ct
+        WHERE (ct.organization_id = $1 OR ct.is_global = true)
+        ORDER BY ct.name`,
+      [auth.organizationId]
+    );
+    res.status(200).json(includeRetired ? result.rows : result.rows.filter((r) => !r.retired));
   })
 );
 
@@ -1432,19 +1435,25 @@ miscRouter.get(
     const caseTypeId = typeof req.query.caseTypeId === 'string' ? req.query.caseTypeId : undefined;
     // Global issues (shared by every firm) plus this firm's own. Issues belong
     // to a matter type; there is no per-matter issue list.
-    const clauses = ['(organization_id = $1 or organization_id is null or is_global = true)'];
+    const includeRetired = req.query.includeRetired === 'true';
+    const clauses = ['(ci.organization_id = $1 or ci.organization_id is null or ci.is_global = true)'];
     const values: unknown[] = [auth.organizationId];
     if (caseTypeId) {
       uuidLike.parse(caseTypeId);
       values.push(caseTypeId);
-      clauses.push(`case_type_id = $${values.length}`);
+      clauses.push(`ci.case_type_id = $${values.length}`);
     }
     const result = await db.query(
-      `SELECT * FROM public.case_issues WHERE ${clauses.join(' AND ')}
-        ORDER BY (lower(name) = 'other'), name`,
+      `SELECT ci.*,
+              (coalesce(ci.is_active, true) = false
+               or exists (select 1 from public.organization_taxonomy_hidden h
+                           where h.organization_id = $1 and h.item_type = 'issue' and h.item_id = ci.id)) as retired
+         FROM public.case_issues ci
+        WHERE ${clauses.join(' AND ')}
+        ORDER BY (lower(ci.name) = 'other'), ci.name`,
       values
     );
-    res.status(200).json(result.rows);
+    res.status(200).json(includeRetired ? result.rows : result.rows.filter((r) => !r.retired));
   })
 );
 
