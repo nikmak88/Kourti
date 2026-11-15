@@ -10,8 +10,10 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { summarizeContract, extractKeyClauses, redlineContract } from '@/lib/openaiService';
+import { useTranslation } from 'react-i18next';
 
 export function AIReviewDialog({ contractText }: { contractText: string }) {
+  const { t } = useTranslation('contracts');
   const [context, setContext] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<null | {
@@ -38,14 +40,14 @@ export function AIReviewDialog({ contractText }: { contractText: string }) {
         ]);
         setResults({ summary, clauses, redlines });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
+        const message = err instanceof Error ? err.message : t('aiReviewDialog.unknownError');
         console.error('AI Review failed:', message);
-        setError(`AI review failed: ${message}`);
+        setError(t('aiReviewDialog.failed', { message }));
       } finally {
         setLoading(false);
       }
     },
-    [contractText, context]
+    [contractText, context, t]
   );
 
   // Auto-trigger review on mount
@@ -56,10 +58,9 @@ export function AIReviewDialog({ contractText }: { contractText: string }) {
   return (
     <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
       <DialogHeader className="flex-shrink-0">
-        <DialogTitle>AI Review for Contract</DialogTitle>
+        <DialogTitle>{t('aiReviewDialog.title')}</DialogTitle>
         <DialogDescription>
-          The AI will read, summarize, identify key clauses, and redline critical issues/risk areas
-          in this contract.
+          {t('aiReviewDialog.description')}
         </DialogDescription>
       </DialogHeader>
 
@@ -69,7 +70,7 @@ export function AIReviewDialog({ contractText }: { contractText: string }) {
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <p className="text-sm text-muted-foreground">
-                Running AI analysis... This may take a moment.
+                {t('aiReviewDialog.running')}
               </p>
             </div>
           )}
@@ -83,19 +84,19 @@ export function AIReviewDialog({ contractText }: { contractText: string }) {
           {results && !loading && (
             <div className="space-y-6 py-2">
               <div>
-                <h4 className="font-semibold mb-2 text-primary">Summary</h4>
+                <h4 className="font-semibold mb-2 text-primary">{t('aiReviewDialog.summary')}</h4>
                 <div className="bg-muted/60 border border-border rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">
                   {results.summary}
                 </div>
               </div>
               <div>
-                <h4 className="font-semibold mb-2 text-primary">Key Clauses Extracted</h4>
+                <h4 className="font-semibold mb-2 text-primary">{t('aiReviewDialog.keyClauses')}</h4>
                 <div className="bg-muted/60 border border-border rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">
                   {results.clauses}
                 </div>
               </div>
               <div>
-                <h4 className="font-semibold mb-2 text-primary">Redlines & Review Comments</h4>
+                <h4 className="font-semibold mb-2 text-primary">{t('aiReviewDialog.redlines')}</h4>
                 <div className="bg-muted/60 border border-border rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">
                   {results.redlines}
                 </div>
@@ -109,11 +110,11 @@ export function AIReviewDialog({ contractText }: { contractText: string }) {
         {results || error ? (
           <div className="w-full space-y-2">
             <div className="space-y-2">
-              <label className="font-medium text-sm">Review Context (optional)</label>
+              <label className="font-medium text-sm">{t('aiReviewDialog.contextLabel')}</label>
               <Textarea
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
-                placeholder="e.g. Focus on indemnity and limitation of liability."
+                placeholder={t('aiReviewDialog.contextPlaceholderShort')}
                 rows={2}
               />
             </div>
@@ -123,22 +124,22 @@ export function AIReviewDialog({ contractText }: { contractText: string }) {
               variant="outline"
               className="w-full"
             >
-              {loading ? 'Running AI Review...' : 'Run Another Review'}
+              {loading ? t('aiReviewDialog.runningShort') : t('aiReviewDialog.runAnother')}
             </Button>
           </div>
         ) : !loading ? (
           <div className="w-full space-y-2">
             <div className="space-y-2">
-              <label className="font-medium text-sm">Review Context (optional)</label>
+              <label className="font-medium text-sm">{t('aiReviewDialog.contextLabel')}</label>
               <Textarea
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
-                placeholder="e.g. Focus on indemnity and limitation of liability. Flag missing non-compete or dubious payment schedule terms."
+                placeholder={t('aiReviewDialog.contextPlaceholderLong')}
                 rows={3}
               />
             </div>
             <Button onClick={() => handleReview()} disabled={loading} className="w-full">
-              Run Review
+              {t('aiReviewDialog.run')}
             </Button>
           </div>
         ) : null}

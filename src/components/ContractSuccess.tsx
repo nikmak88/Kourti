@@ -10,6 +10,8 @@ import { exportAsDocx, exportContractAsPdf } from '@/lib/documentExport';
 import { useUpdateContract } from '@/hooks/useContracts';
 import { toast } from 'sonner';
 import { sanitizeHTML } from '@/lib/sanitize';
+import { contractTypeLabel } from '@/hooks/useContractTypes';
+import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +35,7 @@ interface ContractSuccessProps {
 }
 
 export function ContractSuccess({ contract, onViewContract }: ContractSuccessProps) {
+  const { t } = useTranslation('contracts');
   const [editedContent, setEditedContent] = useState(contract.terms || '');
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview');
   const updateContract = useUpdateContract();
@@ -44,9 +47,9 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
         terms: editedContent,
       });
       setActiveTab('preview');
-      toast.success('Success', { description: 'Contract updated successfully.' });
+      toast.success(t('common:toast.success'), { description: t('toast.updated') });
     } catch {
-      toast.error('Error', { description: 'Failed to save changes.' });
+      toast.error(t('common:toast.error'), { description: t('toast.saveFailed') });
     }
   };
 
@@ -69,9 +72,9 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
         },
         contract.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()
       );
-      toast.success('Success', { description: 'Contract downloaded as PDF.' });
+      toast.success(t('common:toast.success'), { description: t('toast.downloadedPdf') });
     } catch {
-      toast.error('Error', { description: 'Failed to download PDF.' });
+      toast.error(t('common:toast.error'), { description: t('toast.downloadPdfFailed') });
     }
   };
 
@@ -81,9 +84,9 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
         contract.terms || '',
         contract.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()
       );
-      toast.success('Success', { description: 'Contract downloaded as DOCX.' });
+      toast.success(t('common:toast.success'), { description: t('toast.downloadedDocx') });
     } catch {
-      toast.error('Error', { description: 'Failed to download DOCX.' });
+      toast.error(t('common:toast.error'), { description: t('toast.downloadDocxFailed') });
     }
   };
 
@@ -95,10 +98,10 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
           <CardTitle className="text-2xl text-green-700">
-            Contract Successfully Generated!
+            {t('success.title')}
           </CardTitle>
           <p className="text-muted-foreground mt-2">
-            Your contract has been created using AI. You can review, edit, and download it below.
+            {t('success.description')}
           </p>
         </CardHeader>
 
@@ -113,15 +116,17 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    {contract.status}
+                    {t(`status.${contract.status}`, { defaultValue: contract.status })}
                   </Badge>
                   <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
                     <Bot className="h-3 w-3 mr-1" />
-                    AI Generated
+                    {t('success.aiGenerated')}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Type: {contract.contract_type || 'Contract'}
+                  {t('success.type', {
+                    type: contractTypeLabel(t, contract.contract_type) || t('common:entities.contract'),
+                  })}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -129,13 +134,15 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Download className="h-4 w-4 mr-2" />
-                      Download
+                      {t('common:actions.download')}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={handleDownloadPdf}>Download as PDF</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDownloadPdf}>
+                      {t('success.downloadPdf')}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleDownloadDocx}>
-                      Download as DOCX
+                      {t('success.downloadDocx')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -150,10 +157,9 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
                 <span className="text-amber-600 text-sm font-bold">!</span>
               </div>
               <div>
-                <h4 className="font-medium text-amber-800 mb-1">Review Required</h4>
+                <h4 className="font-medium text-amber-800 mb-1">{t('success.reviewRequired')}</h4>
                 <p className="text-sm text-amber-700">
-                  This contract was generated by AI and should be reviewed by legal counsel before
-                  use. Please verify all terms, conditions, and details are accurate.
+                  {t('success.reviewNotice')}
                 </p>
               </div>
             </div>
@@ -164,11 +170,11 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="preview">
                 <Eye className="h-4 w-4 mr-2" />
-                Preview
+                {t('success.preview')}
               </TabsTrigger>
               <TabsTrigger value="edit">
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Live
+                {t('success.editLive')}
               </TabsTrigger>
             </TabsList>
 
@@ -188,7 +194,7 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
               <div className="flex justify-end">
                 <Button onClick={() => setActiveTab('edit')}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Contract
+                  {t('list.actions.edit')}
                 </Button>
               </div>
             </TabsContent>
@@ -206,11 +212,13 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={handleCancelEdit}>
                   <X className="h-4 w-4 mr-2" />
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
                 <Button onClick={handleSaveEdit} disabled={updateContract.isPending}>
                   <Save className="h-4 w-4 mr-2" />
-                  {updateContract.isPending ? 'Saving...' : 'Save Changes'}
+                  {updateContract.isPending
+                    ? t('common:status.saving')
+                    : t('common:actions.saveChanges')}
                 </Button>
               </div>
             </TabsContent>
@@ -220,29 +228,29 @@ export function ContractSuccess({ contract, onViewContract }: ContractSuccessPro
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
             <Button onClick={onViewContract} variant="outline" className="flex-1">
               <Eye className="h-4 w-4 mr-2" />
-              View Full Contract
+              {t('success.viewFull')}
             </Button>
 
             <Button variant="outline" className="flex-1">
               <Share className="h-4 w-4 mr-2" />
-              Share
+              {t('common:actions.share')}
             </Button>
           </div>
 
           {/* Quick Actions */}
           <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground mb-3">Quick Actions:</p>
+            <p className="text-sm text-muted-foreground mb-3">{t('success.quickActions')}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/contracts/create">Create Another Contract</Link>
+                <Link to="/contracts/create">{t('success.createAnother')}</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/contracts">Back to Contracts</Link>
+                <Link to="/contracts">{t('shared.backToContracts')}</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link to={`/ream-ai?contract=${contract.id}`}>
                   <Bot className="h-3 w-3 mr-1" />
-                  AI Analysis
+                  {t('success.aiAnalysis')}
                 </Link>
               </Button>
             </div>

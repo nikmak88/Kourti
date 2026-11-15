@@ -57,6 +57,10 @@ const envSchema = z.object({
   // Language for users who have not chosen one (emails, AI replies). The web
   // app gets the same value at build time as VITE_DEFAULT_LANGUAGE.
   DEFAULT_LANGUAGE: z.enum(['en', 'el']).catch('en').default('en'),
+  // Task reminders (services/taskReminders.ts) go out on the reminder day from
+  // this hour, in this time zone (the firm's local time).
+  REMINDER_TIMEZONE: z.string().default('Europe/Athens'),
+  REMINDER_HOUR: z.coerce.number().int().min(0).max(23).default(8),
   RAG_MATCH_THRESHOLD: z.coerce.number().min(0).max(1).default(0.3),
 
   ANTHROPIC_API_KEY: z.string().optional(),

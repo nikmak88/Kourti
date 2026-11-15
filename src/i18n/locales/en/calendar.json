@@ -110,7 +110,10 @@
     "description": "Event details and information",
     "edit": "Edit Event",
     "delete": "Delete Event",
-    "deleteFailed": "Failed to delete event"
+    "deleteFailed": "Failed to delete event",
+    "fromHearing": "Next hearing date of a matter. Change it on the matter.",
+    "fromTask": "Open task of matter “{{matter}}”. Change or complete it on the matter.",
+    "openMatter": "Open matter"
   },
   "recurrence": {
     "recurringEvent": "Recurring Event",
@@ -259,5 +262,20 @@
       "startedDescription": "Syncing {{provider}} calendar...",
       "startFailed": "Failed to start sync"
     }
+  },
+  "feed": {
+    "title": "Subscribe from Outlook / Google",
+    "description": "Your personal calendar link. Add it to your email calendar once; it updates by itself (about every hour).",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "subscribe": "Open in my calendar app",
+    "download": "Download .ics",
+    "howOutlook": "Outlook: Add calendar → Subscribe from web (or From internet) → paste the link.",
+    "howGoogle": "Google Calendar: Other calendars → + → From URL → paste the link. Google fetches it from its own servers, so this works only if Kourti is reachable from the internet.",
+    "contents": "Contains the firm's calendar events, the matters' hearing dates and your open tasks with their reminders.",
+    "private": "Anyone with this link can read these entries. If it leaks, reset it: the old link stops working.",
+    "reset": "Reset link",
+    "resetConfirm": "Create a new link? Calendars subscribed with the current link stop updating.",
+    "resetDone": "New link created - subscribe again with it."
   }
 }

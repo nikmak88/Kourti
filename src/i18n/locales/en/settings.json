@@ -1,15 +1,50 @@
 {
   "nav": {
     "title": "Settings",
-    "profile": { "label": "Profile", "description": "Personal details & security" },
-    "organization": { "label": "Organization", "description": "Workspace settings & branding" },
-    "billing": { "label": "Billing", "description": "Plans & payment history" },
-    "roles": { "label": "Roles & Team", "description": "Manage roles and members" },
-    "matterTypes": { "label": "Matter types", "description": "Types & issues for new matters" },
-    "permissions": { "label": "Permissions", "description": "Granular access control" },
-    "sso": { "label": "Single Sign-On", "description": "Identity provider setup" },
-    "monitoring": { "label": "Monitoring & Alerts", "description": "Deadlines, expirations & changes" },
-    "privacy": { "label": "Privacy & Data", "description": "Consent, export & deletion rights" }
+    "profile": {
+      "label": "Profile",
+      "description": "Personal details & security"
+    },
+    "organization": {
+      "label": "Organization",
+      "description": "Workspace settings & branding"
+    },
+    "billing": {
+      "label": "Billing",
+      "description": "Plans & payment history"
+    },
+    "roles": {
+      "label": "Roles & Team",
+      "description": "Manage roles and members"
+    },
+    "matterTypes": {
+      "label": "Matter types",
+      "description": "Types & issues for new matters"
+    },
+    "permissions": {
+      "label": "Permissions",
+      "description": "Granular access control"
+    },
+    "sso": {
+      "label": "Single Sign-On",
+      "description": "Identity provider setup"
+    },
+    "monitoring": {
+      "label": "Monitoring & Alerts",
+      "description": "Deadlines, expirations & changes"
+    },
+    "privacy": {
+      "label": "Privacy & Data",
+      "description": "Consent, export & deletion rights"
+    },
+    "contractTypes": {
+      "label": "Contract types",
+      "description": "Types offered for new contracts"
+    },
+    "taskTypes": {
+      "label": "Task types & reminders",
+      "description": "Default reminders, browser notifications"
+    }
   },
   "profile": {
     "personal": {
@@ -369,6 +404,62 @@
       "summaryTypesReplace": "Types: {{created}} new, {{restored}} restored, {{kept}} unchanged, {{removed}} removed.",
       "summaryIssues": "Issues: {{created}} new, {{restored}} restored, {{kept}} unchanged.",
       "summaryIssuesReplace": "Issues: {{created}} new, {{restored}} restored, {{kept}} unchanged, {{removed}} removed."
+    }
+  },
+  "contractTypes": {
+    "intro": "The types offered when creating, uploading or editing a <strong>contract</strong>. Removing a type hides it from new contracts; existing contracts keep it, and it can be restored. Default types can be removed but not renamed - add your own instead. Renaming your own type also renames it on existing contracts.",
+    "addType": "Add contract type",
+    "newTypePlaceholder": "New contract type, e.g. Construction contract",
+    "empty": "No contract types. Add one or import a CSV.",
+    "removeType": "Remove type",
+    "removeAllDefaults_one": "Remove all defaults ({{count}})",
+    "removeAllDefaults_other": "Remove all defaults ({{count}})",
+    "removal": {
+      "hidden": "\"{{name}}\" removed for your firm (default types can be restored).",
+      "retired_one": "\"{{name}}\" retired: no longer offered for new contracts; {{count}} existing contract keeps it.",
+      "retired_other": "\"{{name}}\" retired: no longer offered for new contracts; {{count}} existing contracts keep it.",
+      "deleted": "\"{{name}}\" deleted."
+    },
+    "removeDefaults": {
+      "title_one": "Remove all {{count}} default contract types?",
+      "title_other": "Remove all {{count}} default contract types?",
+      "description": "They will no longer be offered for new contracts. Existing contracts keep their type. You can restore any of them later with \"Show removed\".",
+      "confirm": "Remove defaults",
+      "done_one": "{{count}} default type removed",
+      "done_other": "{{count}} default types removed"
+    },
+    "import": {
+      "title": "Import contract types from {{file}}",
+      "found_one": "{{count}} type found.",
+      "found_other": "{{count}} types found.",
+      "columnType": "Contract type",
+      "columnDescription": "Description",
+      "modeMerge": "<strong>Add to the current list</strong> - nothing is removed; existing names are reused.",
+      "modeReplace": "<strong>Replace the current list</strong> - every type not in the file is removed (defaults hidden, unused custom ones deleted, ones used by contracts retired).",
+      "expectedColumns": "Expected columns: contract_type, description (optional).",
+      "summary": "{{created}} new, {{restored}} restored, {{kept}} unchanged.",
+      "summaryReplace": "{{created}} new, {{restored}} restored, {{kept}} unchanged, {{removed}} removed."
+    }
+  },
+  "taskTypes": {
+    "intro": "Each task type can have a default reminder: new tasks of that type start with it, and the person creating the task can switch it off or change it. Reminders go to the task's assignee on the day (from 08:00), by the channels you tick.",
+    "reminder": "Reminder",
+    "adminOnly": "Only firm administrators can change the defaults.",
+    "push": {
+      "title": "Browser notifications on this device",
+      "enable": "Turn on",
+      "disable": "Turn off",
+      "test": "Send test",
+      "testTitle": "Kourti",
+      "testBody": "Browser notifications work on this device.",
+      "testFailed": "No notification could be delivered to this browser.",
+      "state": {
+        "on": "On - reminders with the “Browser push” channel appear here even when Kourti is closed.",
+        "off": "Off for this browser.",
+        "denied": "Blocked in the browser settings for this site; allow notifications there first.",
+        "unsupported": "This browser does not support push notifications.",
+        "insecure": "Not available: the site needs a trusted HTTPS certificate (import the server certificate as trusted on this PC)."
+      }
     }
   }
 }

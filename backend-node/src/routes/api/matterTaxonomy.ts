@@ -387,6 +387,8 @@ const importSchema = z.object({
         issue: z.string().trim().max(200).optional().default(''),
         type_description: description,
         issue_description: description,
+        // Optional 5th CSV column: procedural deadline rules for the type (lib/deadlines).
+        deadline_rules: z.enum(['gr_ordinary', 'gr_small_claims']).optional().catch(undefined),
       })
     )
     .min(1)
@@ -399,113 +401,136 @@ matterTaxonomyRouter.post(
     const { userId, organizationId: org } = req.auth!;
     await requireAdmin(userId, org);
     const body = importSchema.parse(req.body);
-
-    // Group rows by type (case-insensitive), keeping the first spelling.
-    const wanted = new Map<string, { name: string; description?: string; issues: Map<string, { name: string; description?: string }> }>();
-    for (const row of body.rows) {
-      const key = row.type.toLowerCase();
-      if (!wanted.has(key)) wanted.set(key, { name: row.type, description: row.type_description, issues: new Map() });
-      const entry = wanted.get(key)!;
-      if (!entry.description && row.type_description) entry.description = row.type_description;
-      if (row.issue && !entry.issues.has(row.issue.toLowerCase())) {
-        entry.issues.set(row.issue.toLowerCase(), { name: row.issue, description: row.issue_description });
-      }
-    }
-
-    const stats = {
-      types_created: 0,
-      types_restored: 0,
-      types_kept: 0,
-      issues_created: 0,
-      issues_restored: 0,
-      issues_kept: 0,
-      types_removed: 0,
-      issues_removed: 0,
-    };
-
-    const client = await db.connect();
-    try {
-      await client.query('begin');
-      const types = await loadTypes(client, org);
-      const keptTypeIds = new Set<string>();
-
-      for (const [key, w] of wanted) {
-        // Prefer an active match, then the firm's own, then a default.
-        const candidates = types.filter((t) => t.name.trim().toLowerCase() === key);
-        const match =
-          candidates.find((t) => !isRemoved(t)) ??
-          candidates.find((t) => isOwn(t, org)) ??
-          candidates[0];
-        let typeId: string;
-        if (match) {
-          typeId = match.id;
-          if (isRemoved(match)) {
-            await restoreType(client, org, match);
-            stats.types_restored++;
-          } else {
-            stats.types_kept++;
-          }
-        } else {
-          const r = await client.query<{ id: string }>(
-            `insert into public.case_types (name, description, is_active, is_global, organization_id, created_by)
-             values ($1, $2, true, false, $3, $4) returning id`,
-            [w.name, w.description || null, org, userId]
-          );
-          typeId = r.rows[0].id;
-          stats.types_created++;
-        }
-        keptTypeIds.add(typeId);
-
-        const issues = await loadIssues(client, org, [typeId]);
-        const keptIssueIds = new Set<string>();
-        for (const [ikey, wi] of w.issues) {
-          const ic = issues.filter((i) => i.name.trim().toLowerCase() === ikey);
-          const im = ic.find((i) => !isRemoved(i)) ?? ic.find((i) => isOwn(i, org)) ?? ic[0];
-          if (im) {
-            keptIssueIds.add(im.id);
-            if (isRemoved(im)) {
-              await restoreIssue(client, org, im);
-              stats.issues_restored++;
-            } else {
-              stats.issues_kept++;
-            }
-          } else {
-            const r = await client.query<{ id: string }>(
-              `insert into public.case_issues (case_type_id, organization_id, name, description, is_global)
-               values ($1, $2, $3, $4, false) returning id`,
-              [typeId, org, wi.name, wi.description || null]
-            );
-            keptIssueIds.add(r.rows[0].id);
-            stats.issues_created++;
-          }
-        }
-        if (body.replace) {
-          for (const i of issues) {
-            if (!keptIssueIds.has(i.id) && !isRemoved(i)) {
-              await removeIssue(client, org, userId, i);
-              stats.issues_removed++;
-            }
-          }
-        }
-      }
-
-      if (body.replace) {
-        for (const t of types) {
-          if (!keptTypeIds.has(t.id) && !isRemoved(t)) {
-            await removeType(client, org, userId, t);
-            stats.types_removed++;
-          }
-        }
-      }
-
-      await client.query('commit');
-    } catch (err) {
-      await client.query('rollback').catch(() => undefined);
-      throw err;
-    } finally {
-      client.release();
-    }
-
+    const stats = await importTaxonomy(org, userId, body);
     res.status(200).json({ ok: true, ...stats });
   })
 );
+
+export type TaxonomyImport = z.input<typeof importSchema>;
+
+/**
+ * Merge rows into a firm's matter types/issues (matching names case-
+ * insensitively, restoring removed items); with `replace`, remove every active
+ * type/issue that is not in the rows. One transaction. Also used by
+ * `kourtictl matter-types import` (scripts/importMatterTypes.ts).
+ */
+export async function importTaxonomy(org: string, userId: string, input: TaxonomyImport) {
+  const body = importSchema.parse(input);
+
+  // Group rows by type (case-insensitive), keeping the first spelling.
+  const wanted = new Map<string, { name: string; description?: string; deadlineRules?: string; issues: Map<string, { name: string; description?: string }> }>();
+  for (const row of body.rows) {
+    const key = row.type.toLowerCase();
+    if (!wanted.has(key)) wanted.set(key, { name: row.type, description: row.type_description, issues: new Map() });
+    if (row.deadline_rules) wanted.get(key)!.deadlineRules = row.deadline_rules;
+    const entry = wanted.get(key)!;
+    if (!entry.description && row.type_description) entry.description = row.type_description;
+    if (row.issue && !entry.issues.has(row.issue.toLowerCase())) {
+      entry.issues.set(row.issue.toLowerCase(), { name: row.issue, description: row.issue_description });
+    }
+  }
+
+  const stats = {
+    types_created: 0,
+    types_restored: 0,
+    types_kept: 0,
+    issues_created: 0,
+    issues_restored: 0,
+    issues_kept: 0,
+    types_removed: 0,
+    issues_removed: 0,
+  };
+
+  const client = await db.connect();
+  try {
+    await client.query('begin');
+    const types = await loadTypes(client, org);
+    const keptTypeIds = new Set<string>();
+
+    for (const [key, w] of wanted) {
+      // Prefer an active match, then the firm's own, then a default.
+      const candidates = types.filter((t) => t.name.trim().toLowerCase() === key);
+      const match =
+        candidates.find((t) => !isRemoved(t)) ??
+        candidates.find((t) => isOwn(t, org)) ??
+        candidates[0];
+      let typeId: string;
+      if (match) {
+        typeId = match.id;
+        if (isRemoved(match)) {
+          await restoreType(client, org, match);
+          stats.types_restored++;
+        } else {
+          stats.types_kept++;
+        }
+      } else {
+        const r = await client.query<{ id: string }>(
+          `insert into public.case_types (name, description, is_active, is_global, organization_id, created_by)
+           values ($1, $2, true, false, $3, $4) returning id`,
+          [w.name, w.description || null, org, userId]
+        );
+        typeId = r.rows[0].id;
+        stats.types_created++;
+      }
+      keptTypeIds.add(typeId);
+      if (w.deadlineRules) {
+        await client.query(
+          `insert into public.case_type_deadline_settings (organization_id, case_type_id, rules, defaults)
+           values ($1, $2, $3, '{"defendant_abroad":false,"state_party":false,"summons":false,"incidental":false}'::jsonb)
+           on conflict (organization_id, case_type_id) do update set rules = excluded.rules, updated_at = now()`,
+          [org, typeId, w.deadlineRules]
+        );
+      }
+
+      const issues = await loadIssues(client, org, [typeId]);
+      const keptIssueIds = new Set<string>();
+      for (const [ikey, wi] of w.issues) {
+        const ic = issues.filter((i) => i.name.trim().toLowerCase() === ikey);
+        const im = ic.find((i) => !isRemoved(i)) ?? ic.find((i) => isOwn(i, org)) ?? ic[0];
+        if (im) {
+          keptIssueIds.add(im.id);
+          if (isRemoved(im)) {
+            await restoreIssue(client, org, im);
+            stats.issues_restored++;
+          } else {
+            stats.issues_kept++;
+          }
+        } else {
+          const r = await client.query<{ id: string }>(
+            `insert into public.case_issues (case_type_id, organization_id, name, description, is_global)
+             values ($1, $2, $3, $4, false) returning id`,
+            [typeId, org, wi.name, wi.description || null]
+          );
+          keptIssueIds.add(r.rows[0].id);
+          stats.issues_created++;
+        }
+      }
+      if (body.replace) {
+        for (const i of issues) {
+          if (!keptIssueIds.has(i.id) && !isRemoved(i)) {
+            await removeIssue(client, org, userId, i);
+            stats.issues_removed++;
+          }
+        }
+      }
+    }
+
+    if (body.replace) {
+      for (const t of types) {
+        if (!keptTypeIds.has(t.id) && !isRemoved(t)) {
+          await removeType(client, org, userId, t);
+          stats.types_removed++;
+        }
+      }
+    }
+
+    await client.query('commit');
+  } catch (err) {
+    await client.query('rollback').catch(() => undefined);
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  return stats;
+}

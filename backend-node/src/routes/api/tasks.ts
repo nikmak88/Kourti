@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '../../db/pool.js';
 import { ApiError, asyncHandler } from '../../lib/http.js';
 import { recordCaseEvent } from '../../services/caseEvents.js';
+import { REMINDER_CHANNELS } from '../../services/taskReminders.js';
 
 const listTasksQuerySchema = z.object({
   caseId: z.string().uuid(),
@@ -15,8 +16,17 @@ const createTaskBodySchema = z.object({
   description: z.string().optional(),
   due_date: z.string().optional(),
   priority: z.enum(['high', 'medium', 'low']).optional(),
-  assigned_to: z.string().uuid().optional(),
+  // Omitted → the creator; 'unassigned' → nobody. (app.ts strips nulls from
+  // request bodies, so "no value" needs an explicit sentinel.)
+  assigned_to: z.union([z.string().uuid(), z.literal('unassigned')]).optional(),
   task_type: z.string().optional(),
+  // Reminder (services/taskReminders.ts). Omitted on create → the firm's
+  // default for the task type (task_type_settings).
+  reminder_enabled: z.boolean().optional(),
+  reminder_days: z.number().int().min(0).max(365).nullable().optional(),
+  reminder_channels: z.array(z.enum(REMINDER_CHANNELS)).max(3).nullable().optional(),
+  // Computed procedural deadline the due date was taken from (lib/deadlines); '' clears it.
+  deadline_key: z.string().max(64).optional(),
 });
 
 const updateTaskParamsSchema = z.object({
@@ -66,6 +76,22 @@ tasksRouter.post(
       throw new ApiError('Case not found', 404, 'NOT_FOUND');
     }
 
+    // Reminder defaults of the task type, unless the client sent its own.
+    let reminderEnabled = body.reminder_enabled;
+    let reminderDays = body.reminder_days ?? null;
+    let reminderChannels: string[] | null = body.reminder_channels ?? null;
+    if (reminderEnabled === undefined) {
+      const def = await db.query<{ reminder_enabled: boolean; reminder_days: number; reminder_channels: string[] }>(
+        `select reminder_enabled, reminder_days, reminder_channels from public.task_type_settings
+          where organization_id = $1 and task_type = $2`,
+        [auth.organizationId, body.task_type || 'general']
+      );
+      const d = def.rows[0];
+      reminderEnabled = d?.reminder_enabled ?? false;
+      if (d && reminderDays === null) reminderDays = d.reminder_days;
+      if (d && reminderChannels === null) reminderChannels = d.reminder_channels;
+    }
+
     const result = await db.query(
       `
       insert into public.tasks (
@@ -78,9 +104,13 @@ tasksRouter.post(
         task_type,
         created_by,
         completed,
+        reminder_enabled,
+        reminder_days,
+        reminder_channels,
+        deadline_key,
         updated_at
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, false, now())
+      values ($1, $2, $3, $4, $5, $6, $7, $8, false, $9, $10, $11, $12, now())
       returning *
       `,
       [
@@ -89,9 +119,14 @@ tasksRouter.post(
         body.description || null,
         body.due_date || null,
         body.priority || null,
-        body.assigned_to || null,
+        // Tasks belong to whoever creates them unless assigned to someone else.
+        body.assigned_to === undefined ? auth.userId : body.assigned_to === 'unassigned' ? null : body.assigned_to,
         body.task_type || null,
         auth.userId,
+        reminderEnabled,
+        reminderDays,
+        reminderChannels,
+        body.deadline_key || null,
       ]
     );
 
@@ -133,10 +168,18 @@ tasksRouter.patch(
       { column: 'description', value: body.description },
       { column: 'due_date', value: body.due_date },
       { column: 'priority', value: body.priority },
-      { column: 'assigned_to', value: body.assigned_to },
+      { column: 'assigned_to', value: body.assigned_to === 'unassigned' ? null : body.assigned_to },
       { column: 'task_type', value: body.task_type },
       { column: 'completed', value: body.completed },
+      { column: 'reminder_enabled', value: body.reminder_enabled },
+      { column: 'reminder_days', value: body.reminder_days },
+      { column: 'reminder_channels', value: body.reminder_channels },
+      { column: 'deadline_key', value: body.deadline_key === undefined ? undefined : body.deadline_key || null },
     ].filter((entry) => entry.value !== undefined);
+    // A new due date or reminder re-arms the reminder.
+    const rearm = [body.due_date, body.reminder_enabled, body.reminder_days, body.reminder_channels].some(
+      (v) => v !== undefined
+    );
 
     if (!updates.length) {
       throw new ApiError('No update fields provided', 400, 'VALIDATION_ERROR');
@@ -148,7 +191,7 @@ tasksRouter.patch(
     const result = await db.query(
       `
       update public.tasks
-      set ${setClause}, updated_at = now()
+      set ${setClause}, updated_at = now()${rearm ? ', reminder_sent_at = null' : ''}
       where id = $${updates.length + 1}
       returning *
       `,

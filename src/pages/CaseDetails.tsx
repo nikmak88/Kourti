@@ -35,10 +35,8 @@ import {
 } from 'lucide-react';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
-import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useOrganizationMembers } from '@/hooks/useOrganization';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -60,6 +58,10 @@ import { useHasFeature, FEATURE_META } from '@/hooks/useEntitlements';
 import { useSetPortalPrivate } from '@/features/clientPortal/api';
 import { Lock, ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { TaskDialog } from '@/components/tasks/TaskDialog';
+import { DeadlinesPanel } from '@/components/deadlines/DeadlinesPanel';
+import { useDeadlineOptions } from '@/hooks/useCaseDeadlines';
+import { TASK_TYPES } from '@/lib/taskTypes';
 import { formatDate, formatNumber } from '@/i18n/dates';
 
 export default function CaseDetails() {
@@ -70,6 +72,7 @@ export default function CaseDetails() {
   const updateCase = useUpdateCase();
   const setPortalPrivate = useSetPortalPrivate(id!);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const deadlineOptions = useDeadlineOptions(id);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [showActivityDialog, setShowActivityDialog] = useState(false);
 
@@ -254,6 +257,9 @@ export default function CaseDetails() {
             </CardContent>
           </Card>
 
+          {/* Procedural deadlines (matter types with a rule set only) */}
+          <DeadlinesPanel caseId={caseData.id} />
+
           {/* Tasks Section */}
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -401,7 +407,12 @@ export default function CaseDetails() {
       </div>
 
       {/* Task Creation Dialog */}
-      <NewTaskDialog open={showTaskDialog} onOpenChange={setShowTaskDialog} caseId={caseData.id} />
+      <TaskDialog
+        open={showTaskDialog}
+        onOpenChange={setShowTaskDialog}
+        caseId={caseData.id}
+        deadlines={deadlineOptions}
+      />
 
       {/* Document Attachment Dialog */}
       <DocumentAttachDialog
@@ -484,21 +495,6 @@ function ClientPortalSection({ caseId, caseData }: { caseId: string; caseData: a
   );
 }
 
-// Task type values; short labels live in tasks:typesShort.<value>.
-const TASK_TYPES = [
-  'general',
-  'court_appearance',
-  'client_visit',
-  'document_review',
-  'research',
-  'filing',
-  'deposition',
-  'meeting',
-  'phone_call',
-  'investigation',
-  'negotiation',
-  'contract_draft',
-] as const;
 
 function taskTypeShortKey(type?: string) {
   return `typesShort.${(TASK_TYPES as readonly string[]).includes(type ?? '') ? type : 'general'}`;
@@ -510,6 +506,7 @@ function priorityBadgeVariant(priority?: string) {
 
 function TasksSection({ caseId }: { caseId: string }) {
   const { t } = useTranslation('tasks');
+  const deadlineOptions = useDeadlineOptions(caseId);
   const { data: tasks = [], isLoading } = useTasks(caseId);
   const { data: users = [] } = useOrganizationMembers();
   const total = tasks.length;
@@ -686,202 +683,15 @@ function TasksSection({ caseId }: { caseId: string }) {
       </div>
       {/* Edit Task Dialog */}
       {editTask && (
-        <NewTaskDialog
+        <TaskDialog
           open={!!editTask}
           onOpenChange={() => setEditTask(null)}
           caseId={caseId}
           existing={editTask}
+          deadlines={deadlineOptions}
         />
       )}
     </div>
-  );
-}
-
-// --- Create/Edit Task Dialog ---
-function NewTaskDialog({
-  open,
-  onOpenChange,
-  caseId,
-  existing,
-}: {
-  open: boolean;
-  onOpenChange: (b: boolean) => void;
-  caseId: string;
-  existing?: any;
-}) {
-  const isEdit = !!existing;
-  const { t } = useTranslation('tasks');
-  const { data: users = [] } = useOrganizationMembers();
-  const createTask = useCreateTask();
-  const updateTask = useUpdateTask();
-  const [form, setForm] = useState(() =>
-    existing
-      ? { ...existing }
-      : {
-          title: '',
-          description: '',
-          due_date: '',
-          priority: 'medium',
-          assigned_to: 'unassigned',
-          task_type: 'general',
-        }
-  );
-  const [submitting, setSubmitting] = useState(false);
-
-  // Task types for legal practice
-  const taskTypes = TASK_TYPES.map((value) => ({ value, label: t(`types.${value}`) }));
-
-  function handleChange(e: any) {
-    setForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setSubmitting(true);
-    if (isEdit) {
-      updateTask.mutate(
-        { ...form, case_id: caseId, id: existing.id },
-        {
-          onSuccess: () => {
-            setSubmitting(false);
-            onOpenChange(false);
-          },
-          onError: () => setSubmitting(false),
-        }
-      );
-    } else {
-      createTask.mutate(
-        { ...form, case_id: caseId },
-        {
-          onSuccess: () => {
-            setSubmitting(false);
-            onOpenChange(false);
-            setForm({
-              title: '',
-              description: '',
-              due_date: '',
-              priority: 'medium',
-              assigned_to: 'unassigned',
-              task_type: 'general',
-            });
-          },
-          onError: () => setSubmitting(false),
-        }
-      );
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4" id="task-form">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('dialog.titleLabel')} *</label>
-              <Input
-                name="title"
-                value={form.title}
-                onChange={handleChange}
-                placeholder={t('dialog.titlePlaceholder')}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('dialog.typeLabel')}</label>
-              <Select
-                value={form.task_type}
-                onValueChange={(value) => setForm((prev: any) => ({ ...prev, task_type: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('dialog.typePlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {taskTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('common:time.dueDate')}</label>
-              <Input
-                name="due_date"
-                type="date"
-                value={form.due_date ? form.due_date.substring(0, 10) : ''}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('common:fields.priority')}</label>
-              <Select
-                value={form.priority}
-                onValueChange={(value) => setForm((prev: any) => ({ ...prev, priority: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="high">{t('dialog.priorityOption.high')}</SelectItem>
-                  <SelectItem value="medium">{t('dialog.priorityOption.medium')}</SelectItem>
-                  <SelectItem value="low">{t('dialog.priorityOption.low')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">{t('dialog.assignTo')}</label>
-              <Select
-                value={form.assigned_to}
-                onValueChange={(value) => setForm((prev: any) => ({ ...prev, assigned_to: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('dialog.assigneePlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">{t('unassigned')}</SelectItem>
-                  {users.map((u: any) => (
-                    <SelectItem key={u.user_id} value={u.user_id}>
-                      {u.first_name} {u.last_name} ({u.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">{t('common:fields.description')}</label>
-              <Textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder={t('dialog.descriptionPlaceholder')}
-                rows={3}
-              />
-            </div>
-          </div>
-        </form>
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)} variant="outline">
-            {t('common:actions.cancel')}
-          </Button>
-          <Button type="submit" form="task-form" disabled={submitting}>
-            {submitting
-              ? t('common:status.saving')
-              : isEdit
-                ? t('dialog.saveChanges')
-                : t('dialog.submitCreate')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

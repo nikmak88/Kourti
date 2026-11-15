@@ -113,6 +113,8 @@ export function useCreateCase() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      // Hearing dates and task due dates are shown on the calendar.
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       toast.success('Success', { description: 'Matter created successfully.' });
     },
     onError: (error: Error) => {
@@ -140,7 +142,11 @@ export function useUpdateCase() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['case', data.id] });
+      // The hearing date feeds the matter's procedural deadlines.
+      queryClient.invalidateQueries({ queryKey: ['case-deadlines', data.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      // Hearing dates and task due dates are shown on the calendar.
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       toast.success('Success', { description: 'Matter updated successfully.' });
     },
     onError: (error: Error) => {
@@ -168,6 +174,8 @@ export function useDeleteCase() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      // Hearing dates and task due dates are shown on the calendar.
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       toast.success('Success', { description: 'Matter deleted successfully.' });
     },
     onError: (error: Error) => {

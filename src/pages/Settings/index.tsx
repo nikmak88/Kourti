@@ -17,6 +17,8 @@ import {
   Bell,
   ShieldAlert,
   FolderTree,
+  FileSignature,
+  ListChecks,
 } from 'lucide-react';
 
 const PrivacyTab = lazy(() => import('./PrivacyTab'));
@@ -24,6 +26,8 @@ const PrivacyTab = lazy(() => import('./PrivacyTab'));
 const SSOTab = lazy(() => import('./SSOTab'));
 const BillingTab = lazy(() => import('./BillingTab'));
 const MatterTypesTab = lazy(() => import('./MatterTypesTab'));
+const ContractTypesTab = lazy(() => import('./ContractTypesTab'));
+const TaskTypesTab = lazy(() => import('./TaskTypesTab'));
 const AgentMonitors = lazy(() => import('@/pages/AgentMonitors'));
 
 const AVAILABLE_TABS = [
@@ -32,6 +36,8 @@ const AVAILABLE_TABS = [
   'billing',
   'roles',
   'matter-types',
+  'contract-types',
+  'task-types',
   'permissions',
   'sso',
   'monitoring',
@@ -116,6 +122,19 @@ export default function Settings() {
         description: t('nav.matterTypes.description'),
         icon: FolderTree,
         adminOnly: true,
+      },
+      {
+        value: 'contract-types',
+        label: t('nav.contractTypes.label'),
+        description: t('nav.contractTypes.description'),
+        icon: FileSignature,
+        adminOnly: true,
+      },
+      {
+        value: 'task-types',
+        label: t('nav.taskTypes.label'),
+        description: t('nav.taskTypes.description'),
+        icon: ListChecks,
       },
       {
         value: 'permissions',
@@ -257,6 +276,18 @@ function SettingsContent({ tab }: { tab: TabValue; activeItem?: NavItem }) {
       return (
         <Suspense fallback={fallback}>
           <MatterTypesTab />
+        </Suspense>
+      );
+    case 'contract-types':
+      return (
+        <Suspense fallback={fallback}>
+          <ContractTypesTab />
+        </Suspense>
+      );
+    case 'task-types':
+      return (
+        <Suspense fallback={fallback}>
+          <TaskTypesTab />
         </Suspense>
       );
     case 'permissions':

@@ -10,7 +10,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { CalendarEvent, CalendarEventWithOwner } from '@/types';
 import { format } from 'date-fns';
-import { Clock, MapPin, Users, FileText, Edit, Trash2, User } from 'lucide-react';
+import { Clock, MapPin, Users, FileText, Edit, Trash2, User, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useDeleteCalendarEvent } from '@/hooks/useCalendar';
 import { toast } from 'sonner';
 import { EventEditDialog } from './EventEditDialog';
@@ -27,8 +28,13 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
   const [showEditDialog, setShowEditDialog] = useState(false);
   const deleteEvent = useDeleteCalendarEvent();
   const { t } = useTranslation('calendar');
+  const navigate = useNavigate();
 
   if (!event) return null;
+
+  // Hearing dates and open tasks come from matters (GET /calendar/events adds
+  // them); they are changed on the matter, not here.
+  const fromMatter = !!event.read_only;
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
@@ -136,7 +142,27 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
             </div>
 
             {/* Actions */}
+            {fromMatter && (
+              <p className="text-sm text-muted-foreground">
+                {event.source === 'task'
+                  ? t('view.fromTask', { matter: event.case_title ?? '' })
+                  : t('view.fromHearing')}
+              </p>
+            )}
             <div className="flex justify-between pt-4 border-t">
+              {fromMatter ? (
+                <Button
+                  variant="outline"
+                  disabled={!event.case_id}
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate(`/matters/${event.case_id}`);
+                  }}
+                >
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  {t('view.openMatter')}
+                </Button>
+              ) : (
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
@@ -147,6 +173,7 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
                   {t('view.delete')}
                 </Button>
               </div>
+              )}
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 {t('common:actions.close')}
               </Button>
@@ -157,7 +184,7 @@ export function EventViewDialog({ event, open, onOpenChange }: EventViewDialogPr
 
       <EventEditDialog
         event={event as CalendarEvent}
-        open={showEditDialog}
+        open={showEditDialog && !fromMatter}
         onOpenChange={handleEditClose}
       />
     </>

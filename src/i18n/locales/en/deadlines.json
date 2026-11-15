@@ -1,0 +1,80 @@
+{
+  "title": "Procedural deadlines",
+  "rules": {
+    "gr_ordinary": "Greek ordinary procedure (L. 5221/2025)",
+    "gr_small_claims": "Greek small claims (art. 468 CCP)",
+    "none": "No deadline calculation"
+  },
+  "keys": {
+    "service": "Service of the claim",
+    "interventions": "Interventions, third-party notices, counterclaims",
+    "interventionAfterNotice": "Intervention after third-party notice",
+    "pleadings": "Filing of pleadings",
+    "addendum": "Addendum / rebuttal",
+    "judgeAssignment": "Assignment of the judge",
+    "preliminaryOrder": "Preliminary order",
+    "hearingRequest": "Plaintiff's request for a hearing",
+    "vaguenessCompletion": "Completing a vague claim",
+    "vaguenessRebuttal": "Rebuttal of the completion",
+    "witnessEvaluation": "Evaluation of witnesses / inspection / expert report",
+    "witnessExamination": "Examination of witnesses (exceptional)",
+    "finalJudgment": "Final judgment",
+    "resummons": "Re-summons after a cancelled hearing",
+    "evidenceAndMemo": "Evidence and defendant's memorandum",
+    "rebuttal": "Addendum / rebuttal",
+    "interventionEvidence": "Evidence and memorandum on intervention/counterclaim",
+    "interventionRebuttal": "Addendum on intervention/counterclaim"
+  },
+  "holidays": {
+    "new_year": "New Year's Day",
+    "epiphany": "Epiphany",
+    "independence_day": "Independence Day",
+    "labour_day": "Labour Day",
+    "assumption": "Assumption",
+    "ochi_day": "Ochi Day",
+    "christmas": "Christmas",
+    "synaxis_theotokos": "2nd day of Christmas",
+    "clean_monday": "Clean Monday",
+    "good_friday": "Good Friday",
+    "easter_monday": "Easter Monday",
+    "holy_spirit_monday": "Whit Monday"
+  },
+  "inputs": {
+    "filing_date": "Filing date of the claim",
+    "hearing_date": "Hearing date (if known)",
+    "defendant_abroad": "Defendant resides abroad",
+    "state_party": "The State / a public-law entity is a party",
+    "summons": "Hearing fixed by summons (237§3)",
+    "incidental": "Incidental action, counterclaim, intervention (238§1)"
+  },
+  "panel": {
+    "missingFiling": "Enter the filing date to compute the deadlines.",
+    "edit": "Calculation inputs",
+    "save": "Calculate",
+    "addTask": "Task",
+    "estimatedHearing": "Estimated hearing (set by the preliminary order): {{date}}",
+    "knownHearing": "Hearing: {{date}}",
+    "disclaimer": "Computed under the Greek Code of Civil Procedure (August suspension, weekends and public holidays). Always verify deadlines; local court suspensions are not included."
+  },
+  "rule": {
+    "after_days": "{{days}} days after: {{base}}",
+    "after_months": "{{months}} months after: {{base}}",
+    "after_workingDays": "{{days}} working days after: {{base}}",
+    "before_days": "{{days}} days before: {{base}}",
+    "base_filing": "filing",
+    "base_hearing": "the hearing"
+  },
+  "notes": {
+    "suspension_august": "{{days}} days ({{from}} - {{to}}) not counted: August court holidays.",
+    "suspension_state_summer": "{{days}} days ({{from}} - {{to}}) not counted: summer suspension (the State is a party).",
+    "weekend": "Moved from {{from}} to {{to}} (weekend).",
+    "holiday": "Moved from {{from}} to {{to}} (public holiday: {{name}})."
+  },
+  "settings": {
+    "button": "Deadlines",
+    "title": "Procedural deadlines: {{type}}",
+    "description": "Choose how deadlines are computed for matters of this type and the default values for new matters.",
+    "defaults": "Defaults for new matters",
+    "saved": "Deadline settings saved"
+  }
+}

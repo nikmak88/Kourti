@@ -286,6 +286,121 @@ export const schemaCompletionStatements: string[] = [
   `,
   `alter table public.case_issues add column if not exists is_active boolean not null default true`,
 
+  // Contract types (routes/api/contractTypes.ts, Settings → Contract types).
+  // organization_id null = built-in default offered to every firm; `key` names
+  // its label (common:contractTypes.<key>) and `name` is the English value
+  // stored on contracts.contract_type, as before this table existed. A firm
+  // hides defaults (organization_taxonomy_hidden, item_type 'contract_type')
+  // and adds/retires its own.
+  `
+  create table if not exists public.contract_types (
+    id uuid primary key default gen_random_uuid(),
+    organization_id uuid,
+    key text,
+    name text not null,
+    description text,
+    is_active boolean not null default true,
+    sort_order integer not null default 0,
+    created_by uuid,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  )
+  `,
+  `create unique index if not exists contract_types_default_key on public.contract_types (key) where organization_id is null`,
+  `create index if not exists idx_contract_types_org on public.contract_types (organization_id)`,
+  `
+  insert into public.contract_types (key, name, sort_order)
+  values
+    ('service', 'Service Agreement', 1),
+    ('nda', 'Non-Disclosure Agreement', 2),
+    ('employment', 'Employment Contract', 3),
+    ('purchase', 'Purchase Agreement', 4),
+    ('lease', 'Lease Agreement', 5),
+    ('partnership', 'Partnership Agreement', 6),
+    ('licensing', 'Licensing Agreement', 7),
+    ('consulting', 'Consulting Agreement', 8),
+    ('supply', 'Supply Agreement', 9),
+    ('distribution', 'Distribution Agreement', 10)
+  on conflict (key) where organization_id is null do nothing
+  `,
+  `alter table public.organization_taxonomy_hidden drop constraint if exists organization_taxonomy_hidden_item_type_check`,
+  `alter table public.organization_taxonomy_hidden add constraint organization_taxonomy_hidden_item_type_check check (item_type in ('type', 'issue', 'contract_type'))`,
+
+  // Task reminders (services/taskReminders.ts). Per firm and task type: the
+  // default reminder offered when a task of that type is created. Each task
+  // stores its own copy (the user can opt out or change it).
+  `
+  create table if not exists public.task_type_settings (
+    organization_id uuid not null,
+    task_type text not null,
+    reminder_enabled boolean not null default false,
+    reminder_days integer not null default 1 check (reminder_days between 0 and 365),
+    reminder_channels text[] not null default '{in_app}',
+    updated_at timestamptz not null default now(),
+    primary key (organization_id, task_type)
+  )
+  `,
+  `alter table public.tasks add column if not exists reminder_enabled boolean not null default false`,
+  `alter table public.tasks add column if not exists reminder_days integer`,
+  `alter table public.tasks add column if not exists reminder_channels text[]`,
+  `alter table public.tasks add column if not exists reminder_sent_at timestamptz`,
+  // Which computed procedural deadline the due date came from (lib/deadlines), if any.
+  `alter table public.tasks add column if not exists deadline_key text`,
+  `create index if not exists idx_tasks_reminder_due on public.tasks (due_date) where reminder_enabled and reminder_sent_at is null and not completed`,
+
+  // Browser push (services/webPush.ts): one row per browser a user allowed.
+  `
+  create table if not exists public.push_subscriptions (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null,
+    organization_id uuid not null,
+    endpoint text not null unique,
+    p256dh text not null,
+    auth text not null,
+    user_agent text,
+    created_at timestamptz not null default now(),
+    last_used_at timestamptz
+  )
+  `,
+  `create index if not exists idx_push_subscriptions_user on public.push_subscriptions (user_id)`,
+  // Small server-generated secrets (e.g. the VAPID key pair for browser push).
+  `
+  create table if not exists public.server_secrets (
+    key text primary key,
+    value text not null,
+    created_at timestamptz not null default now()
+  )
+  `,
+
+  // Procedural deadlines (lib/deadlines, routes/api/deadlines.ts). Per firm and
+  // matter type: which rule set computes deadlines ('gr_ordinary' |
+  // 'gr_small_claims') and the default values of its inputs for new matters.
+  `
+  create table if not exists public.case_type_deadline_settings (
+    organization_id uuid not null,
+    case_type_id uuid not null,
+    rules text not null,
+    defaults jsonb not null default '{}'::jsonb,
+    updated_at timestamptz not null default now(),
+    primary key (organization_id, case_type_id)
+  )
+  `,
+  // The matter's inputs for that rule set: filing_date, defendant_abroad,
+  // state_party, summons, incidental (the hearing is cases.next_hearing_date).
+  `alter table public.cases add column if not exists procedure_inputs jsonb`,
+
+  // Calendar subscription feed (services/calendarFeed.ts): one secret token per
+  // user; the feed URL is /api/v1/calendar-feed/<token>.ics (no login).
+  `
+  create table if not exists public.calendar_feed_tokens (
+    user_id uuid primary key,
+    organization_id uuid not null,
+    token text not null unique,
+    created_at timestamptz not null default now(),
+    last_fetched_at timestamptz
+  )
+  `,
+
   // UI/email language chosen by the user (null = install default, DEFAULT_LANGUAGE).
   `alter table public.profiles add column if not exists preferred_language text`,
 

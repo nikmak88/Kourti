@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Task } from '@/types';
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { invokeNodeApi } from '@/lib/backendApi';
+import i18n from '@/i18n';
 
 // Task row type matching the tasks table schema
 interface TaskRow {
@@ -74,13 +75,15 @@ export function useCreateTask() {
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.case_id] });
-      toast.success('Task created', { description: 'Task successfully added.' });
+      // Hearing dates and task due dates are shown on the calendar.
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(i18n.t('tasks:toast.created'), { description: i18n.t('tasks:toast.createdDescription') });
 
       // Notify (tracking is handled inside createTaskNotification)
       createTaskNotification(result, 'created', variables.assigned_to);
     },
     onError: (error: Error) => {
-      toast.error('Task creation failed', {
+      toast.error(i18n.t('tasks:toast.createFailed'), {
         description: error.message || 'Failed to create task.',
       });
     },
@@ -104,11 +107,13 @@ export function useUpdateTask() {
       // Type-safe access to updated data
       if (updated.case_id) {
         queryClient.invalidateQueries({ queryKey: ['tasks', updated.case_id] });
+        // Hearing dates and task due dates are shown on the calendar.
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       }
-      toast.success('Task updated', { description: 'Task changes saved.' });
+      toast.success(i18n.t('tasks:toast.updated'), { description: i18n.t('tasks:toast.updatedDescription') });
     },
     onError: (error: Error) => {
-      toast.error('Update failed', { description: error.message || 'Failed to update task.' });
+      toast.error(i18n.t('tasks:toast.updateFailed'), { description: error.message });
     },
   });
 }
@@ -133,10 +138,12 @@ export function useDeleteTask() {
     },
     onSuccess: ({ case_id }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', case_id] });
-      toast.success('Task deleted', { description: 'Task removed.' });
+      // Hearing dates and task due dates are shown on the calendar.
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(i18n.t('tasks:toast.deleted'));
     },
     onError: (error: Error) => {
-      toast.error('Delete failed', { description: error.message || 'Failed to delete task.' });
+      toast.error(i18n.t('tasks:toast.deleteFailed'), { description: error.message });
     },
   });
 }

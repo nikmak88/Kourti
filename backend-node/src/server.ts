@@ -25,6 +25,7 @@ import { startMarketingKbScheduler } from './agents/marketingKbSync.js';
 import { startLifecycleRulesSweep } from './agents/lifecycleRulesSweep.js';
 import { startRetentionSweep } from './agents/retentionSweep.js';
 import { purgeExpiredAuditData } from './scripts/retentionPurge.js';
+import { startTaskReminderSweep } from './services/taskReminders.js';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -60,6 +61,9 @@ async function start() {
 
   // Hydrate rate limits from DB so they survive restarts
   await hydrateRateLimits().catch(() => undefined);
+
+  // Plain timer, independent of the job queue below (which may fail to start).
+  startTaskReminderSweep();
 
   try {
     await startAgentWorker();

@@ -128,9 +128,122 @@ calendarRouter.get(
       values
     );
 
-    res.status(200).json(result.rows);
+    const derived = await listMatterDates(auth.organizationId, { startDate, endDate, clientId });
+    const rows = [...result.rows, ...derived].sort(
+      (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+    );
+
+    res.status(200).json(rows);
   })
 );
+
+// Task type → calendar event type (colour + filter on the calendar page).
+const TASK_EVENT_TYPE: Record<string, string> = {
+  court_appearance: 'hearing',
+  deposition: 'deposition',
+  meeting: 'meeting',
+  client_visit: 'consultation',
+  document_review: 'review',
+};
+
+/**
+ * Dates that live on matters rather than in calendar_events, shown on the
+ * calendar as read-only entries (edited on the matter itself):
+ *  - the matter's next hearing date (cases.next_hearing_date) → 'hearing';
+ *  - every open task with a due date → typed by task_type, 'deadline' otherwise.
+ * Tasks only have a date, so they are placed at 09:00-09:30 local time (no
+ * time zone in the string, so the browser reads it as local).
+ */
+async function listMatterDates(
+  organizationId: string,
+  filters: { startDate?: string; endDate?: string; clientId?: string }
+): Promise<Record<string, unknown>[]> {
+  const caseValues: unknown[] = [organizationId];
+  const caseClauses = ['c.organization_id = $1', 'c.next_hearing_date is not null'];
+  const taskValues: unknown[] = [organizationId];
+  const taskClauses = ['c.organization_id = $1', 't.due_date is not null', 't.completed = false'];
+  if (filters.clientId) {
+    caseValues.push(filters.clientId);
+    caseClauses.push(`c.client_id = $${caseValues.length}`);
+    taskValues.push(filters.clientId);
+    taskClauses.push(`c.client_id = $${taskValues.length}`);
+  }
+  if (filters.startDate) {
+    caseValues.push(filters.startDate);
+    caseClauses.push(`c.next_hearing_date >= $${caseValues.length}::timestamptz`);
+    taskValues.push(filters.startDate);
+    taskClauses.push(`t.due_date >= ($${taskValues.length}::timestamptz)::date`);
+  }
+  if (filters.endDate) {
+    caseValues.push(filters.endDate);
+    caseClauses.push(`c.next_hearing_date <= $${caseValues.length}::timestamptz`);
+    taskValues.push(filters.endDate);
+    taskClauses.push(`t.due_date <= ($${taskValues.length}::timestamptz)::date`);
+  }
+
+  const [hearings, tasks] = await Promise.all([
+    db.query(
+      `select c.id, c.title, c.case_number, c.court, c.client_id, c.next_hearing_date,
+              c.created_by, c.created_at, c.updated_at
+         from public.cases c
+        where ${caseClauses.join(' and ')}`,
+      caseValues
+    ),
+    db.query(
+      `select t.id, t.title, t.description, t.task_type, to_char(t.due_date, 'YYYY-MM-DD') as due_day,
+              t.created_by, t.created_at, t.updated_at,
+              c.id as case_id, c.title as case_title, c.client_id
+         from public.tasks t
+         join public.cases c on c.id = t.case_id
+        where ${taskClauses.join(' and ')}`,
+      taskValues
+    ),
+  ]);
+
+  const hearingEvents = hearings.rows.map((c) => {
+    const start = new Date(c.next_hearing_date);
+    return {
+      id: `hearing-${c.id}`,
+      title: c.title,
+      description: c.case_number ?? null,
+      start_date: start.toISOString(),
+      end_date: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
+      location: c.court ?? null,
+      event_type: 'hearing',
+      case_id: c.id,
+      client_id: c.client_id ?? null,
+      organization_id: organizationId,
+      created_by: c.created_by ?? null,
+      created_at: c.created_at,
+      updated_at: c.updated_at,
+      source: 'matter_hearing',
+      read_only: true,
+    };
+  });
+
+  const taskEvents = tasks.rows.map((t) => ({
+    id: `task-${t.id}`,
+    title: t.title,
+    description: t.description ?? null,
+    start_date: `${t.due_day}T09:00:00`,
+    end_date: `${t.due_day}T09:30:00`,
+    location: null,
+    event_type: TASK_EVENT_TYPE[t.task_type as string] ?? 'deadline',
+    case_id: t.case_id,
+    case_title: t.case_title,
+    client_id: t.client_id ?? null,
+    organization_id: organizationId,
+    created_by: t.created_by ?? null,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
+    source: 'task',
+    task_id: t.id,
+    task_type: t.task_type ?? null,
+    read_only: true,
+  }));
+
+  return [...hearingEvents, ...taskEvents];
+}
 
 calendarRouter.get(
   '/events/:eventId',

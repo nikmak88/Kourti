@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
+  CalendarClock,
   Check,
   Download,
   Eye,
@@ -43,6 +44,8 @@ import {
 } from '@/components/ui/dialog';
 import { invokeNodeApi } from '@/lib/backendApi';
 import { csvToTaxonomyRows, taxonomyToCsv, type TaxonomyRow } from '@/lib/taxonomyCsv';
+import { DeadlineSettingsDialog } from '@/components/deadlines/DeadlineSettingsDialog';
+import { useDeadlineSettings } from '@/hooks/useCaseDeadlines';
 
 /**
  * Settings → Matter types & issues (firm admins).
@@ -78,7 +81,8 @@ function removalMessage(t: TFunction, result: string, name: string, count: numbe
   return t('settings:matterTypes.removal.deleted', { name });
 }
 
-function InlineEdit({
+/** Text field with save/cancel; also used by ContractTypesTab. */
+export function InlineEdit({
   initial,
   onSave,
   onCancel,
@@ -133,6 +137,8 @@ export default function MatterTypesTab() {
   });
 
   const [showRemoved, setShowRemoved] = useState(false);
+  const [deadlinesFor, setDeadlinesFor] = useState<{ id: string; name: string } | null>(null);
+  const { data: deadlineSettings } = useDeadlineSettings();
   const [editing, setEditing] = useState<string | null>(null); // "type:<id>" | "issue:<id>"
   const [addingIssueFor, setAddingIssueFor] = useState<string | null>(null);
   const [addingType, setAddingType] = useState(false);
@@ -351,6 +357,11 @@ export default function MatterTypesTab() {
                 <Badge variant="outline">{t('common:count.matters', { count: mt.matter_count })}</Badge>
               )}
               {mt.removed && <Badge variant="destructive">{t('matterTypes.badges.removed')}</Badge>}
+              {deadlineSettings?.settings.some((d) => d.case_type_id === mt.id) && (
+                <Badge variant="outline" className="gap-1">
+                  <CalendarClock className="h-3 w-3" /> {t('deadlines:settings.button')}
+                </Badge>
+              )}
               {canManage && editing !== `type:${mt.id}` && (
                 <div className="ml-auto flex items-center gap-1">
                   {mt.removed ? (
@@ -359,6 +370,13 @@ export default function MatterTypesTab() {
                     </Button>
                   ) : (
                     <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeadlinesFor({ id: mt.id, name: mt.name })}
+                      >
+                        <CalendarClock className="mr-1 h-4 w-4" /> {t('deadlines:settings.button')}
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => setAddingIssueFor(mt.id)}>
                         <Plus className="mr-1 h-4 w-4" /> {t('matterTypes.addIssue')}
                       </Button>
@@ -464,6 +482,8 @@ export default function MatterTypesTab() {
           </div>
         ))}
       </div>
+
+      <DeadlineSettingsDialog caseType={deadlinesFor} onClose={() => setDeadlinesFor(null)} />
 
       {/* Remove all defaults */}
       <AlertDialog open={confirmDefaults} onOpenChange={setConfirmDefaults}>

@@ -31,19 +31,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
 import { ModuleFilterBar } from '@/components/filters/ModuleFilterBar';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/i18n/dates';
 
 // Status options constant for consistency
 const CONTRACT_STATUSES = [
-  { value: 'all', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'signed', label: 'Signed' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'expired', label: 'Expired' },
-  { value: 'under_review', label: 'Under Review' },
+  { value: 'all', labelKey: 'list.filters.allStatus' },
+  { value: 'active', labelKey: 'status.active' },
+  { value: 'signed', labelKey: 'status.signed' },
+  { value: 'draft', labelKey: 'status.draft' },
+  { value: 'expired', labelKey: 'status.expired' },
+  { value: 'under_review', labelKey: 'status.under_review' },
 ];
 
 export default function Contracts() {
   const navigate = useNavigate();
+  const { t } = useTranslation('contracts');
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -84,7 +87,7 @@ export default function Contracts() {
     return (
       <div className="px-4 py-6 flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="ml-4 text-lg text-muted-foreground">Loading contracts...</p>
+        <p className="ml-4 text-lg text-muted-foreground">{t('list.loading')}</p>
       </div>
     );
   }
@@ -93,13 +96,13 @@ export default function Contracts() {
     return (
       <div className="px-4 py-6 flex flex-col items-center justify-center space-y-4 min-h-[calc(100vh-200px)]">
         <AlertTriangle className="h-12 w-12 text-destructive" />
-        <p className="text-destructive text-lg font-medium">Failed to load contracts.</p>
+        <p className="text-destructive text-lg font-medium">{t('list.loadFailed')}</p>
         <p className="text-muted-foreground text-center max-w-md">
-          {error instanceof Error ? error.message : 'An unexpected error occurred.'}
+          {error instanceof Error ? error.message : t('list.unexpectedError')}
         </p>
         <Button onClick={() => refetch()} className="gap-2">
           <RefreshCw className="h-4 w-4" />
-          Retry
+          {t('common:actions.retry')}
         </Button>
       </div>
     );
@@ -127,9 +130,9 @@ export default function Contracts() {
   // Client-side filtering only for the search term, client filter, and expiry
   // (status filtering is handled server-side for better performance)
   const filteredContracts = contracts.filter((contract) => {
-    const termMatches = (t: string) =>
-      contract.title.toLowerCase().includes(t.toLowerCase()) ||
-      String(contract.id).toLowerCase().includes(t.toLowerCase());
+    const termMatches = (term: string) =>
+      contract.title.toLowerCase().includes(term.toLowerCase()) ||
+      String(contract.id).toLowerCase().includes(term.toLowerCase());
 
     const matchesLocal = searchTerm === '' || termMatches(searchTerm);
     const matchesGlobal = globalSearch === '' || termMatches(globalSearch);
@@ -167,8 +170,8 @@ export default function Contracts() {
     <PageContainer>
       <Breadcrumbs />
       <PageHeader
-        title="Contracts"
-        description="Manage contracts with version control and AI-powered analysis"
+        title={t('list.title')}
+        description={t('list.description')}
         actions={
           <>
             <Button
@@ -177,7 +180,7 @@ export default function Contracts() {
               onClick={() => navigate('/contracts/create')}
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Contract
+              {t('list.newContract')}
             </Button>
             <Button
               variant="default"
@@ -185,7 +188,7 @@ export default function Contracts() {
               onClick={() => navigate('/contracts/review')}
             >
               <ScanSearch className="h-4 w-4 mr-2" />
-              AI Review
+              {t('list.aiReview')}
             </Button>
             <Button
               variant="outline"
@@ -193,7 +196,7 @@ export default function Contracts() {
               onClick={() => navigate('/contracts/compare')}
             >
               <GitBranch className="h-4 w-4 mr-2" />
-              Compare Contracts
+              {t('list.compareContracts')}
             </Button>
           </>
         }
@@ -201,11 +204,11 @@ export default function Contracts() {
       {clientFilter && (
         <div>
           <Badge variant="outline" className="px-2 py-1">
-            Client: {clientFilter}
+            {t('list.clientFilter', { client: clientFilter })}
             <button
               className="ml-2 hover:text-destructive"
               onClick={() => navigate('/contracts')}
-              aria-label="Clear client filter"
+              aria-label={t('list.clearClientFilter')}
             >
               ×
             </button>
@@ -222,7 +225,7 @@ export default function Contracts() {
                 <FileCheck className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Contracts</p>
+                <p className="text-sm text-muted-foreground">{t('list.stats.total')}</p>
                 <p className="text-2xl font-bold">{contractStats.total}</p>
               </div>
             </div>
@@ -235,7 +238,7 @@ export default function Contracts() {
                 <Clock className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-sm text-muted-foreground">{t('list.stats.active')}</p>
                 <p className="text-2xl font-bold">{contractStats.active}</p>
               </div>
             </div>
@@ -248,7 +251,7 @@ export default function Contracts() {
                 <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Expiring Soon</p>
+                <p className="text-sm text-muted-foreground">{t('list.stats.expiringSoon')}</p>
                 <p className="text-2xl font-bold">{contractStats.expiringSoon}</p>
               </div>
             </div>
@@ -261,7 +264,7 @@ export default function Contracts() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Expired</p>
+                <p className="text-sm text-muted-foreground">{t('list.stats.expired')}</p>
                 <p className="text-2xl font-bold">{contractStats.expired}</p>
               </div>
             </div>
@@ -273,12 +276,12 @@ export default function Contracts() {
       <ModuleFilterBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Search contracts, clients, or IDs..."
+        searchPlaceholder={t('list.searchPlaceholder')}
         searchWidth="w-full sm:w-[280px]"
         filters={[
           {
             key: 'status',
-            placeholder: 'Status',
+            placeholder: t('common:fields.status'),
             value: statusFilter,
             onChange: (v) => {
               setStatusFilter(v);
@@ -286,19 +289,19 @@ export default function Contracts() {
             },
             width: 'w-[150px]',
             icon: <Filter className="h-4 w-4" />,
-            options: CONTRACT_STATUSES,
+            options: CONTRACT_STATUSES.map((o) => ({ value: o.value, label: t(o.labelKey) })),
           },
           {
             key: 'expiry',
-            placeholder: 'Expiry',
+            placeholder: t('list.filters.expiry'),
             value: expiryFilter,
             onChange: setExpiryFilter,
             width: 'w-[160px]',
             options: [
-              { value: 'all', label: 'All Expiry' },
-              { value: 'valid', label: 'Valid' },
-              { value: 'expiring', label: 'Expiring Soon' },
-              { value: 'expired', label: 'Expired' },
+              { value: 'all', label: t('list.filters.allExpiry') },
+              { value: 'valid', label: t('list.filters.valid') },
+              { value: 'expiring', label: t('list.filters.expiringSoon') },
+              { value: 'expired', label: t('list.filters.expired') },
             ],
           },
         ]}
@@ -313,9 +316,9 @@ export default function Contracts() {
       {/* Contracts Table */}
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>All Contracts ({totalCount})</CardTitle>
+          <CardTitle>{t('list.allContracts', { count: totalCount })}</CardTitle>
           <CardDescription>
-            Comprehensive contract management with version control and expiry tracking
+            {t('list.tableDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -324,7 +327,7 @@ export default function Contracts() {
               [
                 {
                   id: 'contract',
-                  header: 'Contract',
+                  header: t('common:entities.contract'),
                   accessorKey: 'title',
                   minWidth: '250px',
                   cell: (contract) => (
@@ -335,11 +338,11 @@ export default function Contracts() {
                 },
                 {
                   id: 'client',
-                  header: 'Client',
+                  header: t('common:entities.client'),
                   accessorFn: (contract) =>
                     (contract as unknown as { client?: { name?: string } }).client?.name ||
                     contract.client_id ||
-                    'No client',
+                    t('list.noClient'),
                   minWidth: '180px',
                   cell: (contract) => (
                     <div
@@ -347,29 +350,29 @@ export default function Contracts() {
                       title={
                         (contract as unknown as { client?: { name?: string } }).client?.name ||
                         contract.client_id ||
-                        'No client'
+                        t('list.noClient')
                       }
                     >
                       {(contract as unknown as { client?: { name?: string } }).client?.name ||
                         contract.client_id ||
-                        'No client'}
+                        t('list.noClient')}
                     </div>
                   ),
                 },
                 {
                   id: 'status',
-                  header: 'Status',
+                  header: t('common:fields.status'),
                   accessorKey: 'status',
                   minWidth: '130px',
                   cell: (contract) => (
                     <Badge className={getStatusColor(contract.status)} variant="secondary">
-                      {contract.status}
+                      {t(`status.${contract.status.toLowerCase()}`, { defaultValue: contract.status })}
                     </Badge>
                   ),
                 },
                 {
                   id: 'createdBy',
-                  header: 'Created By',
+                  header: t('common:fields.createdBy'),
                   sortable: false,
                   minWidth: '180px',
                   cell: (contract) => (
@@ -378,10 +381,10 @@ export default function Contracts() {
                       <div>
                         <div className="text-sm">
                           {(contract as unknown as { created_by_user?: { first_name?: string } })
-                            .created_by_user?.first_name || 'User'}
+                            .created_by_user?.first_name || t('list.userFallback')}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {new Date(contract.created_at).toLocaleDateString()}
+                          {formatDate(contract.created_at, 'P')}
                         </div>
                       </div>
                     </div>
@@ -389,13 +392,13 @@ export default function Contracts() {
                 },
                 {
                   id: 'actions',
-                  header: 'Actions',
+                  header: t('common:fields.actions'),
                   sortable: false,
                   minWidth: '80px',
                   cell: (contract) => (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="More options">
+                        <Button variant="ghost" size="icon" aria-label={t('list.moreOptions')}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -403,13 +406,13 @@ export default function Contracts() {
                         <DropdownMenuItem asChild>
                           <Link to={`/contracts/${contract.id}`} className="flex items-center">
                             <Eye className="h-4 w-4 mr-2" />
-                            View Contract
+                            {t('list.actions.view')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link to={`/contracts/${contract.id}/edit`} className="flex items-center">
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit Contract
+                            {t('list.actions.edit')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
@@ -418,7 +421,7 @@ export default function Contracts() {
                             className="flex items-center"
                           >
                             <GitBranch className="h-4 w-4 mr-2" />
-                            Version History
+                            {t('list.actions.history')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
@@ -427,7 +430,7 @@ export default function Contracts() {
                             className="flex items-center"
                           >
                             <ScanSearch className="h-4 w-4 mr-2" />
-                            AI Review
+                            {t('list.aiReview')}
                           </Link>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -437,7 +440,7 @@ export default function Contracts() {
               ] as ColumnDef<(typeof contracts)[number]>[]
             }
             data={filteredContracts}
-            emptyMessage="No contracts found matching your criteria."
+            emptyMessage={t('list.noMatches')}
             getRowKey={(row) => row.id}
           />
 
@@ -448,20 +451,20 @@ export default function Contracts() {
                 variant="outline"
                 onClick={handlePreviousPage}
                 disabled={page <= 1}
-                aria-label="Previous page"
+                aria-label={t('list.previousPage')}
               >
-                Previous
+                {t('common:actions.previous')}
               </Button>
               <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                {t('list.pageOf', { page, total: totalPages })}
               </span>
               <Button
                 variant="outline"
                 onClick={handleNextPage}
                 disabled={page >= totalPages}
-                aria-label="Next page"
+                aria-label={t('list.nextPage')}
               >
-                Next
+                {t('common:actions.next')}
               </Button>
             </div>
           )}
@@ -472,13 +475,13 @@ export default function Contracts() {
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
                 <FileCheck className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">No contracts yet</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">{t('list.empty.title')}</h3>
               <p className="text-muted-foreground mb-4">
-                Get started by creating your first contract.
+                {t('list.empty.description')}
               </p>
               <Button onClick={() => navigate('/contracts/create')} className="shadow-md">
                 <Plus className="h-4 w-4 mr-2" />
-                Create First Contract
+                {t('list.empty.action')}
               </Button>
             </div>
           )}
@@ -490,30 +493,30 @@ export default function Contracts() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
-            AI Contract Analysis
+            {t('list.ai.title')}
           </CardTitle>
           <CardDescription>
-            Leverage AI to enhance your contract management workflow
+            {t('list.ai.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg border bg-muted/30">
-              <h4 className="font-medium mb-2">Contract Intelligence</h4>
+              <h4 className="font-medium mb-2">{t('list.ai.intelligenceTitle')}</h4>
               <p className="text-sm text-muted-foreground">
-                Extract key terms, obligations, and deadlines automatically from contract documents.
+                {t('list.ai.intelligenceText')}
               </p>
             </div>
             <div className="p-4 rounded-lg border bg-muted/30">
-              <h4 className="font-medium mb-2">Risk Detection</h4>
+              <h4 className="font-medium mb-2">{t('list.ai.riskTitle')}</h4>
               <p className="text-sm text-muted-foreground">
-                Identify potential risks, missing clauses, and areas requiring legal attention.
+                {t('list.ai.riskText')}
               </p>
             </div>
             <div className="p-4 rounded-lg border bg-muted/30">
-              <h4 className="font-medium mb-2">Renewal Alerts</h4>
+              <h4 className="font-medium mb-2">{t('list.ai.renewalTitle')}</h4>
               <p className="text-sm text-muted-foreground">
-                Smart notifications for contract renewals, expiries, and important milestone dates.
+                {t('list.ai.renewalText')}
               </p>
             </div>
           </div>

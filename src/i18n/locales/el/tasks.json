@@ -58,6 +58,29 @@
     "assigneePlaceholder": "Επιλέξτε υπεύθυνο",
     "descriptionPlaceholder": "Εισαγάγετε περιγραφή της εργασίας (προαιρετικά)",
     "saveChanges": "Αποθήκευση αλλαγών",
-    "submitCreate": "Δημιουργία εργασίας"
+    "submitCreate": "Δημιουργία εργασίας",
+    "deadlineLabel": "Δικονομική προθεσμία",
+    "deadlineNone": "Καμία - επιλέγω μόνος/η την ημερομηνία"
+  },
+  "reminder": {
+    "label": "Υπενθύμιση",
+    "needsDueDate": "Ορίστε προθεσμία για να προσθέσετε υπενθύμιση.",
+    "daysBefore_one": "ημέρα πριν από την προθεσμία",
+    "daysBefore_other": "ημέρες πριν από την προθεσμία",
+    "channels": {
+      "in_app": "Ειδοποίηση στην εφαρμογή",
+      "email": "Email",
+      "push": "Ειδοποίηση browser"
+    }
+  },
+  "toast": {
+    "created": "Η εργασία δημιουργήθηκε",
+    "createdDescription": "Η εργασία προστέθηκε.",
+    "createFailed": "Η δημιουργία της εργασίας απέτυχε",
+    "updated": "Η εργασία ενημερώθηκε",
+    "updatedDescription": "Οι αλλαγές αποθηκεύτηκαν.",
+    "updateFailed": "Η ενημέρωση απέτυχε",
+    "deleted": "Η εργασία διαγράφηκε",
+    "deleteFailed": "Η διαγραφή απέτυχε"
   }
 }

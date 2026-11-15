@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,14 @@ import {
 } from '@/components/ui/select';
 import { invokeNodeApi } from '@/lib/backendApi';
 import { formatDate } from '@/i18n/dates';
+import { useAuth } from '@/hooks/useAuth';
+import { useDeadlineOptions } from '@/hooks/useCaseDeadlines';
+import { TASK_TYPES } from '@/lib/taskTypes';
+
+// Filing tasks (Κατάθεση …) without a date from the recording take the matter's
+// computed filing deadline, as in the task dialog (components/tasks/TaskDialog).
+const FILING_TASK_TYPES = new Set(['deposition', 'filing']);
+const FILING_DEADLINE_KEYS = ['pleadings', 'evidenceAndMemo'];
 
 /**
  * "Extract tasks & events" for a voice-note transcript.
@@ -37,6 +45,9 @@ interface ProposedTask {
   due_date: string | null;
   priority: Priority;
   assigned_to: string | null;
+  task_type: string;
+  /** Computed procedural deadline used as due date (filing tasks on deadline matters). */
+  deadline_key?: string;
   source_quote: string;
 }
 
@@ -102,6 +113,21 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
   const [caseId, setCaseId] = useState<string>(NONE);
   const [tasks, setTasks] = useState<ProposedTask[]>([]);
   const [events, setEvents] = useState<ProposedEvent[]>([]);
+  const { user } = useAuth();
+  const deadlineOptions = useDeadlineOptions(caseId === NONE ? undefined : caseId);
+  const filingDeadline = deadlineOptions.find((d) => FILING_DEADLINE_KEYS.includes(d.key));
+
+  // Fill empty due dates of filing tasks once the matter's deadlines are known.
+  useEffect(() => {
+    if (!filingDeadline) return;
+    setTasks((prev) =>
+      prev.map((task) =>
+        FILING_TASK_TYPES.has(task.task_type) && !task.due_date
+          ? { ...task, due_date: filingDeadline.date, deadline_key: filingDeadline.key }
+          : task
+      )
+    );
+  }, [filingDeadline?.key, filingDeadline?.date]);
 
   const extract = async () => {
     setIsExtracting(true);
@@ -117,7 +143,8 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
       });
       setData(res);
       setCaseId(res.suggested_case_id ?? NONE);
-      setTasks(res.tasks.map((task) => ({ ...task, selected: true })));
+      // Nobody named → the task is the user's own (as for tasks created by hand).
+      setTasks(res.tasks.map((task) => ({ ...task, assigned_to: task.assigned_to ?? user?.id ?? null, selected: true })));
       setEvents(res.events.map((e) => ({ ...e, selected: true })));
       if (!res.tasks.length && !res.events.length) {
         toast.info(t('actions.toast.nothingTitle'), {
@@ -163,8 +190,11 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
               .join('\n\n'),
             due_date: task.due_date || undefined,
             priority: task.priority,
-            assigned_to: task.assigned_to || undefined,
-            task_type: 'voice_note',
+            // 'unassigned' (not null): the backend strips nulls from bodies.
+            assigned_to: task.assigned_to || 'unassigned',
+            task_type: task.task_type || 'general',
+            deadline_key: task.deadline_key || undefined,
+            // No reminder fields: the backend applies the type's default reminder.
           },
         });
         created++;
@@ -306,12 +336,25 @@ const TranscriptActions: React.FC<Props> = ({ transcript, initialCaseId, sourceT
                 />
                 <Input value={task.title} onChange={(e) => updateTask(i, { title: e.target.value })} />
               </div>
-              <div className="grid grid-cols-1 gap-2 pl-6 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 pl-6 sm:grid-cols-2 lg:grid-cols-4">
+                <Select value={task.task_type} onValueChange={(v) => updateTask(i, { task_type: v })}>
+                  <SelectTrigger aria-label={t('tasks:dialog.typeLabel')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TASK_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {t(`tasks:types.${type}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   type="date"
                   value={task.due_date ?? ''}
-                  onChange={(e) => updateTask(i, { due_date: e.target.value || null })}
+                  onChange={(e) => updateTask(i, { due_date: e.target.value || null, deadline_key: undefined })}
                   aria-label={t('common:time.dueDate')}
+                  title={task.deadline_key ? t(`deadlines:keys.${task.deadline_key}`) : undefined}
                 />
                 <Select value={task.priority} onValueChange={(v) => updateTask(i, { priority: v as Priority })}>
                   <SelectTrigger aria-label={t('common:fields.priority')}>

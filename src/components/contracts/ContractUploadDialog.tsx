@@ -26,6 +26,8 @@ import { useClients } from '@/hooks/useClients';
 import { toast } from 'sonner';
 import { uploadDocument } from '@/lib/fileApi';
 import { useUserOrganization } from '@/hooks/useUserOrganization';
+import { useContractTypeOptions } from '@/hooks/useContractTypes';
+import { useTranslation } from 'react-i18next';
 
 interface ContractUploadDialogProps {
   open: boolean;
@@ -33,6 +35,7 @@ interface ContractUploadDialogProps {
 }
 
 export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialogProps) {
+  const { t } = useTranslation('contracts');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [contractData, setContractData] = useState({
@@ -53,18 +56,8 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
   const cases = Array.isArray(casesData) ? casesData : casesData?.cases || [];
   const clients = Array.isArray(clientsData) ? clientsData : clientsData?.items || [];
 
-  const contractTypes = [
-    'Service Agreement',
-    'Non-Disclosure Agreement',
-    'Employment Contract',
-    'Purchase Agreement',
-    'Lease Agreement',
-    'Partnership Agreement',
-    'Licensing Agreement',
-    'Consulting Agreement',
-    'Supply Agreement',
-    'Distribution Agreement',
-  ];
+  // Managed in Settings → Contract types; value = stored name, label translated.
+  const { options: contractTypeOptions } = useContractTypeOptions();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -109,22 +102,22 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
     e.preventDefault();
 
     if (!uploadedFile) {
-      toast.error('Error', {
-        description: 'Please select a file to upload',
+      toast.error(t('common:toast.error'), {
+        description: t('upload.errors.noFile'),
       });
       return;
     }
 
     if (!contractData.title || !contractData.contract_type) {
-      toast.error('Error', {
-        description: 'Title and contract type are required',
+      toast.error(t('common:toast.error'), {
+        description: t('upload.errors.titleAndType'),
       });
       return;
     }
 
     if (!organizationId) {
-      toast.error('Error', {
-        description: 'Organization not found',
+      toast.error(t('common:toast.error'), {
+        description: t('upload.errors.noOrganization'),
       });
       return;
     }
@@ -136,7 +129,7 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
       const { validateFile, MAX_CONTRACT_FILE_SIZE } = await import('@/lib/fileValidation');
       const validation = validateFile(uploadedFile, { maxSize: MAX_CONTRACT_FILE_SIZE });
       if (!validation.valid) {
-        throw new Error(validation.error || 'File validation failed');
+        throw new Error(validation.error || t('upload.errors.validationFailed'));
       }
 
       // Upload file to storage via Node backend
@@ -166,8 +159,8 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
 
       await createContract.mutateAsync(contractPayload);
 
-      toast.success('Success', {
-        description: 'Contract uploaded successfully',
+      toast.success(t('common:toast.success'), {
+        description: t('toast.uploaded'),
       });
 
       // Reset form
@@ -185,8 +178,8 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
       onOpenChange(false);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to upload contract',
+      toast.error(t('common:toast.error'), {
+        description: error instanceof Error ? error.message : t('toast.uploadFailed'),
       });
     } finally {
       setIsUploading(false);
@@ -201,16 +194,16 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Upload Contract</DialogTitle>
+          <DialogTitle>{t('upload.title')}</DialogTitle>
           <DialogDescription>
-            Upload a contract document and fill in the details below.
+            {t('upload.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* File Upload */}
           <div className="space-y-4">
-            <Label>Contract File</Label>
+            <Label>{t('upload.fileLabel')}</Label>
             {!uploadedFile ? (
               <div
                 {...getRootProps()}
@@ -224,10 +217,10 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
                 <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <div className="space-y-2">
                   <p className="text-lg font-medium">
-                    {isDragActive ? 'Drop the file here' : 'Upload Contract Document'}
+                    {isDragActive ? t('upload.dropHere') : t('upload.dropzoneTitle')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Drag & drop or click to select PDF, DOC, DOCX, or TXT files
+                    {t('upload.dropzoneHint')}
                   </p>
                 </div>
               </div>
@@ -244,7 +237,13 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
                         </p>
                       </div>
                     </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={removeFile}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeFile}
+                      aria-label={t('upload.removeFile')}
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -256,18 +255,18 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
           {/* Contract Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Contract Title *</Label>
+              <Label htmlFor="title">{t('create.basic.titleLabel')} *</Label>
               <Input
                 id="title"
                 value={contractData.title}
                 onChange={(e) => setContractData({ ...contractData, title: e.target.value })}
-                placeholder="Enter contract title"
+                placeholder={t('edit.titlePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Contract Type *</Label>
+              <Label>{t('create.basic.typeLabel')} *</Label>
               <Select
                 value={contractData.contract_type}
                 onValueChange={(value) =>
@@ -275,12 +274,12 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select contract type" />
+                  <SelectValue placeholder={t('upload.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {contractTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
+                  {contractTypeOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -289,19 +288,19 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t('common:fields.description')}</Label>
             <Textarea
               id="description"
               value={contractData.description}
               onChange={(e) => setContractData({ ...contractData, description: e.target.value })}
-              placeholder="Brief description of the contract"
+              placeholder={t('upload.descriptionPlaceholder')}
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Client (Optional)</Label>
+              <Label>{t('upload.clientLabel')}</Label>
               <Select
                 value={contractData.client_id || 'none'}
                 onValueChange={(value) =>
@@ -309,10 +308,10 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select client" />
+                  <SelectValue placeholder={t('upload.clientPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Client</SelectItem>
+                  <SelectItem value="none">{t('list.noClient')}</SelectItem>
                   {clients.map((client: { id: string; name: string }) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
@@ -323,7 +322,7 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
             </div>
 
             <div className="space-y-2">
-              <Label>Related Case (Optional)</Label>
+              <Label>{t('upload.caseLabel')}</Label>
               <Select
                 value={contractData.case_id || 'none'}
                 onValueChange={(value) =>
@@ -331,10 +330,10 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select case" />
+                  <SelectValue placeholder={t('upload.casePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Case</SelectItem>
+                  <SelectItem value="none">{t('upload.noCase')}</SelectItem>
                   {cases.map((case_: { id: string; title: string }) => (
                     <SelectItem key={case_.id} value={case_.id}>
                       {case_.title}
@@ -347,7 +346,7 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="value">Contract Value</Label>
+              <Label htmlFor="value">{t('create.basic.valueLabel')}</Label>
               <Input
                 id="value"
                 type="number"
@@ -359,7 +358,7 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
             </div>
 
             <div className="space-y-2">
-              <Label>Currency</Label>
+              <Label>{t('create.basic.currencyLabel')}</Label>
               <Select
                 value={contractData.currency}
                 onValueChange={(value) => setContractData({ ...contractData, currency: value })}
@@ -368,11 +367,11 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD - US Dollar</SelectItem>
-                  <SelectItem value="EUR">EUR - Euro</SelectItem>
-                  <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                  <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                  <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                  <SelectItem value="USD">{t('upload.currencies.USD')}</SelectItem>
+                  <SelectItem value="EUR">{t('upload.currencies.EUR')}</SelectItem>
+                  <SelectItem value="GBP">{t('upload.currencies.GBP')}</SelectItem>
+                  <SelectItem value="CAD">{t('upload.currencies.CAD')}</SelectItem>
+                  <SelectItem value="AUD">{t('upload.currencies.AUD')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -380,18 +379,18 @@ export function ContractUploadDialog({ open, onOpenChange }: ContractUploadDialo
 
           <div className="flex justify-end space-x-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('common:actions.cancel')}
             </Button>
             <Button type="submit" disabled={isUploading || !uploadedFile}>
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Uploading...
+                  {t('upload.uploading')}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  Upload Contract
+                  {t('upload.submit')}
                 </>
               )}
             </Button>

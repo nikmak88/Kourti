@@ -29,10 +29,13 @@ import {
 import { ArrowLeft, Save, FileText, AlertTriangle, Eye, Loader2 } from 'lucide-react';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { useContractTypeOptions } from '@/hooks/useContractTypes';
+import { useTranslation } from 'react-i18next';
 
 export default function ContractEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation('contracts');
   const { data: contract, isLoading } = useContract(id!);
   const updateContract = useUpdateContract();
   const deleteContract = useDeleteContract();
@@ -50,6 +53,8 @@ export default function ContractEdit() {
     end_date: '',
     terms: '',
   });
+  // Managed in Settings → Contract types; keeps the contract's current type even if retired.
+  const { options: contractTypeOptions } = useContractTypeOptions(contractData.contract_type);
 
   useEffect(() => {
     if (contract) {
@@ -84,14 +89,14 @@ export default function ContractEdit() {
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Contract Not Found</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('edit.notFound.title')}</h3>
             <p className="text-muted-foreground mb-4">
-              The contract you're trying to edit doesn't exist or has been removed.
+              {t('edit.notFound.description')}
             </p>
             <Button asChild>
               <Link to="/contracts">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Contracts
+                {t('shared.backToContracts')}
               </Link>
             </Button>
           </CardContent>
@@ -139,19 +144,19 @@ export default function ContractEdit() {
           <Button variant="ghost" size="sm" asChild>
             <Link to={`/contracts/${id}`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('common:actions.back')}
             </Link>
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              Edit Contract
+              {t('edit.title')}
             </h1>
             <p className="text-muted-foreground">{contract.title}</p>
           </div>
           {isModified && (
             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
               <AlertTriangle className="h-3 w-3 mr-1" />
-              Unsaved Changes
+              {t('edit.unsavedChanges')}
             </Badge>
           )}
         </div>
@@ -160,26 +165,30 @@ export default function ContractEdit() {
           <Button variant="outline" asChild>
             <Link to={`/contracts/${id}`}>
               <Eye className="h-4 w-4 mr-2" />
-              Preview
+              {t('edit.preview')}
             </Link>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button disabled={!isModified || updateContract.isPending}>
                 <Save className="h-4 w-4 mr-2" />
-                {updateContract.isPending ? 'Saving...' : 'Save Changes'}
+                {updateContract.isPending
+                  ? t('common:status.saving')
+                  : t('common:actions.saveChanges')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Save Contract Changes?</AlertDialogTitle>
+                <AlertDialogTitle>{t('edit.saveDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will update the contract with your changes.
+                  {t('edit.saveDialog.description')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSave}>Save Changes</AlertDialogAction>
+                <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSave}>
+                  {t('common:actions.saveChanges')}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -188,47 +197,47 @@ export default function ContractEdit() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
-          <TabsTrigger value="content">Document Content</TabsTrigger>
-          <TabsTrigger value="metadata">Metadata</TabsTrigger>
+          <TabsTrigger value="content">{t('edit.tabs.content')}</TabsTrigger>
+          <TabsTrigger value="metadata">{t('edit.tabs.metadata')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="content" className="space-y-6">
           <Card className="shadow-card">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Contract Content</CardTitle>
+                <CardTitle>{t('edit.contentHeading')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="contractTitle">Contract Title</Label>
+                <Label htmlFor="contractTitle">{t('create.basic.titleLabel')}</Label>
                 <Input
                   id="contractTitle"
                   value={contractData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
-                  placeholder="Enter contract title"
+                  placeholder={t('edit.titlePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contractDescription">Description</Label>
+                <Label htmlFor="contractDescription">{t('common:fields.description')}</Label>
                 <Textarea
                   id="contractDescription"
                   value={contractData.description}
                   onChange={(e) => handleChange('description', e.target.value)}
                   className="min-h-[100px]"
-                  placeholder="Enter contract description..."
+                  placeholder={t('edit.descriptionPlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contractTerms">Terms & Conditions</Label>
+                <Label htmlFor="contractTerms">{t('edit.termsLabel')}</Label>
                 <Textarea
                   id="contractTerms"
                   value={contractData.terms}
                   onChange={(e) => handleChange('terms', e.target.value)}
                   className="min-h-[300px] font-mono text-sm"
-                  placeholder="Enter contract terms..."
+                  placeholder={t('edit.termsPlaceholder')}
                 />
               </div>
             </CardContent>
@@ -238,35 +247,31 @@ export default function ContractEdit() {
         <TabsContent value="metadata" className="space-y-6">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Contract Metadata</CardTitle>
+              <CardTitle>{t('edit.metadataHeading')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Contract Type</Label>
+                  <Label>{t('create.basic.typeLabel')}</Label>
                   <Select
                     value={contractData.contract_type}
                     onValueChange={(value) => handleChange('contract_type', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder={t('edit.typePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Software License Agreement">
-                        Software License Agreement
-                      </SelectItem>
-                      <SelectItem value="Service Agreement">Service Agreement</SelectItem>
-                      <SelectItem value="Non-Disclosure Agreement">
-                        Non-Disclosure Agreement
-                      </SelectItem>
-                      <SelectItem value="Employment Contract">Employment Contract</SelectItem>
-                      <SelectItem value="Purchase Agreement">Purchase Agreement</SelectItem>
+                      {contractTypeOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>{t('common:fields.status')}</Label>
                   <Select
                     value={contractData.status}
                     onValueChange={(value) => handleChange('status', value)}
@@ -275,16 +280,16 @@ export default function ContractEdit() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
-                      <SelectItem value="terminated">Terminated</SelectItem>
+                      <SelectItem value="draft">{t('status.draft')}</SelectItem>
+                      <SelectItem value="active">{t('status.active')}</SelectItem>
+                      <SelectItem value="expired">{t('status.expired')}</SelectItem>
+                      <SelectItem value="terminated">{t('status.terminated')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Contract Value</Label>
+                  <Label>{t('create.basic.valueLabel')}</Label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -309,7 +314,7 @@ export default function ContractEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
+                  <Label htmlFor="startDate">{t('create.terms.startDate')}</Label>
                   <Input
                     id="startDate"
                     type="date"
@@ -319,7 +324,7 @@ export default function ContractEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date</Label>
+                  <Label htmlFor="endDate">{t('common:fields.endDate')}</Label>
                   <Input
                     id="endDate"
                     type="date"
@@ -335,30 +340,30 @@ export default function ContractEdit() {
 
       <Card className="border-destructive/50">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardTitle className="text-destructive">{t('edit.danger.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Once you delete a contract, there is no going back. Please be certain.
+            {t('edit.danger.description')}
           </p>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">Delete Contract</Button>
+              <Button variant="destructive">{t('edit.danger.delete')}</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('edit.deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the contract.
+                  {t('edit.deleteDialog.description')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Delete Contract
+                  {t('edit.danger.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

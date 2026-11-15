@@ -33,7 +33,8 @@ import {
   Filter,
   Search,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/i18n/dates';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
 
@@ -49,6 +50,7 @@ interface Version {
 
 export default function ContractHistory() {
   const { id } = useParams();
+  const { t } = useTranslation('contracts');
   const contract = contractsData.find((c) => c.id === id);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
@@ -103,14 +105,14 @@ export default function ContractHistory() {
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Contract Not Found</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('edit.notFound.title')}</h3>
             <p className="text-muted-foreground mb-4">
-              The contract you're looking for doesn't exist or has been removed.
+              {t('view.notFoundDescription')}
             </p>
             <Button asChild>
               <Link to="/contracts">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Contracts
+                {t('shared.backToContracts')}
               </Link>
             </Button>
           </CardContent>
@@ -127,6 +129,9 @@ export default function ContractHistory() {
 
     return matchesSearch && matchesFilter;
   });
+
+  const versionStatusLabel = (status: string) =>
+    t(`history.versionStatus.${status.toLowerCase()}`, { defaultValue: status });
 
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
@@ -155,7 +160,7 @@ export default function ContractHistory() {
 
   const handleRestoreVersion = (version: Version) => {
     contract.content = `Restored to version ${version.version} on ${version.date}\n\n${contract.content}`;
-    alert(`Restored to version ${version.version} (simulated)`);
+    alert(t('history.restoredAlert', { version: version.version }));
   };
 
   return (
@@ -168,14 +173,14 @@ export default function ContractHistory() {
             <Button variant="ghost" size="sm" asChild>
               <Link to={`/contracts/${contract.id}`}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t('common:actions.back')}
               </Link>
             </Button>
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight flex items-center gap-2">
               <GitBranch className="h-6 w-6 text-muted-foreground" />
-              Version History
+              {t('list.actions.history')}
             </h1>
             <p className="text-muted-foreground">{contract.name}</p>
           </div>
@@ -183,12 +188,12 @@ export default function ContractHistory() {
 
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <Link to={`/contracts/${contract.id}/edit`}>Edit Current Version</Link>
+            <Link to={`/contracts/${contract.id}/edit`}>{t('history.editCurrent')}</Link>
           </Button>
           <Button asChild>
             <Link to={`/contracts/${contract.id}`}>
               <Eye className="h-4 w-4 mr-2" />
-              View Contract
+              {t('list.actions.view')}
             </Link>
           </Button>
         </div>
@@ -202,7 +207,7 @@ export default function ContractHistory() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search versions by description or editor..."
+                  placeholder={t('history.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -216,10 +221,10 @@ export default function ContractHistory() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Versions</SelectItem>
-                  <SelectItem value="final">Final</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="review">Under Review</SelectItem>
+                  <SelectItem value="all">{t('history.filters.all')}</SelectItem>
+                  <SelectItem value="final">{t('history.versionStatus.final')}</SelectItem>
+                  <SelectItem value="draft">{t('history.versionStatus.draft')}</SelectItem>
+                  <SelectItem value="review">{t('history.versionStatus.review')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -231,9 +236,11 @@ export default function ContractHistory() {
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Contract Versions ({filteredVersions.length})
+            {t('history.versionsTitle', { count: filteredVersions.length })}
             <Badge variant="secondary">
-              Current: v{Math.max(...enhancedVersions.map((v) => v.version))}
+              {t('history.current', {
+                version: Math.max(...enhancedVersions.map((v) => v.version)),
+              })}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -256,7 +263,7 @@ export default function ContractHistory() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {format(new Date(version.date), 'MMM dd, yyyy')}
+                            {formatDate(version.date, 'PP')}
                           </div>
                           {version.editedBy && (
                             <div className="flex items-center gap-1">
@@ -276,38 +283,48 @@ export default function ContractHistory() {
                       <div className="flex items-center gap-2">
                         {version.status && (
                           <Badge variant="outline" className={getStatusColor(version.status)}>
-                            {version.status}
+                            {versionStatusLabel(version.status)}
                           </Badge>
                         )}
                         <div className="flex gap-1">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label={t('history.viewDetails')}
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>Version {version.version} Details</DialogTitle>
+                                <DialogTitle>
+                                  {t('history.detailsTitle', { version: version.version })}
+                                </DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                   <div>
-                                    <strong>Date:</strong> {format(new Date(version.date), 'PPP')}
+                                    <strong>{t('history.labels.date')}</strong>{' '}
+                                    {formatDate(version.date, 'PPP')}
                                   </div>
                                   <div>
-                                    <strong>Edited by:</strong> {version.editedBy}
+                                    <strong>{t('history.labels.editedBy')}</strong>{' '}
+                                    {version.editedBy}
                                   </div>
                                   <div>
-                                    <strong>Status:</strong> {version.status}
+                                    <strong>{t('history.labels.status')}</strong>{' '}
+                                    {version.status ? versionStatusLabel(version.status) : ''}
                                   </div>
                                   <div>
-                                    <strong>File Size:</strong> {version.fileSize}
+                                    <strong>{t('history.labels.fileSize')}</strong>{' '}
+                                    {version.fileSize}
                                   </div>
                                 </div>
 
                                 <div>
-                                  <strong className="text-sm">Description:</strong>
+                                  <strong className="text-sm">{t('history.labels.description')}</strong>
                                   <p className="text-sm text-muted-foreground mt-1">
                                     {version.description}
                                   </p>
@@ -315,7 +332,7 @@ export default function ContractHistory() {
 
                                 {version.changes && version.changes.length > 0 && (
                                   <div>
-                                    <strong className="text-sm">Changes in this version:</strong>
+                                    <strong className="text-sm">{t('history.labels.changes')}</strong>
                                     <ul className="list-disc list-inside text-sm text-muted-foreground mt-1 space-y-1">
                                       {version.changes.map((change, i) => (
                                         <li key={i}>{change}</li>
@@ -331,10 +348,10 @@ export default function ContractHistory() {
                                     onClick={() => handleDownloadVersion(version)}
                                   >
                                     <Download className="h-4 w-4 mr-2" />
-                                    Download
+                                    {t('common:actions.download')}
                                   </Button>
                                   <Button size="sm" onClick={() => handleRestoreVersion(version)}>
-                                    Restore Version
+                                    {t('history.restore')}
                                   </Button>
                                 </div>
                               </div>
@@ -345,6 +362,7 @@ export default function ContractHistory() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDownloadVersion(version)}
+                            aria-label={t('history.downloadVersion')}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -354,7 +372,7 @@ export default function ContractHistory() {
 
                     {version.changes && version.changes.length > 0 && (
                       <div className="text-sm">
-                        <p className="text-muted-foreground mb-1">Key changes:</p>
+                        <p className="text-muted-foreground mb-1">{t('history.keyChanges')}</p>
                         <ul className="text-muted-foreground space-y-1">
                           {version.changes.slice(0, 2).map((change, i) => (
                             <li key={i} className="flex items-center gap-2">
@@ -364,7 +382,7 @@ export default function ContractHistory() {
                           ))}
                           {version.changes.length > 2 && (
                             <li className="text-xs text-muted-foreground/70">
-                              +{version.changes.length - 2} more changes
+                              {t('history.moreChanges', { count: version.changes.length - 2 })}
                             </li>
                           )}
                         </ul>
@@ -379,11 +397,11 @@ export default function ContractHistory() {
           {filteredVersions.length === 0 && (
             <div className="text-center py-12">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Versions Found</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('history.empty.title')}</h3>
               <p className="text-muted-foreground">
                 {searchTerm || filterBy !== 'all'
-                  ? 'No versions match your current filters.'
-                  : "This contract doesn't have any version history yet."}
+                  ? t('history.empty.filtered')
+                  : t('history.empty.none')}
               </p>
             </div>
           )}
@@ -393,20 +411,20 @@ export default function ContractHistory() {
       {/* Version Comparison */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Version Comparison</CardTitle>
+          <CardTitle>{t('history.compare.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Compare From</Label>
+              <Label className="text-sm font-medium">{t('history.compare.from')}</Label>
               <Select>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select version" />
+                  <SelectValue placeholder={t('history.compare.selectVersion')} />
                 </SelectTrigger>
                 <SelectContent>
                   {enhancedVersions.map((version) => (
                     <SelectItem key={version.version} value={version.version.toString()}>
-                      v{version.version} - {version.date}
+                      v{version.version} - {formatDate(version.date, 'P')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -414,15 +432,15 @@ export default function ContractHistory() {
             </div>
 
             <div>
-              <Label className="text-sm font-medium">Compare To</Label>
+              <Label className="text-sm font-medium">{t('history.compare.to')}</Label>
               <Select>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select version" />
+                  <SelectValue placeholder={t('history.compare.selectVersion')} />
                 </SelectTrigger>
                 <SelectContent>
                   {enhancedVersions.map((version) => (
                     <SelectItem key={version.version} value={version.version.toString()}>
-                      v{version.version} - {version.date}
+                      v{version.version} - {formatDate(version.date, 'P')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -433,7 +451,7 @@ export default function ContractHistory() {
           <div className="mt-4">
             <Button variant="outline" className="w-full">
               <GitBranch className="h-4 w-4 mr-2" />
-              Compare Versions
+              {t('history.compare.action')}
             </Button>
           </div>
         </CardContent>

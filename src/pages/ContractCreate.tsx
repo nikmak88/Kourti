@@ -32,7 +32,9 @@ import {
   Lightbulb,
   ShieldCheck,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { useContractTypeOptions } from '@/hooks/useContractTypes';
+import { useTranslation } from 'react-i18next';
+import { formatDate, dateLocale } from '@/i18n/dates';
 import { useProfile } from '@/hooks/useProfile';
 import { useOrganizationMembers } from '@/hooks/useOrganization';
 import { useAIContractGenerator } from '@/hooks/useAIContractGenerator';
@@ -62,6 +64,7 @@ type ContractTab = 'basic' | 'parties' | 'terms' | 'clauses' | 'success';
 type StepTab = Exclude<ContractTab, 'success'>;
 export default function ContractCreate() {
   const navigate = useNavigate();
+  const { t } = useTranslation('contracts');
   const [activeTab, setActiveTab] = useState<ContractTab>('basic');
   const generateContract = useAIContractGenerator();
   const [template, setTemplate] = useState<string>('');
@@ -111,30 +114,26 @@ export default function ContractCreate() {
     required: false,
   });
   const [jurisdiction, setJurisdiction] = useState<string>('');
-  const contractTypes = [
-    'Service Agreement',
-    'Non-Disclosure Agreement',
-    'Employment Contract',
-    'Purchase Agreement',
-    'Lease Agreement',
-    'Partnership Agreement',
-    'Licensing Agreement',
-    'Consulting Agreement',
-    'Supply Agreement',
-    'Distribution Agreement',
-  ];
+  // Managed in Settings → Contract types; value = stored name, label translated.
+  const { options: contractTypeOptions } = useContractTypeOptions();
   const partyRoles = [
-    'Client',
-    'Contractor',
-    'Vendor',
-    'Partner',
-    'Licensee',
-    'Licensor',
-    'Buyer',
-    'Seller',
-    'Tenant',
-    'Landlord',
+    { value: 'Client', labelKey: 'create.partyRoles.client' },
+    { value: 'Contractor', labelKey: 'create.partyRoles.contractor' },
+    { value: 'Vendor', labelKey: 'create.partyRoles.vendor' },
+    { value: 'Partner', labelKey: 'create.partyRoles.partner' },
+    { value: 'Licensee', labelKey: 'create.partyRoles.licensee' },
+    { value: 'Licensor', labelKey: 'create.partyRoles.licensor' },
+    { value: 'Buyer', labelKey: 'create.partyRoles.buyer' },
+    { value: 'Seller', labelKey: 'create.partyRoles.seller' },
+    { value: 'Tenant', labelKey: 'create.partyRoles.tenant' },
+    { value: 'Landlord', labelKey: 'create.partyRoles.landlord' },
   ];
+  const partyRoleLabel = (role: string) => {
+    const match = partyRoles.find((r) => r.value === role);
+    return match ? t(match.labelKey) : role;
+  };
+  const partyTypeLabel = (type: string) =>
+    t(`create.partyTypes.${type}`, { defaultValue: type });
   const standardClauses = [
     {
       title: 'Confidentiality',
@@ -264,27 +263,27 @@ export default function ContractCreate() {
   >(
     () => ({
       basic: {
-        title: 'Basic Details',
-        description: 'Name the agreement and set its core metadata.',
+        title: t('create.steps.basic.title'),
+        description: t('create.steps.basic.description'),
         icon: FileText,
       },
       parties: {
-        title: 'Parties',
-        description: 'Identify everyone involved and their roles.',
+        title: t('create.steps.parties.title'),
+        description: t('create.steps.parties.description'),
         icon: Users,
       },
       terms: {
-        title: 'Terms & Timeline',
-        description: 'Capture milestones, value, and supporting context.',
+        title: t('create.steps.terms.title'),
+        description: t('create.steps.terms.description'),
         icon: Clock,
       },
       clauses: {
-        title: 'Clauses',
-        description: 'Fine tune obligations and key protections.',
+        title: t('create.steps.clauses.title'),
+        description: t('create.steps.clauses.description'),
         icon: ListChecks,
       },
     }),
-    []
+    [t]
   );
 
   const handleUploadContract = useCallback(() => {
@@ -296,37 +295,35 @@ export default function ContractCreate() {
   const nextActions = useMemo(
     () => [
       {
-        title: 'Upload existing contract',
-        description: 'Import a legacy agreement to compare or redline against the AI output.',
+        title: t('create.nextActions.upload.title'),
+        description: t('create.nextActions.upload.description'),
         icon: Upload,
         onClick: handleUploadContract,
       },
       {
-        title: 'Use Ream AI reviewer',
-        description: 'Send a draft to Ream AI for compliance and risk checks before sharing.',
+        title: t('create.nextActions.review.title'),
+        description: t('create.nextActions.review.description'),
         icon: Sparkles,
         onClick: handleUseReamAI,
       },
     ],
-    [handleUploadContract, handleUseReamAI]
+    [handleUploadContract, handleUseReamAI, t]
   );
 
   const clauseHighlights = useMemo(
     () => [
       {
-        title: 'Risk & compliance',
-        description:
-          'Add non-compete, liability, or privacy clauses to align with industry and local regulations.',
+        title: t('create.suggestions.risk.title'),
+        description: t('create.suggestions.risk.description'),
         icon: ShieldCheck,
       },
       {
-        title: 'AI drafting tips',
-        description:
-          'Reference governing law, deliverables, and review cycles so the AI can generate precise obligations.',
+        title: t('create.suggestions.tips.title'),
+        description: t('create.suggestions.tips.description'),
         icon: Lightbulb,
       },
     ],
-    []
+    [t]
   );
   const addStandardClause = (standardClause: (typeof standardClauses)[0]) => {
     // Check if clause with the same title already exists
@@ -351,11 +348,11 @@ export default function ContractCreate() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contractData.title || !contractData.type) {
-      alert('Please fill in the required fields (Title and Type).');
+      alert(t('create.alerts.requiredFields'));
       return;
     }
     if (clauses.length === 0) {
-      alert('Please add at least one clause before generating the contract.');
+      alert(t('create.alerts.clauseRequired'));
       setActiveTab('clauses');
       return;
     }
@@ -401,8 +398,8 @@ export default function ContractCreate() {
     <PageContainer>
       <Breadcrumbs />
       <PageHeader
-        title="Create New Contract"
-        description="Generate a professional contract using AI with your custom details"
+        title={t('create.title')}
+        description={t('create.description')}
         actions={nextActions.map((action) => (
           <Button
             key={action.title}
@@ -423,17 +420,17 @@ export default function ContractCreate() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    AI readiness
+                    {t('create.readiness.label')}
                   </p>
                   <h2 className="text-lg font-semibold">
                     {completedCount === tabsOrder.length
-                      ? 'Ready to generate'
-                      : 'Complete each step to generate'}
+                      ? t('create.readiness.ready')
+                      : t('create.readiness.incomplete')}
                   </h2>
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-semibold">{Math.round(progressValue)}%</span>
-                  <p className="text-xs text-muted-foreground">completion</p>
+                  <p className="text-xs text-muted-foreground">{t('create.readiness.completion')}</p>
                 </div>
               </div>
               <Progress value={progressValue} className="h-2" />
@@ -466,7 +463,11 @@ export default function ContractCreate() {
                         <Badge
                           variant={isCompleted ? 'default' : isActive ? 'secondary' : 'outline'}
                         >
-                          {isCompleted ? 'Done' : isActive ? 'Active' : 'Pending'}
+                          {isCompleted
+                            ? t('create.stepState.done')
+                            : isActive
+                              ? t('create.stepState.active')
+                              : t('create.stepState.pending')}
                         </Badge>
                       </div>
                       <div className="mt-3 space-y-1">
@@ -484,11 +485,10 @@ export default function ContractCreate() {
             <Alert className="border-primary/40 bg-primary/5">
               <AlertTitle className="flex items-center gap-2 text-sm font-semibold">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Tip for better drafts
+                {t('create.tip.title')}
               </AlertTitle>
               <AlertDescription className="text-sm text-muted-foreground">
-                Share deliverables, payment cadence, and any approval checkpoints. Our AI blends
-                this with your template to produce a tailored first draft.
+                {t('create.tip.description')}
               </AlertDescription>
             </Alert>
 
@@ -503,28 +503,28 @@ export default function ContractCreate() {
                   className="flex items-center gap-2 whitespace-nowrap px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
                   <FileText className="h-4 w-4" />
-                  Basic Info
+                  {t('create.tabs.basic')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="parties"
                   className="flex items-center gap-2 whitespace-nowrap px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
                   <Users className="h-4 w-4" />
-                  Parties
+                  {t('create.tabs.parties')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="terms"
                   className="flex items-center gap-2 whitespace-nowrap px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
                   <Clock className="h-4 w-4" />
-                  Terms
+                  {t('create.tabs.terms')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="clauses"
                   className="flex items-center gap-2 whitespace-nowrap px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
                   <ListChecks className="h-4 w-4" />
-                  Clauses
+                  {t('create.tabs.clauses')}
                 </TabsTrigger>
               </TabsList>
 
@@ -533,16 +533,16 @@ export default function ContractCreate() {
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
-                      Contract Information
+                      {t('create.basic.heading')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="title" className="text-sm font-medium">
-                          Contract Title <span className="text-destructive">*</span>
+                          {t('create.basic.titleLabel')} <span className="text-destructive">*</span>
                         </Label>
                         <Input
                           id="title"
-                          placeholder="e.g., Software Development Agreement"
+                          placeholder={t('create.basic.titlePlaceholder')}
                           value={contractData.title}
                           onChange={(e) =>
                             setContractData({
@@ -557,7 +557,7 @@ export default function ContractCreate() {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">
-                          Contract Type <span className="text-destructive">*</span>
+                          {t('create.basic.typeLabel')} <span className="text-destructive">*</span>
                         </Label>
                         <Select
                           value={contractData.type}
@@ -569,12 +569,12 @@ export default function ContractCreate() {
                           }
                         >
                           <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select contract type" />
+                            <SelectValue placeholder={t('edit.typePlaceholder')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {contractTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
+                            {contractTypeOptions.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -584,11 +584,11 @@ export default function ContractCreate() {
 
                     <div className="space-y-2 mt-6">
                       <Label htmlFor="description" className="text-sm font-medium">
-                        Description
+                        {t('common:fields.description')}
                       </Label>
                       <Textarea
                         id="description"
-                        placeholder="Brief description of the contract purpose and scope..."
+                        placeholder={t('create.basic.descriptionPlaceholder')}
                         value={contractData.description}
                         onChange={(e) =>
                           setContractData({
@@ -603,7 +603,7 @@ export default function ContractCreate() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                       <div className="space-y-2">
                         <Label htmlFor="value" className="text-sm font-medium">
-                          Contract Value
+                          {t('create.basic.valueLabel')}
                         </Label>
                         <Input
                           id="value"
@@ -621,7 +621,7 @@ export default function ContractCreate() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Currency</Label>
+                        <Label className="text-sm font-medium">{t('create.basic.currencyLabel')}</Label>
                         <Select
                           value={contractData.currency}
                           onValueChange={(value) =>
@@ -646,7 +646,7 @@ export default function ContractCreate() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Assigned To</Label>
+                        <Label className="text-sm font-medium">{t('common:fields.assignedTo')}</Label>
                         <Select
                           value={contractData.assignedTo}
                           onValueChange={(value) =>
@@ -657,12 +657,14 @@ export default function ContractCreate() {
                           }
                         >
                           <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select assignee" />
+                            <SelectValue placeholder={t('create.basic.assigneePlaceholder')} />
                           </SelectTrigger>
                           <SelectContent>
                             {profile && (
                               <SelectItem value={profile.user_id}>
-                                Me ({profile.first_name || ''} {profile.last_name || ''})
+                                {t('create.basic.me', {
+                                  name: `${profile.first_name || ''} ${profile.last_name || ''}`,
+                                })}
                               </SelectItem>
                             )}
                             {orgMembers
@@ -681,7 +683,7 @@ export default function ContractCreate() {
 
                 <TabsContent value="parties" className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Contract Parties</h3>
+                    <h3 className="text-lg font-medium">{t('create.parties.heading')}</h3>
 
                     {parties.length > 0 && (
                       <div className="space-y-3">
@@ -692,8 +694,8 @@ export default function ContractCreate() {
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-medium">{party.name}</h4>
-                                    <Badge variant="outline">{party.type}</Badge>
-                                    <Badge variant="secondary">{party.role}</Badge>
+                                    <Badge variant="outline">{partyTypeLabel(party.type)}</Badge>
+                                    <Badge variant="secondary">{partyRoleLabel(party.role)}</Badge>
                                   </div>
                                   <p className="text-sm text-muted-foreground">{party.email}</p>
                                   {party.address && (
@@ -705,6 +707,7 @@ export default function ContractCreate() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeParty(party.id)}
+                                  aria-label={t('create.parties.remove')}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -717,15 +720,15 @@ export default function ContractCreate() {
 
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">Add New Party</CardTitle>
+                        <CardTitle className="text-base">{t('create.parties.addHeading')}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="partyName">Name *</Label>
+                            <Label htmlFor="partyName">{t('common:fields.name')} *</Label>
                             <Input
                               id="partyName"
-                              placeholder="Party name"
+                              placeholder={t('create.parties.namePlaceholder')}
                               value={newParty.name}
                               onChange={(e) =>
                                 setNewParty({
@@ -737,7 +740,7 @@ export default function ContractCreate() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label>Type</Label>
+                            <Label>{t('common:fields.type')}</Label>
                             <Select
                               value={newParty.type}
                               onValueChange={(value) =>
@@ -751,8 +754,12 @@ export default function ContractCreate() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="organization">Organization</SelectItem>
-                                <SelectItem value="individual">Individual</SelectItem>
+                                <SelectItem value="organization">
+                                  {t('create.partyTypes.organization')}
+                                </SelectItem>
+                                <SelectItem value="individual">
+                                  {t('create.partyTypes.individual')}
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -760,7 +767,7 @@ export default function ContractCreate() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="partyEmail">Email *</Label>
+                            <Label htmlFor="partyEmail">{t('common:fields.email')} *</Label>
                             <Input
                               id="partyEmail"
                               type="email"
@@ -776,7 +783,7 @@ export default function ContractCreate() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label>Role *</Label>
+                            <Label>{t('common:fields.role')} *</Label>
                             <Select
                               value={newParty.role}
                               onValueChange={(value) =>
@@ -787,12 +794,12 @@ export default function ContractCreate() {
                               }
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select role" />
+                                <SelectValue placeholder={t('create.parties.rolePlaceholder')} />
                               </SelectTrigger>
                               <SelectContent>
                                 {partyRoles.map((role) => (
-                                  <SelectItem key={role} value={role}>
-                                    {role}
+                                  <SelectItem key={role.value} value={role.value}>
+                                    {t(role.labelKey)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -801,10 +808,10 @@ export default function ContractCreate() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="partyAddress">Address</Label>
+                          <Label htmlFor="partyAddress">{t('common:fields.address')}</Label>
                           <Textarea
                             id="partyAddress"
-                            placeholder="Full address"
+                            placeholder={t('create.parties.addressPlaceholder')}
                             value={newParty.address}
                             onChange={(e) =>
                               setNewParty({
@@ -817,7 +824,7 @@ export default function ContractCreate() {
 
                         <Button type="button" onClick={addParty}>
                           <Plus className="h-4 w-4 mr-2" />
-                          Add Party
+                          {t('create.parties.add')}
                         </Button>
                       </CardContent>
                     </Card>
@@ -827,10 +834,10 @@ export default function ContractCreate() {
                 <TabsContent value="terms" className="space-y-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="additionalTerms">Additional Terms & Conditions</Label>
+                      <Label htmlFor="additionalTerms">{t('create.terms.additionalLabel')}</Label>
                       <Textarea
                         id="additionalTerms"
-                        placeholder="Enter any specific terms, conditions, or requirements for this contract..."
+                        placeholder={t('create.terms.additionalPlaceholder')}
                         value={additionalTerms}
                         onChange={(e) => setAdditionalTerms(e.target.value)}
                         rows={6}
@@ -839,27 +846,26 @@ export default function ContractCreate() {
 
                     <Card>
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Reference Material</CardTitle>
+                        <CardTitle className="text-base">{t('create.terms.referenceHeading')}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div className="space-y-2">
-                          <Label htmlFor="template">Contract Template (Optional)</Label>
+                          <Label htmlFor="template">{t('create.terms.templateLabel')}</Label>
                           <Textarea
                             id="template"
-                            placeholder="Paste an existing contract template here for the AI to use as a reference..."
+                            placeholder={t('create.terms.templatePlaceholder')}
                             value={template}
                             onChange={(e) => setTemplate(e.target.value)}
                             rows={6}
                           />
                           <p className="text-xs text-muted-foreground">
-                            Upload or paste a contract template to help the AI generate a contract
-                            that follows your preferred structure and style.
+                            {t('create.terms.templateHelp')}
                           </p>
                         </div>
                         <Separator />
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="space-y-2">
-                            <Label>Start Date</Label>
+                            <Label>{t('create.terms.startDate')}</Label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
@@ -868,13 +874,14 @@ export default function ContractCreate() {
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {contractData.startDate
-                                    ? format(contractData.startDate, 'PPP')
-                                    : 'Select start date'}
+                                    ? formatDate(contractData.startDate, 'PPP')
+                                    : t('create.terms.selectStartDate')}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
                                 <Calendar
                                   mode="single"
+                                  locale={dateLocale()}
                                   selected={contractData.startDate}
                                   onSelect={(date) =>
                                     setContractData({
@@ -888,7 +895,7 @@ export default function ContractCreate() {
                             </Popover>
                           </div>
                           <div className="space-y-2">
-                            <Label>End Date</Label>
+                            <Label>{t('common:fields.endDate')}</Label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
@@ -897,13 +904,14 @@ export default function ContractCreate() {
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {contractData.endDate
-                                    ? format(contractData.endDate, 'PPP')
-                                    : 'Select end date'}
+                                    ? formatDate(contractData.endDate, 'PPP')
+                                    : t('create.terms.selectEndDate')}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
                                 <Calendar
                                   mode="single"
+                                  locale={dateLocale()}
                                   selected={contractData.endDate}
                                   onSelect={(date) =>
                                     setContractData({
@@ -922,7 +930,7 @@ export default function ContractCreate() {
 
                     <Card>
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base">AI Suggestions</CardTitle>
+                        <CardTitle className="text-base">{t('create.suggestions.heading')}</CardTitle>
                       </CardHeader>
                       <CardContent className="grid gap-3 md:grid-cols-2">
                         {clauseHighlights.map(({ title, description, icon: Icon }, index) => (
@@ -944,10 +952,12 @@ export default function ContractCreate() {
                 <TabsContent value="clauses" className="space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium">Contract Clauses</h3>
+                      <h3 className="text-lg font-medium">{t('create.clauses.heading')}</h3>
                       <div className="text-sm text-muted-foreground">
-                        {clauses.filter((c) => c.required).length} required,{' '}
-                        {clauses.filter((c) => !c.required).length} optional
+                        {t('create.clauses.counts', {
+                          required: clauses.filter((c) => c.required).length,
+                          optional: clauses.filter((c) => !c.required).length,
+                        })}
                       </div>
                     </div>
 
@@ -961,7 +971,9 @@ export default function ContractCreate() {
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-medium">{clause.title}</h4>
                                     <Badge variant={clause.required ? 'default' : 'secondary'}>
-                                      {clause.required ? 'Required' : 'Optional'}
+                                      {clause.required
+                                        ? t('common:status.required')
+                                        : t('common:status.optional')}
                                     </Badge>
                                   </div>
                                   <p className="text-sm text-muted-foreground">{clause.content}</p>
@@ -971,6 +983,7 @@ export default function ContractCreate() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeClause(clause.id)}
+                                  aria-label={t('create.clauses.remove')}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -984,14 +997,14 @@ export default function ContractCreate() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Add Custom Clause</CardTitle>
+                          <CardTitle className="text-base">{t('create.clauses.addCustomHeading')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="clauseTitle">Clause Title</Label>
+                            <Label htmlFor="clauseTitle">{t('create.clauses.titleLabel')}</Label>
                             <Input
                               id="clauseTitle"
-                              placeholder="Enter clause title"
+                              placeholder={t('create.clauses.titlePlaceholder')}
                               value={newClause.title}
                               onChange={(e) =>
                                 setNewClause({
@@ -1003,10 +1016,10 @@ export default function ContractCreate() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="clauseContent">Clause Content</Label>
+                            <Label htmlFor="clauseContent">{t('create.clauses.contentLabel')}</Label>
                             <Textarea
                               id="clauseContent"
-                              placeholder="Enter clause content"
+                              placeholder={t('create.clauses.contentPlaceholder')}
                               value={newClause.content}
                               onChange={(e) =>
                                 setNewClause({
@@ -1028,37 +1041,36 @@ export default function ContractCreate() {
                                 })
                               }
                             />
-                            <Label htmlFor="clauseRequired">Required clause</Label>
+                            <Label htmlFor="clauseRequired">{t('create.clauses.requiredLabel')}</Label>
                           </div>
 
                           <Button type="button" onClick={addClause}>
                             <Plus className="h-4 w-4 mr-2" />
-                            Add Clause
+                            {t('create.clauses.add')}
                           </Button>
                         </CardContent>
                       </Card>
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Jurisdiction Settings</CardTitle>
+                          <CardTitle className="text-base">{t('create.jurisdiction.heading')}</CardTitle>
                           <CardDescription>
-                            Specify the legal jurisdiction for your contract
+                            {t('create.jurisdiction.description')}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="jurisdiction">
-                              Governing Jurisdiction <span className="text-destructive">*</span>
+                              {t('create.jurisdiction.label')} <span className="text-destructive">*</span>
                             </Label>
                             <Input
                               id="jurisdiction"
-                              placeholder="e.g., State of New York, United States"
+                              placeholder={t('create.jurisdiction.placeholder')}
                               value={jurisdiction}
                               onChange={(e) => setJurisdiction(e.target.value)}
                             />
                             <p className="text-xs text-muted-foreground">
-                              This will be used in the Governing Law clause and dispute resolution
-                              provisions.
+                              {t('create.jurisdiction.help')}
                             </p>
                           </div>
                         </CardContent>
@@ -1066,9 +1078,9 @@ export default function ContractCreate() {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Standard Clauses</CardTitle>
+                          <CardTitle className="text-base">{t('create.standardClauses.heading')}</CardTitle>
                           <CardDescription>
-                            Select clauses to include in your contract
+                            {t('create.standardClauses.description')}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -1092,10 +1104,10 @@ export default function ContractCreate() {
                                     className="text-xs"
                                   >
                                     {alreadyAdded
-                                      ? 'Added'
+                                      ? t('create.standardClauses.added')
                                       : clause.required
-                                        ? 'Required'
-                                        : 'Optional'}
+                                        ? t('common:status.required')
+                                        : t('common:status.optional')}
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-3">
@@ -1109,7 +1121,9 @@ export default function ContractCreate() {
                                   disabled={alreadyAdded}
                                 >
                                   <Plus className="h-4 w-4 mr-1" />
-                                  {alreadyAdded ? 'Added' : 'Add'}
+                                  {alreadyAdded
+                                    ? t('create.standardClauses.added')
+                                    : t('common:actions.add')}
                                 </Button>
                               </div>
                             );
@@ -1122,7 +1136,7 @@ export default function ContractCreate() {
 
                 <div className="flex justify-between pt-6 border-t">
                   <Button type="button" variant="outline">
-                    Save as Draft
+                    {t('create.saveDraft')}
                   </Button>
                   <div className="flex gap-2">
                     {activeTab !== 'basic' && (
@@ -1140,7 +1154,7 @@ export default function ContractCreate() {
                           }
                         }}
                       >
-                        Previous
+                        {t('common:actions.previous')}
                       </Button>
                     )}
                     {activeTab !== 'clauses' ? (
@@ -1157,7 +1171,7 @@ export default function ContractCreate() {
                           }
                         }}
                       >
-                        Next
+                        {t('common:actions.next')}
                       </Button>
                     ) : (
                       <Button
@@ -1168,12 +1182,12 @@ export default function ContractCreate() {
                         {generateContract.isPending ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Generating Contract...
+                            {t('create.generating')}
                           </>
                         ) : (
                           <>
                             <Bot className="h-4 w-4 mr-2" />
-                            Generate Contract with AI
+                            {t('create.generate')}
                           </>
                         )}
                       </Button>
@@ -1188,51 +1202,51 @@ export default function ContractCreate() {
         <div className="space-y-4">
           <Card className="shadow-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Contract overview</CardTitle>
+              <CardTitle className="text-base">{t('create.overview.heading')}</CardTitle>
               <CardDescription>
-                Your selections update in real time to preview what the AI will draft.
+                {t('create.overview.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Title</p>
+                <p className="text-xs uppercase text-muted-foreground">{t('common:fields.title')}</p>
                 <p className="font-medium text-foreground">
-                  {contractData.title || 'Untitled contract'}
+                  {contractData.title || t('create.overview.untitled')}
                 </p>
               </div>
               <Separator />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-muted-foreground">Type</p>
+                  <p className="text-muted-foreground">{t('common:fields.type')}</p>
                   <p className="font-medium">{contractData.type || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Assigned To</p>
+                  <p className="text-muted-foreground">{t('common:fields.assignedTo')}</p>
                   <p className="font-medium">
                     {contractData.assignedTo
                       ? orgMembers.find((member) => member.user_id === contractData.assignedTo)
-                          ?.first_name || 'Team member'
-                      : 'Unassigned'}
+                          ?.first_name || t('create.overview.teamMember')
+                      : t('common:status.unassigned')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Value</p>
+                  <p className="text-muted-foreground">{t('create.overview.value')}</p>
                   <p className="font-medium">
                     {contractData.value ? `${contractData.currency} ${contractData.value}` : '—'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Duration</p>
+                  <p className="text-muted-foreground">{t('create.overview.duration')}</p>
                   <p className="font-medium">
                     {contractData.startDate && contractData.endDate
-                      ? `${format(contractData.startDate, 'PP')} → ${format(contractData.endDate, 'PP')}`
-                      : 'Not scheduled'}
+                      ? `${formatDate(contractData.startDate, 'PP')} → ${formatDate(contractData.endDate, 'PP')}`
+                      : t('create.overview.notScheduled')}
                   </p>
                 </div>
               </div>
               <Separator />
               <div className="space-y-2">
-                <p className="text-xs uppercase text-muted-foreground">Parties</p>
+                <p className="text-xs uppercase text-muted-foreground">{t('create.overview.parties')}</p>
                 {parties.length > 0 ? (
                   parties.map((party) => (
                     <div
@@ -1241,21 +1255,24 @@ export default function ContractCreate() {
                     >
                       <div>
                         <p className="text-sm font-medium">{party.name}</p>
-                        <p className="text-xs text-muted-foreground">{party.role}</p>
+                        <p className="text-xs text-muted-foreground">{partyRoleLabel(party.role)}</p>
                       </div>
                       <Badge variant="outline" className="text-[10px] uppercase">
-                        {party.type}
+                        {partyTypeLabel(party.type)}
                       </Badge>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted-foreground">No parties added yet.</p>
+                  <p className="text-xs text-muted-foreground">{t('create.overview.noParties')}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <p className="text-xs uppercase text-muted-foreground">Clauses</p>
+                <p className="text-xs uppercase text-muted-foreground">{t('create.overview.clauses')}</p>
                 <p className="text-xs text-muted-foreground">
-                  {clauses.length} configured ({clauses.filter((c) => c.required).length} required)
+                  {t('create.overview.clausesConfigured', {
+                    count: clauses.length,
+                    required: clauses.filter((c) => c.required).length,
+                  })}
                 </p>
               </div>
             </CardContent>
@@ -1263,9 +1280,9 @@ export default function ContractCreate() {
 
           <Card className="shadow-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Next best actions</CardTitle>
+              <CardTitle className="text-base">{t('create.nextActions.heading')}</CardTitle>
               <CardDescription>
-                Keep your workflow moving without leaving this screen.
+                {t('create.nextActions.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">

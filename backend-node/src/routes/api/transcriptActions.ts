@@ -26,6 +26,12 @@ import { runWithTools, type ToolDef } from '../../lib/tools.js';
 
 export const transcriptActionsRouter = Router();
 
+// Same list as the web app (src/lib/taskTypes.ts); reminder defaults are per type.
+const TASK_TYPES = [
+  'general', 'court_appearance', 'client_visit', 'document_review', 'research', 'filing',
+  'deposition', 'meeting', 'phone_call', 'investigation', 'negotiation', 'contract_draft',
+];
+
 const EVENT_TYPES = ['meeting', 'hearing', 'deadline', 'deposition', 'review', 'consultation'] as const;
 const MAX_ITEMS = 25;
 const MAX_MATTERS = 200;
@@ -68,6 +74,12 @@ const proposeTool: ToolDef = {
               description: 'YYYY-MM-DD, resolved from the reference date; null if no date is given',
             },
             priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+            task_type: {
+              type: 'string',
+              enum: TASK_TYPES,
+              description:
+                'filing = filing a document with the court (pleadings, κατάθεση προτάσεων/δικογράφου); deposition = κατάθεση / testimony; court_appearance; client_visit; document_review; research; meeting; phone_call; investigation; negotiation; contract_draft; general otherwise',
+            },
             assignee_user_id: {
               type: ['string', 'null'],
               description: 'id from the staff list when a person is named as responsible, else null',
@@ -77,7 +89,7 @@ const proposeTool: ToolDef = {
               description: 'The exact words in the transcript this task comes from',
             },
           },
-          required: ['title', 'due_date', 'priority', 'assignee_user_id', 'source_quote'],
+          required: ['title', 'due_date', 'priority', 'task_type', 'assignee_user_id', 'source_quote'],
         },
       },
       events: {
@@ -231,6 +243,7 @@ transcriptActionsRouter.post(
           typeof t.assignee_user_id === 'string' && staffIds.has(t.assignee_user_id)
             ? t.assignee_user_id
             : null,
+        task_type: TASK_TYPES.includes(t.task_type as string) ? (t.task_type as string) : 'general',
         source_quote: str(t.source_quote, 400),
       }))
       .filter((t) => t.title);

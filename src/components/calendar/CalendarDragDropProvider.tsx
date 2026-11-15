@@ -38,7 +38,7 @@ export function CalendarDragDropProvider({ children, currentDate }: CalendarDrag
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
     const eventData = active.data.current?.event as CalendarEventWithOwner;
-    if (eventData) {
+    if (eventData && !eventData.read_only) {
       setActiveEvent(eventData);
       setIsDragging(true);
     }
@@ -55,7 +55,8 @@ export function CalendarDragDropProvider({ children, currentDate }: CalendarDrag
       const eventData = active.data.current?.event as CalendarEventWithOwner;
       const dropData = over.data.current;
 
-      if (!eventData || !dropData) return;
+      // Hearing dates and tasks come from matters and are edited there.
+      if (!eventData || !dropData || eventData.read_only) return;
 
       // Calculate new times based on drop target
       const originalStart = parseISO(eventData.start_date);

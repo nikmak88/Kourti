@@ -44,6 +44,10 @@ import { invoicesRouter } from './routes/api/invoices.js';
 import { miscRouter } from './routes/api/misc.js';
 import { transcriptActionsRouter } from './routes/api/transcriptActions.js';
 import { matterTaxonomyRouter } from './routes/api/matterTaxonomy.js';
+import { contractTypesRouter } from './routes/api/contractTypes.js';
+import { pushRouter, taskTypesRouter } from './routes/api/taskTypes.js';
+import { caseDeadlinesRouter, deadlineSettingsRouter } from './routes/api/deadlines.js';
+import { calendarFeedLinkRouter, calendarFeedPublicRouter } from './routes/api/calendarFeed.js';
 import { paystackWebhookRouter } from './routes/api/paystackWebhook.js';
 import { onboardingRouter } from './routes/api/onboarding.js';
 import { billingRouter } from './routes/api/billing.js';
@@ -286,6 +290,8 @@ export function createApp() {
   // Public marketing-site endpoints (live pricing + lead capture). No auth;
   // rate-limited per IP. Marketing origin must be in CORS_ORIGINS.
   app.use('/api/v1/public', publicRouter);
+  // Calendar subscription feed: the secret token in the URL is the credential.
+  app.use('/api/v1/calendar-feed', calendarFeedPublicRouter);
 
   // Ungated (always reachable so users can pay, manage org, see banner).
   // Platform-admin surface (/thanos). Each sub-router self-authorizes per route
@@ -340,6 +346,12 @@ export function createApp() {
   app.use('/api/v1/contracts', requireAuth, requireActiveSubscription, contractsRouter);
   app.use('/api/v1/cases', requireAuth, requireActiveSubscription, casesRouter);
   app.use('/api/v1/matter-taxonomy', requireAuth, matterTaxonomyRouter);
+  app.use('/api/v1/contract-types', requireAuth, contractTypesRouter);
+  app.use('/api/v1/task-types', requireAuth, taskTypesRouter);
+  app.use('/api/v1/push', requireAuth, pushRouter);
+  app.use('/api/v1/deadline-settings', requireAuth, deadlineSettingsRouter);
+  app.use('/api/v1/case-deadlines', requireAuth, caseDeadlinesRouter);
+  app.use('/api/v1/calendar-feed-link', requireAuth, calendarFeedLinkRouter);
   app.use('/api/v1/documents', requireAuth, requireActiveSubscription, documentsRouter);
   app.use('/api/v1/search', requireAuth, requireActiveSubscription, searchRouter);
   app.use(

@@ -189,7 +189,9 @@
     "items_one": "{{count}} item",
     "items_other": "{{count}} items",
     "matters_one": "{{count}} matter",
-    "matters_other": "{{count}} matters"
+    "matters_other": "{{count}} matters",
+    "contracts_one": "{{count}} contract",
+    "contracts_other": "{{count}} contracts"
   },
   "language": {
     "label": "Language",
@@ -211,5 +213,17 @@
     "text": "We use cookies and analytics tools to improve your experience. By accepting you consent to our use of Microsoft Clarity and Mixpanel for usage analytics. See our <link>Privacy Policy</link> for details.",
     "accept": "Accept",
     "reject": "Reject"
+  },
+  "contractTypes": {
+    "service": "Service agreement",
+    "nda": "Non-disclosure agreement",
+    "employment": "Employment contract",
+    "purchase": "Purchase agreement",
+    "lease": "Lease agreement",
+    "partnership": "Partnership agreement",
+    "licensing": "Licensing agreement",
+    "consulting": "Consulting agreement",
+    "supply": "Supply agreement",
+    "distribution": "Distribution agreement"
   }
 }

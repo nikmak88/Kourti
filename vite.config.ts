@@ -42,6 +42,8 @@ export default defineConfig(({ mode }) => ({
         // Precache app shell only; never cache API responses (avoids serving
         // stale case/client data offline). Larger bundles are allowed through.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Browser push for task reminders (public/push-sw.js).
+        importScripts: ['/push-sw.js'],
       },
       // Keep the SW out of dev to avoid caching surprises while developing.
       devOptions: { enabled: false },

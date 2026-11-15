@@ -20,6 +20,8 @@ export interface TaxonomyRow {
   issue: string;
   type_description?: string;
   issue_description?: string;
+  /** Optional 5th column: 'gr_ordinary' | 'gr_small_claims' (procedural deadlines of the type). */
+  deadline_rules?: string;
 }
 
 function detectDelimiter(firstLine: string): string {
@@ -91,6 +93,7 @@ export function csvToTaxonomyRows(text: string): { rows: TaxonomyRow[]; skippedH
       issue: (r[1] ?? '').trim(),
       type_description: (r[2] ?? '').trim() || undefined,
       issue_description: (r[3] ?? '').trim() || undefined,
+      deadline_rules: (r[4] ?? '').trim() || undefined,
     }))
     .filter((r) => r.type);
   return { rows, skippedHeader };

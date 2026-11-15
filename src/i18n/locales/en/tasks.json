@@ -58,6 +58,29 @@
     "assigneePlaceholder": "Select assignee",
     "descriptionPlaceholder": "Enter task description (optional)",
     "saveChanges": "Save Changes",
-    "submitCreate": "Create Task"
+    "submitCreate": "Create Task",
+    "deadlineLabel": "Procedural deadline",
+    "deadlineNone": "None - choose the date myself"
+  },
+  "reminder": {
+    "label": "Reminder",
+    "needsDueDate": "Set a due date to add a reminder.",
+    "daysBefore_one": "day before the due date",
+    "daysBefore_other": "days before the due date",
+    "channels": {
+      "in_app": "In-app notification",
+      "email": "Email",
+      "push": "Browser push"
+    }
+  },
+  "toast": {
+    "created": "Task created",
+    "createdDescription": "Task successfully added.",
+    "createFailed": "Task creation failed",
+    "updated": "Task updated",
+    "updatedDescription": "Task changes saved.",
+    "updateFailed": "Update failed",
+    "deleted": "Task deleted",
+    "deleteFailed": "Delete failed"
   }
 }

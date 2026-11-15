@@ -24,13 +24,14 @@ export function DraggableCalendarEvent({
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: event.id,
     data: { event },
+    disabled: !!event.read_only,
   });
 
   const style = {
     ...externalStyle,
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
+    cursor: event.read_only ? 'pointer' : isDragging ? 'grabbing' : 'grab',
   };
 
   const colorClasses = getEventTypeColor(event.event_type || 'meeting').split(' ');

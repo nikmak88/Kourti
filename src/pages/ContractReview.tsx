@@ -38,8 +38,12 @@ import {
   type FindingDecision,
 } from '@/components/ream-ai/ContractAnalysisView';
 import { CONTRACT_REVIEW_GOAL_SUGGESTIONS } from '@/components/ream-ai/analysisPresets';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import { formatNumber } from '@/i18n/dates';
 
 export default function ContractReview() {
+  const { t } = useTranslation('contracts');
   const [searchParams] = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [textContent, setTextContent] = useState('');
@@ -89,14 +93,17 @@ export default function ContractReview() {
           if (data.terms) {
             setTextContent(data.terms);
             setDocumentContent(data.terms);
-            toast.success('Contract Loaded', {
-              description: `Loaded "${data.title}" for review.`,
+            toast.success(i18n.t('contracts:review.toast.contractLoaded'), {
+              description: i18n.t('contracts:review.toast.loadedForReview', { name: data.title }),
             });
           }
         } catch (error) {
           if (!cancelled) {
-            toast.error('Failed to load contract', {
-              description: error instanceof Error ? error.message : 'Contract not found.',
+            toast.error(i18n.t('contracts:review.toast.contractLoadFailed'), {
+              description:
+                error instanceof Error
+                  ? error.message
+                  : i18n.t('contracts:review.toast.contractNotFound'),
             });
           }
         } finally {
@@ -125,8 +132,8 @@ export default function ContractReview() {
         }>(`/api/v1/documents/${documentId}`);
 
         if (!data) {
-          toast.error('Failed to load document', {
-            description: 'Document not found.',
+          toast.error(i18n.t('contracts:review.toast.documentLoadFailed'), {
+            description: i18n.t('contracts:review.toast.documentNotFound'),
           });
           return;
         }
@@ -135,7 +142,9 @@ export default function ContractReview() {
           if (!cancelled) {
             setTextContent(data.content);
             setDocumentContent(data.content);
-            toast.success('Document Loaded', { description: `Loaded "${data.name}" for review.` });
+            toast.success(i18n.t('contracts:review.toast.documentLoaded'), {
+              description: i18n.t('contracts:review.toast.loadedForReview', { name: data.name }),
+            });
           }
           return;
         }
@@ -193,22 +202,21 @@ export default function ContractReview() {
         if (extracted && extracted.length > 10) {
           setTextContent(extracted);
           setDocumentContent(extracted);
-          toast.success('Document Loaded', {
-            description: `Loaded "${data.name}" for review.`,
+          toast.success(i18n.t('contracts:review.toast.documentLoaded'), {
+            description: i18n.t('contracts:review.toast.loadedForReview', { name: data.name }),
           });
         } else {
-          toast.success('Could not extract text', {
-            description:
-              'The document format is not supported for automatic extraction. Please paste the text manually.',
+          toast.success(i18n.t('contracts:review.toast.cannotExtract'), {
+            description: i18n.t('contracts:review.toast.formatNotSupported'),
           });
         }
       } catch (error) {
         if (!cancelled) {
-          toast.error('Download Failed', {
+          toast.error(i18n.t('contracts:review.toast.downloadFailed'), {
             description:
               error instanceof Error
                 ? error.message
-                : 'Could not download the document from storage.',
+                : i18n.t('contracts:review.toast.downloadFailedDescription'),
           });
         }
       } finally {
@@ -230,7 +238,7 @@ export default function ContractReview() {
     const { validateFile, MAX_CONTRACT_FILE_SIZE } = await import('@/lib/fileValidation');
     const validation = validateFile(uploadedFile, { maxSize: MAX_CONTRACT_FILE_SIZE });
     if (!validation.valid) {
-      toast.error('Invalid File', { description: validation.error });
+      toast.error(t('toast.invalidFile'), { description: validation.error });
       return;
     }
 
@@ -307,24 +315,27 @@ export default function ContractReview() {
       if (extracted && extracted.length > 10) {
         setTextContent(extracted);
         setDocumentContent(extracted);
-        toast.success('Text Extracted', {
-          description: `Extracted ${extracted.length.toLocaleString()} characters from "${uploadedFile.name}".`,
+        toast.success(t('review.toast.textExtracted'), {
+          description: t('review.toast.textExtractedDescription', {
+            count: extracted.length,
+            formatted: formatNumber(extracted.length),
+            name: uploadedFile.name,
+          }),
         });
       } else {
-        toast.success('Extraction Limited', {
-          description:
-            'Could not extract text automatically. Please paste the contract text manually.',
+        toast.success(t('review.toast.extractionLimited'), {
+          description: t('review.toast.extractionLimitedDescription'),
         });
       }
     } catch (error) {
       console.error('File extraction error:', error);
-      toast.error('Extraction Failed', {
-        description: 'Could not read the file. Please paste the text manually.',
+      toast.error(t('toast.extractionFailed'), {
+        description: t('review.toast.readFailed'),
       });
     } finally {
       setIsExtracting(false);
     }
-  }, []);
+  }, [t]);
 
   const handleGoalToggle = (suggestion: string) => {
     setSelectedGoals((prev) =>
@@ -347,22 +358,22 @@ export default function ContractReview() {
   const handleAnalyze = async () => {
     const content = textContent.trim();
     if (!content && !file) {
-      toast.error('Missing Content', {
-        description: 'Please upload a document or paste text to analyze.',
+      toast.error(t('review.toast.missingContent'), {
+        description: t('review.toast.missingContentDescription'),
       });
       return;
     }
 
     if (!content || content.length < 50) {
-      toast.error('Insufficient Content', {
-        description: 'Please provide more text content for a meaningful analysis.',
+      toast.error(t('review.toast.insufficientContent'), {
+        description: t('review.toast.insufficientContentDescription'),
       });
       return;
     }
 
     setIsAnalyzing(true);
     setAnalysisProgress(10);
-    setProgressLabel('Preparing document for analysis...');
+    setProgressLabel(t('review.progress.preparing'));
     setDocumentContent(content);
 
     try {
@@ -384,12 +395,12 @@ export default function ContractReview() {
           const session = await refreshSession();
           accessToken = session.accessToken;
         } catch {
-          throw new Error('Authentication required. Please sign in again.');
+          throw new Error(t('review.errors.authRequired'));
         }
       }
 
       setAnalysisProgress(20);
-      setProgressLabel('Connecting to REAM AI...');
+      setProgressLabel(t('review.progress.connecting'));
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120_000);
@@ -416,15 +427,17 @@ export default function ContractReview() {
           message?: string;
         } | null;
         throw new Error(
-          errData?.error || errData?.message || `Analysis failed (${response.status})`
+          errData?.error ||
+            errData?.message ||
+            t('review.errors.analysisFailedStatus', { status: response.status })
         );
       }
 
       setAnalysisProgress(40);
-      setProgressLabel('REAM AI is analyzing your document...');
+      setProgressLabel(t('review.progress.analyzing'));
 
       const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response stream');
+      if (!reader) throw new Error(t('review.errors.noStream'));
 
       const decoder = new TextDecoder();
       let analysisText = '';
@@ -464,30 +477,33 @@ export default function ContractReview() {
       }
 
       if (!analysisText) {
-        throw new Error('Analysis returned empty results. Please try again.');
+        throw new Error(t('review.errors.emptyResults'));
       }
 
       setAnalysisProgress(85);
-      setProgressLabel('Parsing findings and building analysis view...');
+      setProgressLabel(t('review.progress.parsing'));
 
       const parsed = parseAnalysisToFindings(analysisText, content);
       setFindings(parsed.findings);
       setRecap(parsed.recap);
 
       setAnalysisProgress(100);
-      setProgressLabel('Analysis complete!');
+      setProgressLabel(t('review.progress.complete'));
 
-      toast.success('Analysis Complete', {
-        description: `Found ${parsed.findings.length} findings across ${parsed.recap.categories.length} categories.`,
+      toast.success(t('review.toast.analysisComplete'), {
+        description: t('review.toast.analysisCompleteDescription', {
+          findings: t('review.findingsCount', { count: parsed.findings.length }),
+          categories: t('review.categoriesCount', { count: parsed.recap.categories.length }),
+        }),
       });
     } catch (error: unknown) {
       const message =
         error instanceof DOMException && error.name === 'AbortError'
-          ? 'Analysis request timed out. Please try again.'
+          ? t('review.errors.timeout')
           : error instanceof Error
             ? error.message
-            : 'Failed to analyze document';
-      toast.error('Analysis Failed', { description: message });
+            : t('review.errors.analyzeFailed');
+      toast.error(t('review.toast.analysisFailed'), { description: message });
     } finally {
       setTimeout(() => {
         setIsAnalyzing(false);
@@ -504,8 +520,10 @@ export default function ContractReview() {
     if (updated !== documentContent) {
       setDocumentContent(updated);
       setTextContent(updated);
-      toast.success('Recommendation Applied', {
-        description: `Updated the contract text for: ${finding.title.substring(0, 40)}...`,
+      toast.success(t('review.toast.recommendationApplied'), {
+        description: t('review.toast.recommendationAppliedDescription', {
+          title: finding.title.substring(0, 40),
+        }),
       });
     }
   };
@@ -513,7 +531,9 @@ export default function ContractReview() {
   const handleEditDocument = (updatedContent: string) => {
     setDocumentContent(updatedContent);
     setTextContent(updatedContent);
-    toast.success('Document Updated', { description: 'Your changes have been saved.' });
+    toast.success(t('review.toast.documentUpdated'), {
+      description: t('review.toast.documentUpdatedDescription'),
+    });
   };
 
   const handleExport = async () => {
@@ -550,7 +570,9 @@ export default function ContractReview() {
 
     try {
       await navigator.clipboard.writeText(exportText);
-      toast.success('Exported', { description: 'Analysis report copied to clipboard.' });
+      toast.success(t('review.toast.exported'), {
+        description: t('review.toast.exportedDescription'),
+      });
     } catch {
       const blob = new Blob([exportText], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -587,11 +609,11 @@ export default function ContractReview() {
       });
 
       const editCount = acceptedFindings.length;
-      toast.success('Contract Saved', {
+      toast.success(t('review.toast.contractSaved'), {
         description:
           editCount > 0
-            ? `Contract saved with ${editCount} accepted edit${editCount !== 1 ? 's' : ''} applied.`
-            : 'Contract has been saved successfully.',
+            ? t('review.toast.contractSavedWithEdits', { count: editCount })
+            : t('review.toast.contractSavedDescription'),
       });
     } catch {
       // Error toast handled by mutation
@@ -644,21 +666,19 @@ export default function ContractReview() {
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" className="h-8 gap-1.5" onClick={handleReset}>
               <ArrowLeft className="h-4 w-4" />
-              New Analysis
+              {t('review.newAnalysis')}
             </Button>
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
               <Bot className="h-3.5 w-3.5" />
-              <span>{file?.name || 'Contract Analysis'}</span>
+              <span>{file?.name || t('review.analysisTitle')}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {Object.values(decisions).filter((d) => d === 'accepted').length > 0 && (
               <Badge variant="secondary" className="text-xs">
-                {Object.values(decisions).filter((d) => d === 'accepted').length} edit
-                {Object.values(decisions).filter((d) => d === 'accepted').length !== 1
-                  ? 's'
-                  : ''}{' '}
-                accepted
+                {t('review.editsAccepted', {
+                  count: Object.values(decisions).filter((d) => d === 'accepted').length,
+                })}
               </Badge>
             )}
             <Button
@@ -667,7 +687,7 @@ export default function ContractReview() {
               className="h-8 text-xs"
               onClick={handleSaveAsContract}
             >
-              Save as Contract
+              {t('review.saveAsContract')}
             </Button>
           </div>
         </div>
@@ -676,7 +696,7 @@ export default function ContractReview() {
         <div className="flex-1 min-h-0">
           <ContractAnalysisView
             documentContent={documentContent}
-            documentTitle={file?.name || 'Contract Analysis'}
+            documentTitle={file?.name || t('review.analysisTitle')}
             findings={findings}
             recap={recap}
             onApplyRecommendation={handleApplyRecommendation}
@@ -703,7 +723,7 @@ export default function ContractReview() {
             </div>
           </div>
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Analyzing your document</h2>
+            <h2 className="text-lg font-semibold">{t('review.analyzingHeading')}</h2>
             <p className="text-sm text-muted-foreground">{progressLabel}</p>
           </div>
           <div className="space-y-1">
@@ -726,9 +746,9 @@ export default function ContractReview() {
               <Bot className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">REAM AI Contract Review</h1>
+              <h1 className="text-xl font-semibold">{t('review.title')}</h1>
               <p className="text-muted-foreground text-sm">
-                Upload a document, set your goals, and get a structured AI analysis
+                {t('review.description')}
               </p>
             </div>
           </div>
@@ -743,7 +763,7 @@ export default function ContractReview() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                  <p className="text-sm font-medium">Loading document for review...</p>
+                  <p className="text-sm font-medium">{t('review.loadingSource')}</p>
                 </div>
               </CardContent>
             </Card>
@@ -767,7 +787,7 @@ export default function ContractReview() {
               >
                 {hasDocument ? <CheckCircle2 className="h-3.5 w-3.5" /> : '1'}
               </div>
-              <h2 className="text-sm font-semibold">Upload your document</h2>
+              <h2 className="text-sm font-semibold">{t('review.step1')}</h2>
             </div>
 
             {file ? (
@@ -785,12 +805,15 @@ export default function ContractReview() {
                         {isExtracting && (
                           <span className="ml-2 text-primary">
                             <Loader2 className="h-3 w-3 inline animate-spin mr-1" />
-                            Extracting text...
+                            {t('review.extracting')}
                           </span>
                         )}
                         {!isExtracting && textContent && (
                           <span className="ml-2 text-green-600">
-                            {textContent.length.toLocaleString()} characters extracted
+                            {t('review.charactersExtracted', {
+                              count: textContent.length,
+                              formatted: formatNumber(textContent.length),
+                            })}
                           </span>
                         )}
                       </p>
@@ -799,6 +822,7 @@ export default function ContractReview() {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 shrink-0"
+                      aria-label={t('review.removeFile')}
                       onClick={() => {
                         setFile(null);
                         setTextContent('');
@@ -835,10 +859,10 @@ export default function ContractReview() {
                       )}
                     />
                     <p className="font-medium text-sm">
-                      {isDragging ? 'Drop your file here' : 'Drag and drop or click to upload'}
+                      {isDragging ? t('review.dropHere') : t('review.dragOrClick')}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      PDF, DOC, DOCX, TXT - up to 10MB
+                      {t('review.fileTypes')}
                     </p>
                   </CardContent>
                 </Card>
@@ -849,11 +873,11 @@ export default function ContractReview() {
             <div className="relative">
               <div className="absolute inset-x-0 top-0 flex items-center justify-center -translate-y-1/2">
                 <span className="bg-background px-2 text-xs text-muted-foreground">
-                  or paste text directly
+                  {t('review.orPaste')}
                 </span>
               </div>
               <Textarea
-                placeholder="Paste your contract or document text here..."
+                placeholder={t('review.pastePlaceholder')}
                 value={file ? '' : textContent}
                 onChange={(e) => {
                   setTextContent(e.target.value);
@@ -883,8 +907,8 @@ export default function ContractReview() {
               <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                 2
               </div>
-              <h2 className="text-sm font-semibold">Set your analysis goals</h2>
-              <span className="text-xs text-muted-foreground">(optional)</span>
+              <h2 className="text-sm font-semibold">{t('review.step2')}</h2>
+              <span className="text-xs text-muted-foreground">{t('review.optionalSuffix')}</span>
             </div>
 
             {/* Analysis type */}
@@ -892,7 +916,7 @@ export default function ContractReview() {
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <FileText className="h-3.5 w-3.5" />
-                  Analysis Type
+                  {t('review.analysisType')}
                 </label>
                 <Select
                   value={analysisType}
@@ -907,20 +931,24 @@ export default function ContractReview() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="contract_review">
-                      Contract Review & Risk Assessment
+                      {t('review.types.contract_review')}
                     </SelectItem>
-                    <SelectItem value="document_review">General Document Analysis</SelectItem>
-                    <SelectItem value="key_information">Key Information Extraction</SelectItem>
+                    <SelectItem value="document_review">
+                      {t('review.types.document_review')}
+                    </SelectItem>
+                    <SelectItem value="key_information">
+                      {t('review.types.key_information')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Target className="h-3.5 w-3.5" />
-                  Custom Goal
+                  {t('review.customGoal')}
                 </label>
                 <Textarea
-                  placeholder="Describe what REAM AI should focus on..."
+                  placeholder={t('review.customGoalPlaceholder')}
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   className="min-h-[36px] h-[36px] resize-none text-sm"
@@ -959,10 +987,10 @@ export default function ContractReview() {
               className="w-full h-12 text-base"
             >
               <Sparkles className="h-5 w-5 mr-2" />
-              Analyze with REAM AI
+              {t('review.analyze')}
               {selectedGoals.length > 0 && (
                 <Badge variant="secondary" className="ml-2 text-xs">
-                  {selectedGoals.length} goal{selectedGoals.length !== 1 ? 's' : ''}
+                  {t('review.goalsCount', { count: selectedGoals.length })}
                 </Badge>
               )}
             </Button>

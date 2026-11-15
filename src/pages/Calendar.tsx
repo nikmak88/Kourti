@@ -25,6 +25,7 @@ import { TeamCalendars } from '@/components/calendar/TeamCalendars';
 import { CalendarDayView } from '@/components/calendar/CalendarDayView';
 import { CalendarWorkWeekView } from '@/components/calendar/CalendarWorkWeekView';
 import { FindAvailableTimeDialog } from '@/components/calendar/FindAvailableTimeDialog';
+import { CalendarFeedDialog } from '@/components/calendar/CalendarFeedDialog';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Settings as SettingsIcon } from 'lucide-react';
@@ -46,7 +47,6 @@ import {
 import { getSession } from '@/lib/authClient';
 import { invokeNodeApi } from '@/lib/backendApi';
 import { toast } from 'sonner';
-import { env } from '@/lib/env';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,8 +98,7 @@ export default function Calendar() {
   const [hasSsoConfig, setHasSsoConfig] = useState(false);
   const [showSyncSettings, setShowSyncSettings] = useState(false);
   const [showFindTimeDialog, setShowFindTimeDialog] = useState(false);
-  const calendarFeedUrl = `${env.APP_URL}/api/calendar/ics`;
-  const calendarSubscribeUrl = calendarFeedUrl.replace(/^https?:\/\//, 'webcal://');
+  const [showFeedDialog, setShowFeedDialog] = useState(false);
 
   // Team calendar sharing state
   const [selectedTeamCalendars, setSelectedTeamCalendars] = useState<string[]>([]);
@@ -536,20 +535,8 @@ export default function Calendar() {
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuLabel>{t('page.export.title')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={calendarFeedUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="cursor-pointer"
-                        >
-                          {t('page.export.download')}
-                        </a>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <a href={calendarSubscribeUrl} className="cursor-pointer">
-                          {t('page.export.subscribe')}
-                        </a>
+                      <DropdownMenuItem onSelect={() => setShowFeedDialog(true)} className="cursor-pointer">
+                        {t('page.export.subscribe')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -960,6 +947,7 @@ export default function Calendar() {
       />
 
       <FindAvailableTimeDialog open={showFindTimeDialog} onOpenChange={setShowFindTimeDialog} />
+      <CalendarFeedDialog open={showFeedDialog} onOpenChange={setShowFeedDialog} />
 
       {showSyncSettings && (
         <Dialog open={showSyncSettings} onOpenChange={setShowSyncSettings}>

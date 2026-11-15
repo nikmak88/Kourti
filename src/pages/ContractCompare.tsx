@@ -6,8 +6,11 @@ import { Upload, FileText, Zap, Loader2 } from 'lucide-react';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { toast } from 'sonner';
 import { streamCompareContracts } from '@/lib/featuresApi';
+import { useTranslation } from 'react-i18next';
+import { formatNumber } from '@/i18n/dates';
 
 export default function ContractCompare() {
+  const { t } = useTranslation('contracts');
   const [primaryFile, setPrimaryFile] = useState<File | null>(null);
   const [comparisonFile, setComparisonFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -29,8 +32,8 @@ export default function ContractCompare() {
       const primaryText = await extractTextFromFile(primaryFile);
       const comparisonText = await extractTextFromFile(comparisonFile);
       if (!primaryText || !comparisonText) {
-        toast.error('Extraction failed', {
-          description: 'Could not extract text from one or both documents. Use PDF, DOCX, or TXT.',
+        toast.error(t('toast.extractionFailed'), {
+          description: t('toast.extractionFailedCompare'),
         });
         return;
       }
@@ -40,11 +43,11 @@ export default function ContractCompare() {
         (delta) => setComparison((prev) => prev + delta)
       );
       setMeta({ tokensUsed: result.tokensUsed, modelUsed: result.modelUsed });
-      toast.success('Comparison complete');
+      toast.success(t('toast.comparisonComplete'));
     } catch (error) {
       logError('Comparison error', error);
-      toast.error('Comparison failed', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+      toast.error(t('toast.comparisonFailed'), {
+        description: error instanceof Error ? error.message : t('shared.unknownError'),
       });
     } finally {
       setIsAnalyzing(false);
@@ -133,20 +136,20 @@ export default function ContractCompare() {
               variant="outline"
               onClick={() => document.getElementById(`file-${type}`)?.click()}
             >
-              Change file
+              {t('compare.changeFile')}
             </Button>
           </div>
         ) : (
           <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
             <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="font-medium">{label}</p>
-            <p className="text-sm text-muted-foreground">PDF, DOCX, or TXT</p>
+            <p className="text-sm text-muted-foreground">{t('compare.fileTypes')}</p>
             <Button
               variant="outline"
               className="mt-4"
               onClick={() => document.getElementById(`file-${type}`)?.click()}
             >
-              Choose file
+              {t('compare.chooseFile')}
             </Button>
           </div>
         )}
@@ -168,29 +171,28 @@ export default function ContractCompare() {
     <div className="p-6 space-y-6">
       <Breadcrumbs />
       <div>
-        <h1 className="text-2xl font-semibold">Contract Comparison</h1>
+        <h1 className="text-2xl font-semibold">{t('compare.title')}</h1>
         <p className="text-muted-foreground">
-          Upload two contracts. The AI streams a side-by-side analysis of differences, risks, and
-          key clauses as it writes.
+          {t('compare.description')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <h3 className="font-medium">Primary document</h3>
+          <h3 className="font-medium">{t('compare.primary')}</h3>
           <FileUploadZone
             onFileUpload={(f) => handleFileUpload(f, 'primary')}
             file={primaryFile}
-            label="Upload primary contract"
+            label={t('compare.uploadPrimary')}
             type="primary"
           />
         </div>
         <div className="space-y-2">
-          <h3 className="font-medium">Comparison document</h3>
+          <h3 className="font-medium">{t('compare.comparison')}</h3>
           <FileUploadZone
             onFileUpload={(f) => handleFileUpload(f, 'comparison')}
             file={comparisonFile}
-            label="Upload new version"
+            label={t('compare.uploadComparison')}
             type="comparison"
           />
         </div>
@@ -205,12 +207,12 @@ export default function ContractCompare() {
           {isAnalyzing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Analyzing…
+              {t('compare.analyzing')}
             </>
           ) : (
             <>
               <Zap className="h-4 w-4 mr-2" />
-              Compare with AI
+              {t('compare.action')}
             </>
           )}
         </Button>
@@ -225,7 +227,7 @@ export default function ContractCompare() {
             }}
             disabled={isAnalyzing}
           >
-            Reset
+            {t('common:actions.reset')}
           </Button>
         )}
       </div>
@@ -234,15 +236,19 @@ export default function ContractCompare() {
         <Card className="shadow-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              Comparison
+              {t('compare.resultTitle')}
               {isAnalyzing && (
                 <span className="text-xs font-normal text-muted-foreground inline-flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> streaming
+                  <Loader2 className="h-3 w-3 animate-spin" /> {t('compare.streaming')}
                 </span>
               )}
               {meta && !isAnalyzing && (
                 <span className="text-xs font-normal text-muted-foreground">
-                  · {meta.modelUsed} · {meta.tokensUsed.toLocaleString()} tokens
+                  · {meta.modelUsed} ·{' '}
+                  {t('compare.tokens', {
+                    count: meta.tokensUsed,
+                    formatted: formatNumber(meta.tokensUsed),
+                  })}
                 </span>
               )}
             </CardTitle>

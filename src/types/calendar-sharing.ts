@@ -65,7 +65,12 @@ export interface CalendarEventWithOwner {
   external_event_id?: string | null;
   external_source?: 'google_calendar' | 'microsoft_teams';
   external_calendar_id?: string | null;
-  source?: 'internal' | 'google_calendar' | 'microsoft_teams';
+  // matter_hearing / task: read-only entries derived from matters (see CalendarEvent in types.ts).
+  source?: 'internal' | 'google_calendar' | 'microsoft_teams' | 'matter_hearing' | 'task';
+  read_only?: boolean;
+  task_id?: string;
+  task_type?: string | null;
+  case_title?: string;
   is_recurring?: boolean;
   recurrence_pattern?: {
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';

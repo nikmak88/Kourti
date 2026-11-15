@@ -47,6 +47,9 @@ sudo -E bash install.sh \
   --language el                                # default language: el (Greek) or en
 ```
 
+With `--language el` the new firm also gets the Greek matter types from
+`deploy/seed/matter-types.el.csv` instead of the 15 English defaults.
+
 The first build takes 5–10 minutes. At the end the installer prints the URL,
 the administrator's **temporary password** and the certificate fingerprint.
 `bash install.sh --help` lists every option.
@@ -94,6 +97,7 @@ password (separate channel), and the certificate file if self-signed.
 | User cannot receive 2FA mail | `sudo kourtictl email-otp --email ... off` (turn back on afterwards) |
 | Block / delete a user | `sudo kourtictl disable-user --email ...` (reversible, keeps the seat) · `sudo kourtictl delete-user --email ...` (permanent, frees the seat) |
 | Change licensed seats | `sudo kourtictl set-seats 15` |
+| Load matter types from a CSV | `sudo kourtictl matter-types import <file.csv> [--replace]` (`--replace`: the firm ends up with exactly the file's list) |
 | Backup | `sudo kourtictl backup` → `/var/backups/kourti/<timestamp>/` |
 | Update to a new version | `sudo kourtictl update --ref <tag>` (backs up first) |
 | Change the mail account | `sudo -E kourtictl smtp --host … --user … --from …` then `test-email` — see [USER-GUIDE.md §4](../USER-GUIDE.md) |

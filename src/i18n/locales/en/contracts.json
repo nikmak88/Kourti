@@ -1,0 +1,529 @@
+{
+  "status": {
+    "active": "Active",
+    "signed": "Signed",
+    "draft": "Draft",
+    "expired": "Expired",
+    "under_review": "Under review",
+    "under review": "Under review",
+    "pending": "Pending",
+    "terminated": "Terminated",
+    "completed": "Completed",
+    "review": "In review",
+    "uploaded": "Uploaded",
+    "cancelled": "Cancelled",
+    "archived": "Archived"
+  },
+  "list": {
+    "title": "Contracts",
+    "description": "Manage contracts with version control and AI-powered analysis",
+    "loading": "Loading contracts…",
+    "loadFailed": "Failed to load contracts.",
+    "unexpectedError": "An unexpected error occurred.",
+    "newContract": "New contract",
+    "aiReview": "AI review",
+    "compareContracts": "Compare contracts",
+    "clientFilter": "Client: {{client}}",
+    "clearClientFilter": "Clear client filter",
+    "stats": {
+      "total": "Total contracts",
+      "active": "Active",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired"
+    },
+    "searchPlaceholder": "Search contracts, clients or IDs…",
+    "filters": {
+      "allStatus": "All statuses",
+      "expiry": "Expiry",
+      "allExpiry": "All expiry dates",
+      "valid": "Valid",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired"
+    },
+    "tableDescription": "Comprehensive contract management with version control and expiry tracking",
+    "noClient": "No client",
+    "userFallback": "User",
+    "moreOptions": "More options",
+    "actions": {
+      "view": "View contract",
+      "edit": "Edit contract",
+      "history": "Version history"
+    },
+    "noMatches": "No contracts found matching your criteria.",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "pageOf": "Page {{page}} of {{total}}",
+    "empty": {
+      "title": "No contracts yet",
+      "description": "Get started by creating your first contract.",
+      "action": "Create first contract"
+    },
+    "ai": {
+      "title": "AI contract analysis",
+      "description": "Leverage AI to enhance your contract management workflow",
+      "intelligenceTitle": "Contract intelligence",
+      "intelligenceText": "Extract key terms, obligations and deadlines automatically from contract documents.",
+      "riskTitle": "Risk detection",
+      "riskText": "Identify potential risks, missing clauses and areas requiring legal attention.",
+      "renewalTitle": "Renewal alerts",
+      "renewalText": "Smart notifications for contract renewals, expiries and important milestone dates."
+    },
+    "allContracts_one": "All contracts ({{count}})",
+    "allContracts_other": "All contracts ({{count}})"
+  },
+  "create": {
+    "title": "Create new contract",
+    "description": "Generate a professional contract using AI with your custom details",
+    "partyRoles": {
+      "client": "Client",
+      "contractor": "Contractor",
+      "vendor": "Vendor",
+      "partner": "Partner",
+      "licensee": "Licensee",
+      "licensor": "Licensor",
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "tenant": "Tenant",
+      "landlord": "Landlord"
+    },
+    "partyTypes": {
+      "organization": "Organization",
+      "individual": "Individual"
+    },
+    "steps": {
+      "basic": {
+        "title": "Basic details",
+        "description": "Name the agreement and set its core metadata."
+      },
+      "parties": {
+        "title": "Parties",
+        "description": "Identify everyone involved and their roles."
+      },
+      "terms": {
+        "title": "Terms & timeline",
+        "description": "Capture milestones, value and supporting context."
+      },
+      "clauses": {
+        "title": "Clauses",
+        "description": "Fine-tune obligations and key protections."
+      }
+    },
+    "nextActions": {
+      "heading": "Next best actions",
+      "description": "Keep your workflow moving without leaving this screen.",
+      "upload": {
+        "title": "Upload existing contract",
+        "description": "Import a legacy agreement to compare or redline against the AI output."
+      },
+      "review": {
+        "title": "Use Ream AI reviewer",
+        "description": "Send a draft to Ream AI for compliance and risk checks before sharing."
+      }
+    },
+    "suggestions": {
+      "heading": "AI suggestions",
+      "risk": {
+        "title": "Risk & compliance",
+        "description": "Add non-compete, liability or privacy clauses to align with industry and local regulations."
+      },
+      "tips": {
+        "title": "AI drafting tips",
+        "description": "Reference governing law, deliverables and review cycles so the AI can generate precise obligations."
+      }
+    },
+    "alerts": {
+      "requiredFields": "Please fill in the required fields (Title and Type).",
+      "clauseRequired": "Please add at least one clause before generating the contract."
+    },
+    "readiness": {
+      "label": "AI readiness",
+      "ready": "Ready to generate",
+      "incomplete": "Complete each step to generate",
+      "completion": "completion"
+    },
+    "stepState": {
+      "done": "Done",
+      "active": "Active",
+      "pending": "Pending"
+    },
+    "tip": {
+      "title": "Tip for better drafts",
+      "description": "Share deliverables, payment cadence and any approval checkpoints. Our AI blends this with your template to produce a tailored first draft."
+    },
+    "tabs": {
+      "basic": "Basic info",
+      "parties": "Parties",
+      "terms": "Terms",
+      "clauses": "Clauses"
+    },
+    "basic": {
+      "heading": "Contract information",
+      "titleLabel": "Contract title",
+      "titlePlaceholder": "e.g. Software development agreement",
+      "typeLabel": "Contract type",
+      "descriptionPlaceholder": "Brief description of the contract purpose and scope…",
+      "valueLabel": "Contract value",
+      "currencyLabel": "Currency",
+      "assigneePlaceholder": "Select assignee",
+      "me": "Me ({{name}})"
+    },
+    "parties": {
+      "heading": "Contract parties",
+      "remove": "Remove party",
+      "addHeading": "Add new party",
+      "namePlaceholder": "Party name",
+      "rolePlaceholder": "Select role",
+      "addressPlaceholder": "Full address",
+      "add": "Add party"
+    },
+    "terms": {
+      "additionalLabel": "Additional terms & conditions",
+      "additionalPlaceholder": "Enter any specific terms, conditions or requirements for this contract…",
+      "referenceHeading": "Reference material",
+      "templateLabel": "Contract template (optional)",
+      "templatePlaceholder": "Paste an existing contract template here for the AI to use as a reference…",
+      "templateHelp": "Upload or paste a contract template to help the AI generate a contract that follows your preferred structure and style.",
+      "startDate": "Start date",
+      "selectStartDate": "Select start date",
+      "selectEndDate": "Select end date"
+    },
+    "clauses": {
+      "heading": "Contract clauses",
+      "counts": "{{required}} required, {{optional}} optional",
+      "remove": "Remove clause",
+      "addCustomHeading": "Add custom clause",
+      "titleLabel": "Clause title",
+      "titlePlaceholder": "Enter clause title",
+      "contentLabel": "Clause content",
+      "contentPlaceholder": "Enter clause content",
+      "requiredLabel": "Required clause",
+      "add": "Add clause"
+    },
+    "jurisdiction": {
+      "heading": "Jurisdiction settings",
+      "description": "Specify the legal jurisdiction for your contract",
+      "label": "Governing jurisdiction",
+      "placeholder": "e.g. State of New York, United States",
+      "help": "This will be used in the Governing Law clause and dispute resolution provisions."
+    },
+    "standardClauses": {
+      "heading": "Standard clauses",
+      "description": "Select clauses to include in your contract",
+      "added": "Added"
+    },
+    "saveDraft": "Save as draft",
+    "generating": "Generating contract…",
+    "generate": "Generate contract with AI",
+    "overview": {
+      "heading": "Contract overview",
+      "description": "Your selections update in real time to preview what the AI will draft.",
+      "untitled": "Untitled contract",
+      "teamMember": "Team member",
+      "value": "Value",
+      "duration": "Duration",
+      "notScheduled": "Not scheduled",
+      "parties": "Parties",
+      "noParties": "No parties added yet.",
+      "clauses": "Clauses",
+      "clausesConfigured_one": "{{count}} configured ({{required}} required)",
+      "clausesConfigured_other": "{{count}} configured ({{required}} required)"
+    }
+  },
+  "shared": {
+    "backToContracts": "Back to contracts",
+    "unknownError": "Unknown error"
+  },
+  "toast": {
+    "updated": "Contract updated successfully.",
+    "saveFailed": "Failed to save changes.",
+    "saveContractFailed": "Failed to save contract.",
+    "downloadedPdf": "Contract downloaded as PDF.",
+    "downloadPdfFailed": "Failed to download PDF.",
+    "downloadedDocx": "Contract downloaded as DOCX.",
+    "downloadDocxFailed": "Failed to download DOCX.",
+    "extractionFailed": "Extraction failed",
+    "extractionFailedCompare": "Could not extract text from one or both documents. Use PDF, DOCX or TXT.",
+    "comparisonComplete": "Comparison complete",
+    "comparisonFailed": "Comparison failed",
+    "invalidFile": "Invalid file",
+    "uploaded": "Contract uploaded successfully.",
+    "uploadFailed": "Failed to upload contract."
+  },
+  "edit": {
+    "title": "Edit contract",
+    "notFound": {
+      "title": "Contract not found",
+      "description": "The contract you're trying to edit doesn't exist or has been removed."
+    },
+    "unsavedChanges": "Unsaved changes",
+    "preview": "Preview",
+    "saveDialog": {
+      "title": "Save contract changes?",
+      "description": "This will update the contract with your changes."
+    },
+    "tabs": {
+      "content": "Document content",
+      "metadata": "Metadata"
+    },
+    "contentHeading": "Contract content",
+    "titlePlaceholder": "Enter contract title",
+    "descriptionPlaceholder": "Enter contract description…",
+    "termsLabel": "Terms & conditions",
+    "termsPlaceholder": "Enter contract terms…",
+    "metadataHeading": "Contract metadata",
+    "typePlaceholder": "Select type",
+    "danger": {
+      "title": "Danger zone",
+      "description": "Once you delete a contract, there is no going back. Please be certain.",
+      "delete": "Delete contract"
+    },
+    "deleteDialog": {
+      "title": "Are you absolutely sure?",
+      "description": "This action cannot be undone. This will permanently delete the contract."
+    }
+  },
+  "view": {
+    "loading": "Loading contract…",
+    "loadError": "Error loading contract",
+    "notFoundDescription": "The contract you're looking for doesn't exist or has been removed.",
+    "notSpecified": "Not specified",
+    "downloadTxt": "Download as TXT",
+    "history": "History",
+    "tabs": {
+      "overview": "Overview",
+      "document": "Document",
+      "details": "Details"
+    },
+    "summary": "Contract summary",
+    "lastUpdated": "Last updated",
+    "standardContract": "Standard contract",
+    "statusInfo": "Status & info",
+    "contractStatus": "Contract status",
+    "contractId": "Contract ID",
+    "aiNotice": "This contract was created using AI and should be reviewed by legal counsel.",
+    "document": "Contract document",
+    "readOnly": "Read-only view",
+    "editingMode": "Editing mode",
+    "noDocument": "No contract document available",
+    "details": "Contract details",
+    "financial": "Financial information",
+    "valueColon": "Contract value:",
+    "currencyColon": "Currency:",
+    "timeline": "Timeline",
+    "effectiveDate": "Effective date:",
+    "expirationDate": "Expiration date:",
+    "createdColon": "Created:"
+  },
+  "success": {
+    "title": "Contract successfully generated!",
+    "description": "Your contract has been created using AI. You can review, edit and download it below.",
+    "aiGenerated": "AI generated",
+    "type": "Type: {{type}}",
+    "downloadPdf": "Download as PDF",
+    "downloadDocx": "Download as DOCX",
+    "reviewRequired": "Review required",
+    "reviewNotice": "This contract was generated by AI and should be reviewed by legal counsel before use. Please verify that all terms, conditions and details are accurate.",
+    "preview": "Preview",
+    "editLive": "Edit live",
+    "viewFull": "View full contract",
+    "quickActions": "Quick actions:",
+    "createAnother": "Create another contract",
+    "aiAnalysis": "AI analysis"
+  },
+  "aiReviewDialog": {
+    "title": "AI review for contract",
+    "description": "The AI will read, summarize, identify key clauses and redline critical issues and risk areas in this contract.",
+    "running": "Running AI analysis… This may take a moment.",
+    "summary": "Summary",
+    "keyClauses": "Key clauses extracted",
+    "redlines": "Redlines & review comments",
+    "contextLabel": "Review context (optional)",
+    "contextPlaceholderShort": "e.g. Focus on indemnity and limitation of liability.",
+    "contextPlaceholderLong": "e.g. Focus on indemnity and limitation of liability. Flag missing non-compete or dubious payment schedule terms.",
+    "runningShort": "Running AI review…",
+    "runAnother": "Run another review",
+    "run": "Run review",
+    "unknownError": "Unknown error",
+    "failed": "AI review failed: {{message}}"
+  },
+  "history": {
+    "restoredAlert": "Restored to version {{version}} (simulated)",
+    "versionStatus": {
+      "final": "Final",
+      "draft": "Draft",
+      "review": "Under review"
+    },
+    "editCurrent": "Edit current version",
+    "searchPlaceholder": "Search versions by description or editor…",
+    "filters": {
+      "all": "All versions"
+    },
+    "versionsTitle_one": "Contract versions ({{count}})",
+    "versionsTitle_other": "Contract versions ({{count}})",
+    "current": "Current: v{{version}}",
+    "viewDetails": "View version details",
+    "detailsTitle": "Version {{version}} details",
+    "labels": {
+      "date": "Date:",
+      "editedBy": "Edited by:",
+      "status": "Status:",
+      "fileSize": "File size:",
+      "description": "Description:",
+      "changes": "Changes in this version:"
+    },
+    "restore": "Restore version",
+    "downloadVersion": "Download version",
+    "keyChanges": "Key changes:",
+    "moreChanges_one": "+{{count}} more change",
+    "moreChanges_other": "+{{count}} more changes",
+    "empty": {
+      "title": "No versions found",
+      "filtered": "No versions match your current filters.",
+      "none": "This contract doesn't have any version history yet."
+    },
+    "compare": {
+      "title": "Version comparison",
+      "from": "Compare from",
+      "to": "Compare to",
+      "selectVersion": "Select version",
+      "action": "Compare versions"
+    }
+  },
+  "compare": {
+    "title": "Contract comparison",
+    "description": "Upload two contracts. The AI streams a side-by-side analysis of differences, risks and key clauses as it writes.",
+    "primary": "Primary document",
+    "comparison": "Comparison document",
+    "uploadPrimary": "Upload primary contract",
+    "uploadComparison": "Upload new version",
+    "changeFile": "Change file",
+    "chooseFile": "Choose file",
+    "fileTypes": "PDF, DOCX or TXT",
+    "analyzing": "Analyzing…",
+    "action": "Compare with AI",
+    "resultTitle": "Comparison",
+    "streaming": "streaming",
+    "tokens_one": "{{formatted}} token",
+    "tokens_other": "{{formatted}} tokens"
+  },
+  "review": {
+    "title": "REAM AI contract review",
+    "description": "Upload a document, set your goals and get a structured AI analysis",
+    "loadingSource": "Loading document for review…",
+    "step1": "Upload your document",
+    "step2": "Set your analysis goals",
+    "optionalSuffix": "(optional)",
+    "extracting": "Extracting text…",
+    "charactersExtracted_one": "{{formatted}} character extracted",
+    "charactersExtracted_other": "{{formatted}} characters extracted",
+    "removeFile": "Remove file",
+    "dropHere": "Drop your file here",
+    "dragOrClick": "Drag and drop or click to upload",
+    "fileTypes": "PDF, DOC, DOCX, TXT - up to 10 MB",
+    "orPaste": "or paste text directly",
+    "pastePlaceholder": "Paste your contract or document text here…",
+    "analysisType": "Analysis type",
+    "types": {
+      "contract_review": "Contract review & risk assessment",
+      "document_review": "General document analysis",
+      "key_information": "Key information extraction"
+    },
+    "customGoal": "Custom goal",
+    "customGoalPlaceholder": "Describe what REAM AI should focus on…",
+    "analyze": "Analyze with REAM AI",
+    "goalsCount_one": "{{count}} goal",
+    "goalsCount_other": "{{count}} goals",
+    "newAnalysis": "New analysis",
+    "analysisTitle": "Contract analysis",
+    "editsAccepted_one": "{{count}} edit accepted",
+    "editsAccepted_other": "{{count}} edits accepted",
+    "saveAsContract": "Save as contract",
+    "analyzingHeading": "Analyzing your document",
+    "findingsCount_one": "{{count}} finding",
+    "findingsCount_other": "{{count}} findings",
+    "categoriesCount_one": "{{count}} category",
+    "categoriesCount_other": "{{count}} categories",
+    "progress": {
+      "preparing": "Preparing document for analysis…",
+      "connecting": "Connecting to REAM AI…",
+      "analyzing": "REAM AI is analyzing your document…",
+      "parsing": "Parsing findings and building analysis view…",
+      "complete": "Analysis complete!"
+    },
+    "errors": {
+      "authRequired": "Authentication required. Please sign in again.",
+      "analysisFailedStatus": "Analysis failed ({{status}})",
+      "noStream": "No response stream",
+      "emptyResults": "Analysis returned empty results. Please try again.",
+      "timeout": "Analysis request timed out. Please try again.",
+      "analyzeFailed": "Failed to analyze document"
+    },
+    "toast": {
+      "contractLoaded": "Contract loaded",
+      "documentLoaded": "Document loaded",
+      "loadedForReview": "Loaded \"{{name}}\" for review.",
+      "contractLoadFailed": "Failed to load contract",
+      "contractNotFound": "Contract not found.",
+      "documentLoadFailed": "Failed to load document",
+      "documentNotFound": "Document not found.",
+      "cannotExtract": "Could not extract text",
+      "formatNotSupported": "The document format is not supported for automatic extraction. Please paste the text manually.",
+      "downloadFailed": "Download failed",
+      "downloadFailedDescription": "Could not download the document from storage.",
+      "textExtracted": "Text extracted",
+      "textExtractedDescription_one": "Extracted {{formatted}} character from \"{{name}}\".",
+      "textExtractedDescription_other": "Extracted {{formatted}} characters from \"{{name}}\".",
+      "extractionLimited": "Extraction limited",
+      "extractionLimitedDescription": "Could not extract text automatically. Please paste the contract text manually.",
+      "readFailed": "Could not read the file. Please paste the text manually.",
+      "missingContent": "Missing content",
+      "missingContentDescription": "Please upload a document or paste text to analyze.",
+      "insufficientContent": "Insufficient content",
+      "insufficientContentDescription": "Please provide more text content for a meaningful analysis.",
+      "analysisComplete": "Analysis complete",
+      "analysisCompleteDescription": "Found {{findings}} across {{categories}}.",
+      "analysisFailed": "Analysis failed",
+      "recommendationApplied": "Recommendation applied",
+      "recommendationAppliedDescription": "Updated the contract text for: {{title}}…",
+      "documentUpdated": "Document updated",
+      "documentUpdatedDescription": "Your changes have been saved.",
+      "exported": "Exported",
+      "exportedDescription": "Analysis report copied to clipboard.",
+      "contractSaved": "Contract saved",
+      "contractSavedDescription": "Contract has been saved successfully.",
+      "contractSavedWithEdits_one": "Contract saved with {{count}} accepted edit applied.",
+      "contractSavedWithEdits_other": "Contract saved with {{count}} accepted edits applied."
+    }
+  },
+  "upload": {
+    "title": "Upload contract",
+    "description": "Upload a contract document and fill in the details below.",
+    "fileLabel": "Contract file",
+    "dropHere": "Drop the file here",
+    "dropzoneTitle": "Upload contract document",
+    "dropzoneHint": "Drag & drop or click to select PDF, DOC, DOCX or TXT files",
+    "removeFile": "Remove file",
+    "typePlaceholder": "Select contract type",
+    "descriptionPlaceholder": "Brief description of the contract",
+    "clientLabel": "Client (optional)",
+    "clientPlaceholder": "Select client",
+    "caseLabel": "Related matter (optional)",
+    "casePlaceholder": "Select matter",
+    "noCase": "No matter",
+    "currencies": {
+      "USD": "USD - US dollar",
+      "EUR": "EUR - Euro",
+      "GBP": "GBP - British pound",
+      "CAD": "CAD - Canadian dollar",
+      "AUD": "AUD - Australian dollar"
+    },
+    "uploading": "Uploading…",
+    "submit": "Upload contract",
+    "errors": {
+      "noFile": "Please select a file to upload",
+      "titleAndType": "Title and contract type are required",
+      "noOrganization": "Organization not found",
+      "validationFailed": "File validation failed"
+    }
+  }
+}

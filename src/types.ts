@@ -128,7 +128,15 @@ export interface CalendarEvent {
   updated_at: string;
   attendees?: string[] | null;
   reminder_date?: string;
-  source?: 'internal' | 'google_calendar' | 'microsoft_teams';
+  /**
+   * matter_hearing / task: derived from a matter (next hearing date, open task
+   * due date) by GET /calendar/events; read_only, edited on the matter itself.
+   */
+  source?: 'internal' | 'google_calendar' | 'microsoft_teams' | 'matter_hearing' | 'task';
+  read_only?: boolean;
+  task_id?: string;
+  task_type?: string | null;
+  case_title?: string;
   external_event_id?: string | null;
   external_source?: 'google_calendar' | 'microsoft_teams';
   external_calendar_id?: string | null;

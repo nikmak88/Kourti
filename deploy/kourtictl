@@ -99,6 +99,12 @@ Users & firm
 Language
   language [en|el]               Show / set the default language (users can switch individually)
 
+Matter types
+  matter-types import <file.csv> [--replace]
+                                 Add the CSV's matter types/issues to the firm (same format as
+                                 Settings → Matter types → Import). --replace hides the built-in
+                                 defaults and removes types not in the CSV (used for --language el).
+
 Email
   smtp --host <h> --from <address> [--port 587] [--user <u>] [--secure true|false] [--insecure-tls]
                                  Configure the outgoing mail account (password: $SMTP_PASSWORD or prompt)
@@ -176,6 +182,20 @@ cmd_language() {
   dc up -d --build app >/dev/null
   apply_backend
   echo "default language: $lang (users can still switch in Settings → Profile)"
+}
+
+cmd_matter_types() {
+  local sub="${1:-}"; shift || true
+  [[ "$sub" == import ]] || die "usage: matter-types import <file.csv> [--replace]"
+  local file="" extra=()
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --replace) extra+=(--replace); shift;;
+    --org) extra+=(--org "$2"); shift 2;;
+    -*) die "unknown option $1";;
+    *) file="$1"; shift;; esac; done
+  [[ -n "$file" && -f "$file" ]] || die "matter-types import: CSV file not found: ${file:-<none>}"
+  # The backend reads the CSV on stdin (the file is on the host, not in the container).
+  dc exec -T backend node dist/scripts/importMatterTypes.js "${extra[@]}" <"$file"     || die "matter-types import failed (see message above)"
 }
 
 cmd_config() {
@@ -663,6 +683,7 @@ case "$cmd" in
   ai) cmd_ai "$@" ;;
   config) cmd_config "$@" ;;
   language) cmd_language "$@" ;;
+  matter-types) cmd_matter_types "$@" ;;
   help|-h|--help) usage ;;
   *) usage; exit 1 ;;
 esac

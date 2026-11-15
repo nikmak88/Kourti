@@ -19,7 +19,10 @@ Detailed references: [deploy/README.md](deploy/README.md) (install procedure),
 | Seats | Each firm gets a permanent licence with N seats (no payment provider needed). Fixes the greyed-out **Invite** button. |
 | Email | Sends through **any SMTP server** (Microsoft 365, Google Workspace, your host, a relay) — previously only the Resend cloud service. |
 | Users | `kourtictl delete-user` — permanent deletion that frees the seat (the app itself can only disable). |
-| Matter types | **Settings → Matter types**: add, rename, remove and restore types and issues, remove all defaults, CSV import (add or replace) and export. Removals never lose data. |
+| Matter types | **Settings → Matter types**: add, rename, remove and restore types and issues, remove all defaults, CSV import (add or replace) and export. Removals never lose data. Greek installs (`--language el`) start with the Greek list in `deploy/seed/matter-types.el.csv`. |
+| Contract types | **Settings → Contract types**: the same management for contract types (previously a fixed English list of 10 in the code). |
+| Deadlines & reminders | Procedural deadline calculator for Greek ordinary procedure and small claims (§3.0d); task reminders by in-app notification, email and browser push; tasks assigned to their creator by default (§3.0e). |
+| Calendar | Shows each matter's **next hearing date** and every **open task with a due date** (read-only; changed on the matter). The date pickers' weekday header was broken (react-day-picker v9 class names) and now follows the user's language. |
 | Voice → tasks | **Extract tasks & events** on a transcript: the AI proposes tasks (with assignee and due date), calendar events and the matter. The user reviews them before anything is created. |
 | AI | One provider can serve everything: chat, agents, document search and voice transcription all work with OpenAI alone (previously search and voice required OpenRouter). `kourtictl ai endpoint` points the OpenAI slot at DeepSeek, Mistral or a local model server. |
 | Database | Upstream deleted its full database schema in May 2026, and its own setup only rebuilds part of it. On a fresh install, creating a client, invoices, matter activity and time entries, document search, **Disable User**, changing roles and more failed. `backend-node/src/db/schemaCompletion.ts` adds the missing tables, columns and functions on every start; it only adds and never changes existing data. Postgres now includes **pgvector** (`deploy/postgres/`) for document search. |
@@ -100,6 +103,96 @@ matter_type;matter_issue;type_description;issue_description
 In Excel use **Save As → CSV UTF-8** so Greek characters are kept. Importing
 the same file twice changes nothing. Removed defaults stay removed after
 restarts and updates.
+
+**Greek firms.** An install with `--language el` replaces the 15 English
+defaults with the Greek list in `deploy/seed/matter-types.el.csv` when it creates
+the firm (the defaults are only hidden and can be restored). To load a list on an
+existing install, from the VM:
+
+```sh
+sudo kourtictl matter-types import /opt/kourti/src/deploy/seed/matter-types.el.csv --replace
+```
+
+Without `--replace` the file is added to the current list.
+
+### 3.0a Contract types
+
+The contract screens (new, upload, edit) offer a **contract type**. A fresh
+install has 10 defaults (service, non-disclosure, employment, purchase, lease,
+partnership, licensing, consulting, supply, distribution), shown in the user's
+language. **Settings → Contract types** works like matter types: add, rename
+(your own only), remove/restore, remove all defaults, CSV import/export. The CSV
+has one type per row: `contract_type,description` (description optional).
+Renaming one of your own types also renames it on existing contracts.
+
+### 3.0d Procedural deadlines (Greek civil procedure)
+
+Matter types can compute their procedural deadlines. In **Settings → Matter types**,
+**Deadlines** on a type chooses the rule set and the default inputs for new matters:
+
+| Rule set | Used for (Greek seed) | Deadlines |
+|---|---|---|
+| Ordinary procedure (Ν. 5221/2025) | Αστικό - Νέα Τακτική | service, interventions, pleadings, addendum, judge assignment, preliminary order, hearing request, vagueness completion/rebuttal, witness evaluation/examination, final judgment, re-summons |
+| Small claims (art. 468 ΚΠολΔ) | Αστικό - Μικροδιαφορές | service, evidence & memo, rebuttal, interventions, intervention evidence/rebuttal, re-summons |
+
+On such a matter the **Procedural deadlines** card asks for the filing date (and,
+if known, the hearing date; plus defendant abroad, State party, summons,
+incidental action). Each deadline shows how it was counted (August suspension,
+1 July-15 September when the State is a party, weekends, Greek public holidays)
+and has a **+ Task** button. A new **Κατάθεση** task on such a matter defaults
+to the pleadings deadline (small claims: evidence & memo); the task dialog lists
+every deadline. Rules, verification against lawcase.gr and the deliberate
+differences: `decisions/0004-deadlines.md`. Local court suspensions (δωσιδικία)
+are not included - always verify.
+
+### 3.0e Tasks: assignee and reminders
+
+- A new task is assigned to the person who creates it (they can pick someone else or nobody).
+- **Settings → Task types & reminders** gives each task type an optional default
+  reminder: *N days before the due date*, by **in-app notification**, **email**
+  and/or **browser push**. New tasks start with it; the task dialog can switch it
+  off or change days/channels.
+- Reminders go to the task's assignee on the reminder day from 08:00
+  (`REMINDER_TIMEZONE`, default Europe/Athens; `REMINDER_HOUR`, default 8). A
+  changed due date or reminder re-arms it; completed tasks get none.
+- **Browser push**: each user turns it on per browser in Settings → Task types &
+  reminders (**Turn on**, **Send test**). It needs a trusted HTTPS certificate:
+  with the installer's self-signed certificate, import it as a trusted root on
+  the PC first. The push keys are generated by the server on first use.
+- Tasks proposed from a voice transcript (**Extract tasks & events**) get a task
+  type, the type's default reminder, the reviewer as assignee when nobody is
+  named, and - for Κατάθεση on a matter with deadlines and no date in the
+  recording - the matter's filing deadline.
+
+### 3.0f Calendar feed for Outlook / Google / Apple
+
+**Calendar → Export → Subscribe from Outlook / Google** shows each user's private
+feed URL (`https://<server>/api/v1/calendar-feed/<secret>.ics`). It contains the
+firm's calendar events, the matters' hearing dates and the user's own open tasks
+(all-day, with their reminder as an alarm at 09:00). Calendar apps refresh it
+about every hour; it is read-only.
+
+- **Outlook desktop / Apple Calendar** fetch the feed from the user's PC, so they
+  work on the firm's network (with the self-signed certificate trusted on the PC).
+- **Outlook on the web / Microsoft 365 and Google Calendar** fetch it from
+  Microsoft's / Google's servers: the Kourti server must be reachable from the
+  internet with a valid certificate (e.g. `--tls acme` and a public DNS name).
+- Anyone with the URL can read it. **Reset link** issues a new one; the old URL
+  stops working at once.
+- Two-way sync (creating Kourti entries from Outlook/Google) is not implemented.
+
+### 3.0c Calendar: hearings and tasks
+
+Besides its own events, the calendar shows:
+
+- each matter's **next hearing date** (field *Next hearing date* on the matter),
+  as a hearing;
+- every **open task with a due date**, at 09:00 on that day, coloured by task
+  type (court appearance → hearing, deposition → deposition, meeting, client
+  visit → consultation, document review → review, anything else → deadline).
+
+These entries are read-only on the calendar: **Open matter** jumps to the matter,
+where the date is changed or the task completed (completed tasks disappear).
 
 ### 3.0b Language (English / Ελληνικά)
 
@@ -542,6 +635,7 @@ To see the models a key can use (on the VM, the key is not stored by this):
 | Add a user / reset a password | `sudo kourtictl create-user …` · `sudo kourtictl reset-password --email …` |
 | Block / delete a user | `sudo kourtictl disable-user --email …` · `sudo kourtictl delete-user --email …` (§3.1) |
 | Change seats | `sudo kourtictl set-seats 15` |
+| Load matter types from a CSV | `sudo kourtictl matter-types import <file.csv> [--replace]` (§3.0) |
 | Back up | `sudo kourtictl backup` |
 | Change any setting | `sudo kourtictl config set KEY value` |
 | Update the application | `sudo kourtictl update --ref <tag>` |

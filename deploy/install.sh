@@ -390,6 +390,13 @@ if [[ "$FIRMS" == 0 ]]; then
   [[ -n "$ADMIN_PASSWORD" ]] && args+=(--admin-password "$ADMIN_PASSWORD")
   [[ "$NO_SMTP" == true ]] && args+=(--no-email-otp)
   FIRM_SUMMARY=$(KOURTI_HOME="$KOURTI_HOME" kourtictl init-firm "${args[@]}")
+  # Greek firms start with the Greek matter types instead of the English defaults
+  # (they can still be edited, or the defaults restored, in Settings → Matter types).
+  SEED="$KOURTI_HOME/src/deploy/seed/matter-types.$DEFAULT_LANGUAGE.csv"
+  if [[ -f "$SEED" ]]; then
+    step "Loading the default matter types ($DEFAULT_LANGUAGE)"
+    KOURTI_HOME="$KOURTI_HOME" kourtictl matter-types import "$SEED" --replace       || echo "WARNING: matter types not loaded; run: kourtictl matter-types import $SEED --replace" >&2
+  fi
 fi
 
 echo
