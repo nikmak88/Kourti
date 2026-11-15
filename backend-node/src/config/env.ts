@@ -31,6 +31,30 @@ const envSchema = z.object({
   // suffices. Override via env in prod if you want the same model on
   // both tiers.
   OPENAI_FALLBACK_CHAT_MODEL: z.string().default('gpt-5-mini'),
+  // Endpoint of the "openai" provider. Any OpenAI-compatible chat API works
+  // here (DeepSeek, Mistral, Groq, a local Ollama/vLLM, ...), together with
+  // that service's key in OPENAI_API_KEY and its model ids in OPENAI_*_MODEL.
+  OPENAI_BASE_URL: z
+    .string()
+    .url()
+    .default('https://api.openai.com/v1')
+    .transform((u) => u.replace(/\/+$/, '')),
+  // Name of the output-length parameter. OpenAI's own API wants
+  // max_completion_tokens; most compatible servers only document max_tokens.
+  // Default: max_completion_tokens for api.openai.com, max_tokens otherwise.
+  OPENAI_TOKEN_PARAM: z.enum(['max_completion_tokens', 'max_tokens']).optional(),
+  // Models used when embeddings / transcription go through the "openai"
+  // provider (OPENAI_BASE_URL + OPENAI_API_KEY).
+  OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
+  OPENAI_STT_MODEL: z.string().default('gpt-4o-mini-transcribe'),
+  // Who serves document search (embeddings) and voice transcription.
+  // Unset: OpenRouter when OPENROUTER_API_KEY is set, otherwise the openai provider.
+  AI_EMBEDDINGS_PROVIDER: z.enum(['openai', 'openrouter']).optional(),
+  AI_TRANSCRIPTION_PROVIDER: z.enum(['openai', 'openrouter']).optional(),
+  // Minimum cosine similarity for document search hits. text-embedding-3-small
+  // scores relevant passages ~0.3-0.6 and unrelated text ~0.1, so the old
+  // 0.6 cut-off (tuned for ada-002) dropped almost every real match.
+  RAG_MATCH_THRESHOLD: z.coerce.number().min(0).max(1).default(0.3),
 
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_CHAT_MODEL: z.string().default('claude-opus-4-6'),
@@ -188,6 +212,36 @@ const envSchema = z.object({
   // APP_URL. The link carries an HMAC token (no DB lookup) — see
   // services/consent.ts unsubscribeToken().
   PUBLIC_BASE_URL: optionalUrl,
+
+  // ── Self-hosting switches ───────────────────────────────────────────────
+  // Public self-service sign-up (POST /api/v1/auth/sign-up). Self-hosted firm
+  // installs set this to false so accounts are only created by invitation
+  // (staff), the client portal (clients) or an operator (DB script).
+  SIGNUP_ENABLED: z
+    .preprocess((v) => (v === undefined || v === '' ? true : v === 'true' || v === '1' || v === true), z.boolean())
+    .default(true),
+
+  // Transactional email transport. 'resend' (hosted API, upstream default) or
+  // 'smtp' (any mail server — Microsoft 365, Google Workspace, Postfix, …).
+  // When unset, SMTP is used if SMTP_HOST is set, otherwise Resend.
+  EMAIL_PROVIDER: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.enum(['resend', 'smtp']).optional()
+  ),
+  SMTP_HOST: optionalNonEmptyString,
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  // true = implicit TLS (port 465). false = plain connection upgraded with
+  // STARTTLS (port 587/25). Defaults from the port.
+  SMTP_SECURE: z.preprocess(
+    (v) => (v === undefined || v === '' ? undefined : v === 'true' || v === '1' || v === true),
+    z.boolean().optional()
+  ),
+  SMTP_USER: optionalNonEmptyString,
+  SMTP_PASSWORD: optionalNonEmptyString,
+  // Set to false only for an internal relay with a self-signed certificate.
+  SMTP_TLS_REJECT_UNAUTHORIZED: z
+    .preprocess((v) => (v === undefined || v === '' ? true : v === 'true' || v === '1' || v === true), z.boolean())
+    .default(true),
 });
 
 export const env = envSchema.parse(process.env);
@@ -247,6 +301,17 @@ if (
   throw new Error(
     'SSO_SECRET_KEY must be changed from the default value outside local development'
   );
+}
+
+/** Resolved email transport (see EMAIL_PROVIDER). */
+export const emailProvider: 'resend' | 'smtp' =
+  env.EMAIL_PROVIDER ?? (env.SMTP_HOST ? 'smtp' : 'resend');
+
+if (emailProvider === 'smtp' && !env.SMTP_HOST) {
+  throw new Error('EMAIL_PROVIDER=smtp requires SMTP_HOST');
+}
+if (emailProvider === 'smtp' && env.SMTP_USER && !env.SMTP_PASSWORD) {
+  throw new Error('SMTP_USER is set but SMTP_PASSWORD is missing');
 }
 
 // S3-compatible driver requires its full credential set.

@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { SIGNUP_ENABLED } from '@/lib/features';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NotificationsProvider } from '@/components/ui/notifications';
@@ -570,6 +571,19 @@ function PasswordChangeCheck({ children }: { children: React.ReactNode }) {
 }
 
 // Loading Fallback Component
+/**
+ * The onboarding wizard doubles as the public sign-up form. When sign-up is
+ * disabled (VITE_SIGNUP_ENABLED=false) anonymous visitors go to the login page;
+ * signed-in users (e.g. SSO users finishing org setup) still get through.
+ */
+function SignupGate({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (SIGNUP_ENABLED) return <>{children}</>;
+  if (loading) return <LoadingFallback />;
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+}
+
 function LoadingFallback() {
   return (
     <div className="flex items-center justify-center h-screen bg-background">
@@ -730,7 +744,9 @@ const App = () => (
               element={
                 <Suspense fallback={<LoadingFallback />}>
                   <ModuleErrorBoundary name="Onboarding">
-                    <Onboarding />
+                    <SignupGate>
+                      <Onboarding />
+                    </SignupGate>
                   </ModuleErrorBoundary>
                 </Suspense>
               }

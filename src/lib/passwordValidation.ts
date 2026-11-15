@@ -9,8 +9,8 @@ export interface PasswordValidationResult {
 }
 
 export function validatePassword(password: string): PasswordValidationResult {
-  if (password.length < 8) {
-    return { valid: false, error: 'Password must be at least 8 characters long' };
+  if (password.length < 12) {
+    return { valid: false, error: 'Password must be at least 12 characters long' };
   }
   if (!/[A-Z]/.test(password)) {
     return { valid: false, error: 'Password must contain at least one uppercase letter' };
@@ -25,7 +25,7 @@ export function validatePassword(password: string): PasswordValidationResult {
 }
 
 export const PASSWORD_REQUIREMENTS = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'At least 12 characters', test: (p: string) => p.length >= 12 },
   { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
   { label: 'One lowercase letter', test: (p: string) => /[a-z]/.test(p) },
   { label: 'One number', test: (p: string) => /[0-9]/.test(p) },

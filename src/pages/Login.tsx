@@ -10,6 +10,7 @@ import { AppLogo } from '@/components/ui/AppLogo';
 import { useAuth } from '@/hooks/useAuth';
 import { EmailOtpChallenge } from '@/components/auth/EmailOtpChallenge';
 import type { MfaRequiredResponse } from '@/lib/authClient';
+import { SIGNUP_ENABLED } from '@/lib/features';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -131,15 +132,17 @@ export default function Login() {
             {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
           </form>
 
-          <div className="mt-6">
-            <Separator className="my-4" />
-            <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link to="/onboarding" className="text-primary hover:underline font-medium">
-                Sign up
-              </Link>
+          {SIGNUP_ENABLED && (
+            <div className="mt-6">
+              <Separator className="my-4" />
+              <div className="text-center text-sm text-muted-foreground">
+                Don't have an account?{' '}
+                <Link to="/onboarding" className="text-primary hover:underline font-medium">
+                  Sign up
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

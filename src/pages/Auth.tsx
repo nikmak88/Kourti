@@ -11,6 +11,7 @@ import { AppLogo } from '@/components/ui/AppLogo';
 import { EmailOtpChallenge } from '@/components/auth/EmailOtpChallenge';
 import type { MfaRequiredResponse } from '@/lib/authClient';
 import { isSafePath } from '@/lib/safeUrl';
+import { SIGNUP_ENABLED } from '@/lib/features';
 
 const FEATURES = [
   {
@@ -83,6 +84,17 @@ export default function Auth() {
   const searchParams = new URLSearchParams(location.search);
   const invitedEmail = searchParams.get('email');
   const isInvited = searchParams.get('invited') === 'true';
+
+  // Invitation links that carry a token belong on the set-password page.
+  // Older emails (and the in-app resend) pointed at /auth, where the invitee's
+  // chosen password was submitted as a sign-in and failed.
+  const inviteToken = searchParams.get('token');
+  const inviteType = searchParams.get('type');
+  useEffect(() => {
+    if (inviteToken && (inviteType === 'invite' || inviteType === 'invitation')) {
+      navigate(`/auth/set-password${location.search}`, { replace: true });
+    }
+  }, [inviteToken, inviteType, location.search, navigate]);
 
   // Validate the post-login redirect target to prevent open-redirect via a
   // tampered location.state; fall back to /dashboard for anything unsafe.
@@ -366,7 +378,7 @@ export default function Auth() {
             </Button>
           </form>
 
-          {!isInvited && (
+          {!isInvited && SIGNUP_ENABLED && (
             <>
               <Separator />
               <p className="text-center text-sm text-muted-foreground">

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { invokeNodeApi } from '@/lib/backendApi';
+import { useAuth } from '@/hooks/useAuth';
 import { AppLogo } from '@/components/ui/AppLogo';
 import { Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react';
 import { logError, logInfo } from '@/lib/logger';
@@ -31,6 +32,7 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const validatePasswordLocal = (password: string): string | null => {
     const result = sharedValidatePassword(password);
@@ -64,28 +66,20 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
         body: { newPassword },
       });
 
-      // Mark password as changed in profile
-      try {
-        await invokeNodeApi('/api/v1/auth/mark-password-changed', { method: 'POST' });
-      } catch (markError) {
-        logError('Failed to mark password as changed', { error: markError });
-      }
-
-      // Clear password from state
+      // The server clears the must-change flag and revokes every session as
+      // part of the change, so the current session is no longer valid: sign
+      // out locally and send the user back to log in with the new password.
       setNewPassword('');
       setConfirmPassword('');
-
       logInfo('Password changed successfully');
 
-      toast.success('Password updated!', {
-        description: 'Your password has been changed successfully. Welcome to the team!',
+      toast.success('Password updated', {
+        description: 'Please sign in again with your new password.',
       });
 
-      // Notify parent component
+      await signOut();
+      navigate('/auth', { replace: true });
       onPasswordChanged();
-
-      // Navigate to dashboard
-      navigate('/dashboard', { replace: true });
     } catch (error: unknown) {
       logError('Password change failed', { error });
       const errorMessage =
@@ -98,8 +92,8 @@ export default function ForcePasswordChange({ onPasswordChanged }: ForcePassword
 
   const passwordStrength = (): { score: number; label: string; color: string } => {
     let score = 0;
-    if (newPassword.length >= 8) score++;
     if (newPassword.length >= 12) score++;
+    if (newPassword.length >= 16) score++;
     if (/[A-Z]/.test(newPassword)) score++;
     if (/[a-z]/.test(newPassword)) score++;
     if (/[0-9]/.test(newPassword)) score++;

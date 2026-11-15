@@ -323,7 +323,7 @@ export default function CaseCreate() {
                     name="case_issue_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Matter Issue *</FormLabel>
+                        <FormLabel>Matter Issue{caseIssues.length > 0 ? ' *' : ''}</FormLabel>
                         <FormControl>
                           <Select
                             value={caseIssueId}
@@ -332,7 +332,8 @@ export default function CaseCreate() {
                               field.onChange(value);
                             }}
                             disabled={!caseTypeId || isLoadingCaseIssues}
-                            required
+                            // Only block submit when there is something to choose.
+                            required={caseIssues.length > 0}
                           >
                             <SelectTrigger>
                               <SelectValue

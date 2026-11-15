@@ -7,6 +7,8 @@ import {
   streamChatCompletion,
   generateEmbedding,
   generateEmbeddingsBatch,
+  serviceTarget,
+  transcriptionProvider,
 } from '../../lib/openai.js';
 import { env } from '../../config/env.js';
 import { ApiError, asyncHandler } from '../../lib/http.js';
@@ -196,7 +198,7 @@ async function ragSearch(
   query: string,
   organizationId: string,
   limit: number,
-  matchThreshold = 0.6
+  matchThreshold = env.RAG_MATCH_THRESHOLD
 ): Promise<RagResult[]> {
   // Try vector search first
   try {
@@ -543,7 +545,7 @@ aiRouter.post(
       parsed.query,
       auth.organizationId,
       limit,
-      parsed.matchThreshold ?? 0.6
+      parsed.matchThreshold ?? env.RAG_MATCH_THRESHOLD
     );
 
     res.status(200).json({
@@ -818,6 +820,42 @@ aiRouter.post(
   asyncHandler(async (req, res) => {
     const auth = req.auth!;
 
+    // The Voice & Transcriptions page also posts { action: 'summarize', transcript }
+    // here to get a summary of an existing transcript (chat model, no audio).
+    if (req.body?.action === 'summarize') {
+      const { transcript } = z
+        .object({ transcript: z.string().trim().min(1).max(200_000) })
+        .parse(req.body);
+      const summaryLimit = checkRateLimit(`${auth.userId}:voice-summary`, 10, 60_000);
+      if (!summaryLimit.allowed) {
+        res.setHeader('Retry-After', String(summaryLimit.retryAfter));
+        throw new ApiError('Too many requests. Please try again later.', 429, 'RATE_LIMIT_EXCEEDED');
+      }
+      const completion = await requestChatCompletion(
+        [
+          {
+            role: 'system',
+            content:
+              'You summarise transcripts of recordings made by a professional firm (meetings, client calls, hearings). ' +
+              'Write the summary in the same language the transcript is spoken in (judge by the sentences, ' +
+              'not by names of people or places; e.g. an English transcript about Mr Dupont gets an English summary). ' +
+              'Give: a 2-3 sentence overview; key points; decisions; ' +
+              'action items with owner and deadline when stated; dates and deadlines mentioned. ' +
+              'Do not invent facts that are not in the transcript.',
+          },
+          { role: 'user', content: transcript },
+        ],
+        2000
+      );
+      res.status(200).json({
+        success: true,
+        summary: completion.analysis.trim(),
+        modelUsed: completion.modelUsed,
+        tokensUsed: completion.tokensUsed,
+      });
+      return;
+    }
+
     // Base64-encoded 25 MB cap matches OpenAI/OpenRouter STT limits and
     // bounds memory + per-call cost from a hostile client.
     const MAX_AUDIO_BASE64_LEN = 34_000_000;
@@ -840,8 +878,70 @@ aiRouter.post(
       throw new ApiError('Too many requests. Please try again later.', 429, 'RATE_LIMIT_EXCEEDED');
     }
 
+    const provider = transcriptionProvider();
+
+    if (provider === 'openai') {
+      // Standard speech-to-text endpoint (OpenAI, Groq, Mistral, local Whisper
+      // servers): multipart upload of the audio file.
+      const target = serviceTarget('openai', '/audio/transcriptions');
+      if (!target.apiKey) {
+        throw new ApiError(
+          'OpenAI API key not configured (needed for voice transcription)',
+          503,
+          target.missingCode
+        );
+      }
+      const mime: Record<string, string> = {
+        webm: 'audio/webm',
+        mp3: 'audio/mpeg',
+        wav: 'audio/wav',
+        m4a: 'audio/mp4',
+        ogg: 'audio/ogg',
+        flac: 'audio/flac',
+      };
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob([Buffer.from(audio, 'base64')], { type: mime[format] }),
+        `recording.${format}`
+      );
+      form.append('model', env.OPENAI_STT_MODEL);
+      form.append('response_format', 'json');
+
+      const sttResponse = await fetch(target.url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${target.apiKey}` },
+        body: form,
+      });
+      if (!sttResponse.ok) {
+        const errorText = await sttResponse.text();
+        throw new ApiError(
+          `OpenAI transcription failed: ${sttResponse.status}: ${errorText}`,
+          502,
+          target.upstreamCode
+        );
+      }
+      const sttData = (await sttResponse.json()) as {
+        text?: string;
+        usage?: { total_tokens?: number };
+      };
+      const sttText = (sttData.text ?? '').trim();
+      res.status(200).json({
+        success: true,
+        transcript: sttText, // field read by the Voice & Transcriptions page
+        transcription: sttText,
+        modelUsed: env.OPENAI_STT_MODEL,
+        tokensUsed: sttData.usage?.total_tokens ?? 0,
+      });
+      return;
+    }
+
     if (!env.OPENROUTER_API_KEY) {
-      throw new ApiError('OpenRouter API key not configured', 503, 'OPENROUTER_CONFIG_MISSING');
+      throw new ApiError(
+        'OpenRouter API key not configured (needed for voice transcription)',
+        503,
+        'OPENROUTER_CONFIG_MISSING'
+      );
     }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -889,6 +989,7 @@ aiRouter.post(
 
     res.status(200).json({
       success: true,
+      transcript: transcription,
       transcription,
       modelUsed: data.model ?? env.OPENROUTER_STT_MODEL,
       tokensUsed: data.usage?.total_tokens ?? 0,

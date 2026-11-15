@@ -1,0 +1,652 @@
+#!/usr/bin/env bash
+# kourtictl — operate a self-hosted Kourti install (see deploy/README.md).
+#
+# Installed to /usr/local/bin/kourtictl by deploy/install.sh. Must run as root
+# (it drives Docker). KOURTI_HOME overrides the install directory.
+set -euo pipefail
+
+KOURTI_HOME="${KOURTI_HOME:-/opt/kourti}"
+COMPOSE_FILE="$KOURTI_HOME/src/deploy/docker-compose.yml"
+DEV_SEED_ID="00000000-0000-0000-0000-000000000001"
+
+die() { echo "kourtictl: $*" >&2; exit 1; }
+info() { echo "==> $*" >&2; }
+
+[[ $EUID -eq 0 ]] || die "run as root (sudo kourtictl ...)"
+[[ -f "$KOURTI_HOME/.env" ]] || die "no install found at $KOURTI_HOME (missing .env)"
+
+dc() { docker compose --project-directory "$KOURTI_HOME" -f "$COMPOSE_FILE" "$@"; }
+
+envval() { # read KEY from .env (last occurrence wins, quotes stripped)
+  local v
+  v=$(grep -E "^$1=" "$KOURTI_HOME/.env" | tail -n1 | cut -d= -f2-) || true
+  v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"
+  printf '%s' "$v"
+}
+
+# psql inside the postgres container. Extra args are passed through (e.g. -v).
+psqlc() {
+  dc exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+    -U "$(envval POSTGRES_USER)" -d "$(envval POSTGRES_DB)" "$@"
+}
+# Single value from a query (tuples only, unaligned).
+sqlval() { psqlc -t -A "$@"; }
+
+gen_password() { # 20 chars, letters+digits, always >= 12 (app minimum)
+  tr -dc 'A-HJ-NP-Za-km-z2-9' </dev/urandom | head -c 20 || true
+}
+
+# bcrypt hash computed with the backend's own library; password read from stdin
+# so it never appears in a process list.
+bcrypt_hash() {
+  printf '%s' "$1" | dc exec -T backend node --input-type=module -e "
+    import bcrypt from 'bcryptjs';
+    let d = '';
+    process.stdin.on('data', (c) => (d += c)).on('end', () => process.stdout.write(bcrypt.hashSync(d, 12)));
+  "
+}
+
+resolve_org() { # $1 = org id or empty -> prints org id
+  if [[ -n "${1:-}" ]]; then
+    [[ "$(sqlval -v id="$1" <<<"select count(*) from public.organizations where id::text = :'id'")" == 1 ]] \
+      || die "organization $1 not found"
+    printf '%s' "$1"; return
+  fi
+  local orgs
+  orgs=$(sqlval -v dev="$DEV_SEED_ID" <<<"select id from public.organizations where id::text <> :'dev' order by created_at")
+  local n; n=$(grep -c . <<<"$orgs" || true)
+  [[ "$n" -eq 1 ]] || { list_orgs >&2; die "found $n organizations; pass --org <id>"; }
+  printf '%s' "$orgs"
+}
+
+list_orgs() {
+  psqlc <<<"select o.id, o.name, count(p.user_id) as members,
+                   (select s.seats from public.subscriptions s where s.organization_id = o.id
+                     and s.status in ('active','trialing','past_due') order by s.created_at desc limit 1) as seats
+              from public.organizations o left join public.profiles p on p.organization_id = o.id
+             group by o.id order by o.created_at"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: sudo kourtictl <command> [options]
+
+Service
+  status                         Container status + health check
+  logs [service]                 Follow logs (backend | app | proxy | postgres)
+  compose <args...>              Raw docker compose against this install
+  restart                        Restart all services
+  update [--ref <git-ref>]       Pull new code and rebuild (backs up first)
+  backup [--dir <path>]          DB dump + uploaded files + config (default /var/backups/kourti)
+  psql                           Interactive SQL shell
+
+Users & firm
+  orgs                           List organizations, members and seats
+  users [--org <id>]             List users
+  create-user --email <e> [--first <n>] [--last <n>] [--role admin|user|superadmin|<custom>]
+              [--password <p>] [--org <id>] [--no-email-otp] [--no-force-change] [--platform-admin]
+                                 Create a staff user (prints a temporary password)
+  reset-password --email <e> [--password <p>]
+                                 Set a new temporary password and sign the user out everywhere
+  email-otp --email <e> on|off   Turn email 2FA on/off for one user
+  disable-user --email <e>       Block a user from signing in (keeps the account and its seat)
+  delete-user --email <e> [-y]   Permanently delete a user (or cancel their pending invitation); frees the seat
+  set-seats <n> [--org <id>]     Set the number of licensed seats
+  init-firm --name <firm> --admin-email <e> [--admin-first <n>] [--admin-last <n>]
+            [--seats <n>] [--admin-password <p>] [--no-email-otp]
+                                 First-time setup of the firm, its licence and its admin
+
+Email
+  smtp --host <h> --from <address> [--port 587] [--user <u>] [--secure true|false] [--insecure-tls]
+                                 Configure the outgoing mail account (password: $SMTP_PASSWORD or prompt)
+  smtp --show                    Show the current mail settings (password hidden)
+  email-2fa-all on|off           Turn email 2FA on/off for every user of the install
+  test-email --to <address>      Send a test message through the configured SMTP server
+
+AI
+  ai status                      Providers with a key, primary provider, models
+  ai key <anthropic|openai|openrouter>   Store an API key (prompted, or $AI_API_KEY)
+  ai key <provider> --remove     Delete a stored key
+  ai primary <anthropic|openai|openrouter>   Provider tried first (others are fallbacks)
+  ai model <provider> <model-id>|default   Set (or reset) the chat model for a provider
+  ai endpoint <url>|default [--model <id>]
+                                 Point the "openai" provider at any OpenAI-compatible API
+                                 (DeepSeek, Mistral, local Ollama...); its key goes in: ai key openai
+  ai models                      List the models the openai key can use (chat / voice) and the current choice
+  ai voice-model <id>|default    Transcription model for voice (openai provider), e.g. gpt-4o-transcribe
+  ai service search|voice openai|openrouter|auto
+                                 Who serves document search / voice transcription
+                                 (auto: OpenRouter if it has a key, else the openai provider)
+  ai test                        Send a one-line prompt through the configured providers
+
+Configuration
+  config get <KEY>               Print a setting from /opt/kourti/.env
+  config set <KEY> [<value>]     Change a setting (value prompted if omitted) and restart the backend
+EOF
+}
+
+# ── .env editing ────────────────────────────────────────────────────────────
+
+# Write KEY=value into .env (replace or append). Values with anything but safe
+# characters are single-quoted so docker compose takes them literally.
+set_env() {
+  local key="$1" val="$2" f="$KOURTI_HOME/.env"
+  [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "invalid setting name: $key"
+  [[ "$val" != *"'"* && "$val" != *$'\n'* ]] || die "value for $key cannot contain a single quote or newline"
+  [[ "$val" =~ ^[A-Za-z0-9._@:/+=,-]*$ ]] || val="'$val'"
+  local tmp; tmp=$(mktemp)
+  K="$key" V="$val" awk 'BEGIN{d=0} index($0, ENVIRON["K"] "=") == 1 {print ENVIRON["K"] "=" ENVIRON["V"]; d=1; next} {print} END{if(!d) print ENVIRON["K"] "=" ENVIRON["V"]}' "$f" >"$tmp"
+  cat "$tmp" >"$f"; rm -f "$tmp"; chmod 600 "$f"
+}
+
+# Recreate the backend so it re-reads .env (no rebuild needed).
+apply_backend() { info "restarting backend with the new settings"; dc up -d --force-recreate --no-deps backend >/dev/null; wait_healthy; }
+
+wait_healthy() {
+  local i
+  for i in $(seq 1 30); do
+    curl -fsSk --max-time 5 "$(envval PUBLIC_URL)/health" >/dev/null 2>&1 && { info "backend healthy"; return 0; }
+    sleep 3
+  done
+  dc logs --tail 30 backend; die "backend did not come back — check the settings above"
+}
+
+read_secret() { # prompt, env-var-name -> value
+  local v="${!2:-}"
+  if [[ -z "$v" ]]; then
+    [[ -t 0 ]] || die "set \$$2 for non-interactive use"
+    read -r -s -p "$1: " v; echo >&2
+  fi
+  [[ -n "$v" ]] || die "empty value"
+  printf '%s' "$v"
+}
+
+mask() { local v="$1"; [[ -z "$v" ]] && { echo "(not set)"; return; }; echo "${v:0:6}…${v: -4} (${#v} chars)"; }
+
+cmd_config() {
+  local sub="${1:-}"; shift || true
+  case "$sub" in
+    get) [[ -n "${1:-}" ]] || die "usage: config get <KEY>"; envval "$1"; echo ;;
+    set)
+      local key="${1:-}" val
+      [[ -n "$key" ]] || die "usage: config set <KEY> [<value>]"
+      if [[ $# -ge 2 ]]; then val="$2"; else CONFIG_VALUE="${CONFIG_VALUE:-}" val=$(read_secret "Value for $key" CONFIG_VALUE); fi
+      set_env "$key" "$val"
+      case "$key" in VITE_*|PUBLIC_URL|SIGNUP_ENABLED)
+        echo "note: $key is built into the web app — run: sudo kourtictl compose up -d --build" ;; esac
+      apply_backend ;;
+    *) die "usage: config get|set ..." ;;
+  esac
+}
+
+cmd_smtp() {
+  if [[ "${1:-}" == --show ]]; then
+    echo "EMAIL_PROVIDER=$(envval EMAIL_PROVIDER)"
+    local k; for k in SMTP_HOST SMTP_PORT SMTP_SECURE SMTP_USER SMTP_FROM_EMAIL SMTP_TLS_REJECT_UNAUTHORIZED; do echo "$k=$(envval $k)"; done
+    echo "SMTP_PASSWORD=$(mask "$(envval SMTP_PASSWORD)")"
+    return
+  fi
+  local host="" port=587 user="" from="" secure="" verify=true
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --host) host="$2"; shift 2;; --port) port="$2"; shift 2;; --user) user="$2"; shift 2;;
+    --from) from="$2"; shift 2;; --secure) secure="$2"; shift 2;; --insecure-tls) verify=false; shift;;
+    *) die "unknown option $1";; esac; done
+  [[ -n "$host" ]] || die "--host is required"
+  from="${from:-$user}"; [[ -n "$from" ]] || die "--from is required when there is no --user"
+  # The app prepends its own display name ("Firm <address>"), so only the bare address goes here.
+  [[ "$from" =~ ^[^[:space:]\<\>@]+@[^[:space:]\<\>@]+$ ]] || die "--from must be a plain address like kourti@firm.be (no display name)"
+  local pass=""
+  [[ -n "$user" ]] && pass=$(read_secret "SMTP password for $user" SMTP_PASSWORD)
+  set_env EMAIL_PROVIDER smtp
+  set_env SMTP_HOST "$host"; set_env SMTP_PORT "$port"; set_env SMTP_SECURE "$secure"
+  set_env SMTP_USER "$user"; set_env SMTP_PASSWORD "$pass"; set_env SMTP_FROM_EMAIL "$from"
+  set_env SMTP_TLS_REJECT_UNAUTHORIZED "$verify"
+  apply_backend
+  echo "Mail settings saved. Now run: sudo kourtictl test-email --to <your address>"
+}
+
+cmd_email_2fa_all() {
+  local state="${1:-}"; [[ "$state" == on || "$state" == off ]] || die "usage: email-2fa-all on|off"
+  [[ "$state" == off || "$(envval EMAIL_PROVIDER)" == smtp ]] || die "configure SMTP first (kourtictl smtp ...): users could not receive their codes"
+  local v=true; [[ "$state" == off ]] && v=false
+  local n; n=$(sqlval -v v="$v" <<<"with u as (update public.auth_users set email_otp_enabled = :'v'::boolean, updated_at = now() where is_active returning 1) select count(*) from u")
+  echo "Email 2FA $state for $n active user(s). New users get it on by default."
+}
+
+AI_PROVIDERS="anthropic openai openrouter"
+provider_var() { case "$1" in anthropic) echo ANTHROPIC;; openai) echo OPENAI;; openrouter) echo OPENROUTER;; *) die "provider must be one of: $AI_PROVIDERS";; esac; }
+
+cmd_ai() {
+  local sub="${1:-status}"; shift || true
+  case "$sub" in
+    status)
+      echo "primary provider: $(envval LLM_PRIMARY_PROVIDER) (falls back to the others that have a key)"
+      local p v
+      for p in $AI_PROVIDERS; do
+        v=$(provider_var "$p")
+        local m; m=$(envval "${v}_CHAT_MODEL")
+        printf '  %-10s key: %-28s model: %s\n' "$p" "$(mask "$(envval "${v}_API_KEY")")" "${m:-built-in default}"
+      done
+      echo "  openai endpoint: $(envval OPENAI_BASE_URL | grep . || echo 'https://api.openai.com/v1 (default)')"
+      local auto; [[ -n "$(envval OPENROUTER_API_KEY)" ]] && auto=openrouter || auto=openai
+      echo "  document search: $(envval AI_EMBEDDINGS_PROVIDER | grep . || echo "$auto (auto)")   voice transcription: $(envval AI_TRANSCRIPTION_PROVIDER | grep . || echo "$auto (auto)")" ;;
+    key)
+      local p="${1:-}"; v=$(provider_var "$p")
+      if [[ "${2:-}" == --remove ]]; then set_env "${v}_API_KEY" ""; apply_backend; echo "$p key removed"; return; fi
+      local key; key=$(read_secret "API key for $p" AI_API_KEY)
+      if [[ "$p" == openrouter && "$key" != sk-or-* ]]; then
+        die "that is not an OpenRouter key (they start with sk-or-). For a DeepSeek/Mistral/other key use: ai endpoint <url> --model <id>, then ai key openai"
+      fi
+      set_env "${v}_API_KEY" "$key"
+      [[ -n "$(envval LLM_PRIMARY_PROVIDER)" ]] || set_env LLM_PRIMARY_PROVIDER "$p"
+      apply_backend; echo "$p key stored. Check with: sudo kourtictl ai test" ;;
+    primary)
+      provider_var "${1:-}" >/dev/null; set_env LLM_PRIMARY_PROVIDER "$1"; apply_backend; echo "primary provider: $1" ;;
+    model)
+      local v; v=$(provider_var "${1:-}"); [[ -n "${2:-}" ]] || die "usage: ai model <provider> <model-id>|default"
+      if [[ "$2" == default ]]; then
+        sed -i "/^${v}_CHAT_MODEL=/d; /^${v}_FALLBACK_CHAT_MODEL=/d" "$KOURTI_HOME/.env"; apply_backend; echo "$1 chat model: built-in default"
+      else
+        set_env "${v}_CHAT_MODEL" "$2"
+        # A custom endpoint will not know the built-in fallback model (gpt-5-mini): use the same model.
+        if [[ "$v" == OPENAI && -n "$(envval OPENAI_BASE_URL)" ]]; then set_env OPENAI_FALLBACK_CHAT_MODEL "$2"; fi
+        apply_backend; echo "$1 chat model: $2"
+      fi ;;
+    endpoint)
+      # Point the "openai" provider at any OpenAI-compatible API.
+      local url="${1:-}"; shift || true
+      local model=""
+      while [[ $# -gt 0 ]]; do case "$1" in --model) model="$2"; shift 2;; *) die "unknown option $1";; esac; done
+      [[ -n "$url" ]] || die "usage: ai endpoint <https://host/v1>|default [--model <id>]"
+      if [[ "$url" == default ]]; then
+        sed -i '/^OPENAI_BASE_URL=/d; /^OPENAI_CHAT_MODEL=/d; /^OPENAI_FALLBACK_CHAT_MODEL=/d' "$KOURTI_HOME/.env"
+        apply_backend; echo "openai provider: back to https://api.openai.com/v1 with built-in models"; return
+      fi
+      [[ "$url" =~ ^https?://[^[:space:]]+$ ]] || die "endpoint must be an http(s) URL, e.g. https://api.deepseek.com/v1"
+      set_env OPENAI_BASE_URL "${url%/}"
+      if [[ -n "$model" ]]; then
+        set_env OPENAI_CHAT_MODEL "$model"; set_env OPENAI_FALLBACK_CHAT_MODEL "$model"
+      elif [[ -z "$(envval OPENAI_CHAT_MODEL)" ]]; then
+        echo "warning: no --model given; the built-in OpenAI model names will not exist on this endpoint" >&2
+      fi
+      apply_backend
+      echo "openai provider now calls ${url%/} (model: $(envval OPENAI_CHAT_MODEL | grep . || echo built-in))"
+      echo "next: sudo kourtictl ai key openai   (paste that service's key), ai primary openai, ai test" ;;
+    models)
+      # Models the stored openai-slot key can use, grouped by what Kourti uses them for.
+      local key base list
+      key=$(envval OPENAI_API_KEY); base=$(envval OPENAI_BASE_URL); base="${base:-https://api.openai.com/v1}"
+      [[ -n "$key" ]] || die "no openai key stored (ai key openai)"
+      list=$(curl -s --max-time 30 "$base/models" -H "Authorization: Bearer $key" | grep -oE '"id": ?"[^"]+"' | sed -E 's/"id": ?"//; s/"$//' | sort)
+      [[ -n "$list" ]] || die "could not list models at $base"
+      echo "endpoint: $base"
+      echo "current:  chat=$(envval OPENAI_CHAT_MODEL | grep . || echo 'gpt-5.4-2026-03-05 (default)')  fallback=$(envval OPENAI_FALLBACK_CHAT_MODEL | grep . || echo 'gpt-5-mini (default)')"
+      echo "          voice=$(envval OPENAI_STT_MODEL | grep . || echo 'gpt-4o-mini-transcribe (default)')  search=$(envval OPENAI_EMBEDDING_MODEL | grep . || echo 'text-embedding-3-small (default)')"
+      echo; echo "chat (ai model openai <id>):"
+      grep -E '^(gpt-[0-9]|o[0-9]|deepseek|mistral|chat-latest)' <<<"$list" | grep -vE 'transcribe|tts|audio|realtime|image|search|codex|live|-pro|whisper' | grep -vE -- '-[0-9]{4}-[0-9]{2}-[0-9]{2}$' | paste -sd' ' | fold -s -w 100 | sed 's/^/  /'
+      echo "voice (ai voice-model <id>):"
+      grep -E 'transcribe|^whisper' <<<"$list" | grep -vE 'realtime|live|-[0-9]{4}-[0-9]{2}-[0-9]{2}$' | paste -sd' ' | sed 's/^/  /'
+      echo "search (ai config: OPENAI_EMBEDDING_MODEL, must give 1536-number vectors): text-embedding-3-small" ;;
+    voice-model)
+      [[ -n "${1:-}" ]] || die "usage: ai voice-model <model-id>|default"
+      if [[ "$1" == default ]]; then sed -i '/^OPENAI_STT_MODEL=/d' "$KOURTI_HOME/.env"; else set_env OPENAI_STT_MODEL "$1"; fi
+      apply_backend; echo "voice transcription model: $(envval OPENAI_STT_MODEL | grep . || echo 'gpt-4o-mini-transcribe (default)')" ;;
+    service)
+      # Who serves document search / voice transcription: openai | openrouter | auto
+      local what="${1:-}" prov="${2:-}" var
+      case "$what" in
+        search) var=AI_EMBEDDINGS_PROVIDER;; voice) var=AI_TRANSCRIPTION_PROVIDER;;
+        *) die "usage: ai service search|voice openai|openrouter|auto";; esac
+      case "$prov" in
+        openai|openrouter) set_env "$var" "$prov";;
+        auto) sed -i "/^${var}=/d" "$KOURTI_HOME/.env";;
+        *) die "usage: ai service search|voice openai|openrouter|auto";; esac
+      apply_backend; echo "$what: $prov" ;;
+    test)
+      dc exec -T backend node --input-type=module -e "
+        import { requestChatCompletion, generateEmbedding, embeddingsProvider, transcriptionProvider } from './dist/lib/openai.js';
+        let ok = true;
+        try {
+          const r = await requestChatCompletion([{ role: 'user', content: 'Reply with exactly: Kourti AI OK' }], 20);
+          console.log('chat:   OK  model:', r.modelUsed, '| reply:', String(r.analysis).trim());
+        } catch (e) { ok = false; console.error('chat:   FAILED', e.message); }
+        try {
+          const v = await generateEmbedding('limitation period for an appeal');
+          console.log('search: OK  via', embeddingsProvider(), '| vector size', v.length);
+        } catch (e) { console.error('search: FAILED via', embeddingsProvider() + ':', e.message); }
+        console.log('voice:  via', transcriptionProvider(), '(test by recording in the app)');
+        process.exit(ok ? 0 : 1);
+      " ;;
+    *) die "usage: ai status|key|primary|model|models|voice-model|endpoint|service|test" ;;
+  esac
+}
+
+# ── commands ────────────────────────────────────────────────────────────────
+
+cmd_status() {
+  dc ps
+  echo
+  if curl -fsSk --max-time 10 "$(envval PUBLIC_URL)/health" >/dev/null; then
+    echo "health: OK ($(envval PUBLIC_URL)/health)"
+  else
+    echo "health: FAILED ($(envval PUBLIC_URL)/health)"; return 1
+  fi
+}
+
+cmd_users() {
+  local org=""
+  while [[ $# -gt 0 ]]; do case "$1" in --org) org="$2"; shift 2;; *) die "unknown option $1";; esac; done
+  psqlc -v org="$org" <<<"
+    select p.email, p.first_name, p.last_name, p.role, p.status,
+           au.is_active as can_login, au.email_otp_enabled as email_2fa, au.totp_enabled as app_2fa,
+           au.last_sign_in_at, o.name as firm
+      from public.profiles p
+      join public.auth_users au on au.id = p.user_id
+      left join public.organizations o on o.id = p.organization_id
+     where :'org' = '' or p.organization_id::text = :'org'
+     order by o.name, p.email"
+}
+
+create_user() { # internal: email first last role password org otp(true/false) must_change creator platform_admin
+  local email="$1" first="$2" last="$3" role="$4" password="$5" org="$6" otp="$7" must="$8" creator="$9" padmin="${10}"
+  [[ "$(sqlval -v e="$email" <<<"select count(*) from public.auth_users where lower(email) = lower(:'e')")" == 0 ]] \
+    || die "a user with email $email already exists"
+  local hash; hash=$(bcrypt_hash "$password")
+  [[ "$hash" == \$2* ]] || die "could not hash password (is the backend running?)"
+  psqlc -v email="$email" -v first="$first" -v last="$last" -v role="$role" -v hash="$hash" \
+        -v org="$org" -v otp="$otp" -v must="$must" -v creator="$creator" -v padmin="$padmin" <<'SQL'
+begin;
+with u as (
+  insert into public.auth_users (email, encrypted_password, is_active, email_confirmed_at, email_otp_enabled, created_at, updated_at)
+  values (lower(:'email'), :'hash', true, now(), :'otp'::boolean, now(), now())
+  returning id
+), p as (
+  insert into public.profiles (user_id, email, first_name, last_name, role, organization_id,
+                               must_change_password, is_organization_creator, status, created_at, updated_at)
+  select id, lower(:'email'), nullif(:'first', ''), nullif(:'last', ''), :'role', :'org'::uuid,
+         :'must'::boolean, :'creator'::boolean, 'active', now(), now()
+    from u
+  returning user_id
+), r as (
+  insert into public.user_role_assignments (user_id, role_name, organization_id, assigned_by, created_at)
+  select user_id, :'role', :'org'::uuid, user_id, now() from p
+  returning user_id
+)
+insert into public.user_role_assignments (user_id, role_name, organization_id, assigned_by, created_at)
+select user_id, 'platform_admin', :'org'::uuid, user_id, now() from r where :'padmin'::boolean;
+commit;
+SQL
+}
+
+cmd_create_user() {
+  local email="" first="" last="" role="user" password="" org="" otp=true must=true padmin=false
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --email) email="$2"; shift 2;; --first) first="$2"; shift 2;; --last) last="$2"; shift 2;;
+    --role) role="$2"; shift 2;; --password) password="$2"; shift 2;; --org) org="$2"; shift 2;;
+    --no-email-otp) otp=false; shift;; --no-force-change) must=false; shift;;
+    --platform-admin) padmin=true; shift;;
+    *) die "unknown option $1";; esac; done
+  [[ -n "$email" ]] || die "--email is required"
+  [[ "$role" != platform_admin ]] || die "use --platform-admin instead of --role platform_admin"
+  if [[ "$(sqlval -v r="$role" <<<"select count(*) from public.global_roles where role = :'r'" 2>/dev/null || echo 0)" == 0 ]]; then
+    echo "warning: role '$role' is not a global role (superadmin, admin, user); assuming a custom firm role" >&2
+  fi
+  [[ -n "$password" ]] || password=$(gen_password)
+  [[ ${#password} -ge 12 ]] || die "password must be at least 12 characters"
+  org=$(resolve_org "$org")
+  [[ "$otp" == true && "$(envval EMAIL_PROVIDER)" != smtp ]] && \
+    echo "warning: SMTP is not configured — this user will not receive 2FA codes. Use --no-email-otp or configure SMTP." >&2
+  create_user "$email" "$first" "$last" "$role" "$password" "$org" "$otp" "$must" false "$padmin"
+  cat <<EOF
+User created.
+  Sign in at:          $(envval PUBLIC_URL)
+  Email:               $email
+  Temporary password:  $password
+  Role:                $role$( [[ "$padmin" == true ]] && echo " + platform_admin" )
+  Email 2FA:           $otp
+  Must change password on first sign-in: $must
+EOF
+}
+
+cmd_reset_password() {
+  local email="" password=""
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --email) email="$2"; shift 2;; --password) password="$2"; shift 2;; *) die "unknown option $1";; esac; done
+  [[ -n "$email" ]] || die "--email is required"
+  [[ -n "$password" ]] || password=$(gen_password)
+  [[ ${#password} -ge 12 ]] || die "password must be at least 12 characters"
+  local hash; hash=$(bcrypt_hash "$password")
+  local n
+  n=$(sqlval -v e="$email" -v h="$hash" <<<"
+    with u as (
+      update public.auth_users
+         set encrypted_password = :'h', token_version = coalesce(token_version, 0) + 1,
+             refresh_token = null, refresh_token_expires_at = null, updated_at = now()
+       where lower(email) = lower(:'e') returning id)
+    , p as (update public.profiles set must_change_password = true, updated_at = now()
+             where user_id in (select id from u) returning 1)
+    select count(*) from u")
+  [[ "$n" == 1 ]] || die "no user with email $email"
+  echo "Password reset for $email. Temporary password: $password (must be changed at next sign-in)"
+}
+
+cmd_email_otp() {
+  local email="" state=""
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --email) email="$2"; shift 2;; on|off) state="$1"; shift;; *) die "unknown option $1";; esac; done
+  [[ -n "$email" && -n "$state" ]] || die "usage: email-otp --email <e> on|off"
+  local v=true; [[ "$state" == off ]] && v=false
+  local n
+  n=$(sqlval -v e="$email" -v v="$v" <<<"with u as (update public.auth_users set email_otp_enabled = :'v'::boolean, updated_at = now()
+       where lower(email) = lower(:'e') returning 1) select count(*) from u")
+  [[ "$n" == 1 ]] || die "no user with email $email"
+  echo "Email 2FA for $email: $state"
+}
+
+cmd_disable_user() {
+  local email=""
+  while [[ $# -gt 0 ]]; do case "$1" in --email) email="$2"; shift 2;; *) die "unknown option $1";; esac; done
+  [[ -n "$email" ]] || die "--email is required"
+  local n
+  n=$(sqlval -v e="$email" <<<"with u as (update public.auth_users set is_active = false,
+       token_version = coalesce(token_version, 0) + 1, refresh_token = null, updated_at = now()
+       where lower(email) = lower(:'e') returning id),
+     p as (update public.profiles set status = 'disabled', disabled_at = now() where user_id in (select id from u) returning 1)
+     select count(*) from u")
+  [[ "$n" == 1 ]] || die "no user with email $email"
+  echo "User $email disabled (signed out everywhere). A disabled user still counts as a seat; use delete-user to free it."
+}
+
+cmd_delete_user() {
+  local email="" yes=false
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --email) email="$2"; shift 2;; -y|--yes) yes=true; shift;;
+    *) die "unknown option $1";; esac; done
+  [[ -n "$email" ]] || die "--email is required"
+
+  local row uid owner
+  row=$(sqlval -F '|' -v e="$email" <<<"select u.id, coalesce(p.is_organization_creator, false)
+                                            from public.auth_users u left join public.profiles p on p.user_id = u.id
+                                           where lower(u.email) = lower(:'e') limit 1")
+  local inv
+  inv=$(sqlval -v e="$email" <<<"select count(*) from public.invitations where lower(email) = lower(:'e') and status = 'pending'" 2>/dev/null || echo 0)
+
+  if [[ -z "$row" ]]; then
+    [[ "$inv" -gt 0 ]] || die "no user or pending invitation with email $email"
+    sqlval -v e="$email" <<<"delete from public.invitations where lower(email) = lower(:'e') and status = 'pending'" >/dev/null
+    echo "No account for $email; cancelled $inv pending invitation(s) (seat freed)."
+    return
+  fi
+  uid="${row%%|*}"; owner="${row##*|}"
+  [[ "$owner" == f ]] || die "$email is the firm owner (organization creator) and cannot be deleted. Make another user the owner first."
+
+  if [[ "$yes" != true ]]; then
+    echo "This permanently deletes $email: login, profile, roles, AI chats and 2FA codes."
+    echo "Firm data they created (cases, documents, time entries, ...) is kept but loses its author/assignee."
+    read -r -p "Type the email address to confirm: " ans
+    [[ "$(tr '[:upper:]' '[:lower:]' <<<"$ans")" == "$(tr '[:upper:]' '[:lower:]' <<<"$email")" ]] || die "aborted"
+  fi
+
+  # Use the application's own GDPR erasure routine (services/privacy.ts) so the
+  # same tables are cleaned/anonymised as for an in-app erasure request.
+  dc exec -T backend node --input-type=module -e "
+    import { eraseUser } from './dist/services/privacy.js';
+    try { await eraseUser(process.argv[1]); process.exit(0); }
+    catch (e) { console.error('erase failed:', e.message); process.exit(1); }
+  " "$uid" || die "erasure failed (see message above)"
+
+  [[ "$(sqlval -v id="$uid" <<<"select count(*) from public.auth_users where id::text = :'id'")" == 0 ]]     || die "user row still present after erasure; check: kourtictl logs backend"
+  [[ "$inv" -gt 0 ]] && sqlval -v e="$email" <<<"delete from public.invitations where lower(email) = lower(:'e') and status = 'pending'" >/dev/null
+  echo "User $email deleted (seat freed)."
+}
+
+set_seats() { # org seats
+  psqlc -v org="$1" -v seats="$2" <<'SQL'
+begin;
+update public.subscriptions
+   set status = 'active', seats = :'seats'::int, trial_ends_at = null,
+       current_period_end = '2099-12-31', cancel_at_period_end = false, updated_at = now()
+ where organization_id = :'org'::uuid and status in ('active','trialing','past_due');
+insert into public.subscriptions (organization_id, plan_id, status, billing_interval, provider,
+                                  current_period_start, current_period_end, seats, created_at, updated_at)
+select :'org'::uuid,
+       (select id from public.user_plans where name = 'enterprise' order by created_at limit 1),
+       'active', 'yearly', 'self_hosted', now(), '2099-12-31', :'seats'::int, now(), now()
+ where not exists (select 1 from public.subscriptions where organization_id = :'org'::uuid
+                     and status in ('active','trialing','past_due'));
+commit;
+SQL
+}
+
+cmd_set_seats() {
+  local seats="" org=""
+  while [[ $# -gt 0 ]]; do case "$1" in --org) org="$2"; shift 2;; *) seats="$1"; shift;; esac; done
+  [[ "$seats" =~ ^[0-9]+$ && "$seats" -ge 1 ]] || die "usage: set-seats <n> [--org <id>]"
+  org=$(resolve_org "$org")
+  set_seats "$org" "$seats"
+  echo "Organization $org now licensed for $seats seats."
+}
+
+cmd_init_firm() {
+  local name="" email="" first="" last="" seats=10 password="" otp=true
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --name) name="$2"; shift 2;; --admin-email) email="$2"; shift 2;;
+    --admin-first) first="$2"; shift 2;; --admin-last) last="$2"; shift 2;;
+    --seats) seats="$2"; shift 2;; --admin-password) password="$2"; shift 2;;
+    --no-email-otp) otp=false; shift;; *) die "unknown option $1";; esac; done
+  [[ -n "$name" && -n "$email" ]] || die "--name and --admin-email are required"
+  [[ "$seats" =~ ^[0-9]+$ && "$seats" -ge 1 ]] || die "--seats must be a positive number"
+  local existing
+  existing=$(sqlval -v dev="$DEV_SEED_ID" <<<"select count(*) from public.organizations where id::text <> :'dev'")
+  [[ "$existing" == 0 ]] || die "a firm already exists (kourtictl orgs). init-firm only runs on a fresh install."
+  [[ -n "$password" ]] || password=$(gen_password)
+  [[ ${#password} -ge 12 ]] || die "password must be at least 12 characters"
+
+  # Remove the empty local-dev placeholder org/profile seeded by the Postgres
+  # init script (it has no login; production boots already disable it).
+  psqlc -v dev="$DEV_SEED_ID" <<'SQL'
+delete from public.profiles p where p.user_id = :'dev'::uuid
+   and not exists (select 1 from public.auth_users au where au.id = p.user_id and au.is_active);
+delete from public.organizations o where o.id = :'dev'::uuid
+   and not exists (select 1 from public.profiles p where p.organization_id = o.id);
+SQL
+
+  local org
+  org=$(sqlval -v n="$name" -v e="$email" <<<"
+    insert into public.organizations (name, email, status, is_active, created_at, updated_at)
+    values (:'n', lower(:'e'), 'active', true, now(), now()) returning id" | head -n1)
+  [[ -n "$org" ]] || die "could not create organization"
+  set_seats "$org" "$seats"
+  create_user "$email" "$first" "$last" admin "$password" "$org" "$otp" true true false
+  cat <<EOF
+Firm created: $name ($org), $seats seats.
+Administrator:
+  Sign in at:          $(envval PUBLIC_URL)
+  Email:               $email
+  Temporary password:  $password   (must be changed at first sign-in)
+  Email 2FA:           $otp
+EOF
+}
+
+cmd_test_email() {
+  local to=""
+  while [[ $# -gt 0 ]]; do case "$1" in --to) to="$2"; shift 2;; *) die "unknown option $1";; esac; done
+  [[ -n "$to" ]] || die "--to is required"
+  [[ "$(envval EMAIL_PROVIDER)" == smtp ]] || die "EMAIL_PROVIDER is not smtp in $KOURTI_HOME/.env"
+  dc exec -T -e TEST_TO="$to" backend node --input-type=module -e "
+    import nodemailer from 'nodemailer';
+    const e = process.env;
+    const port = Number(e.SMTP_PORT || 587);
+    const t = nodemailer.createTransport({
+      host: e.SMTP_HOST, port,
+      secure: e.SMTP_SECURE ? e.SMTP_SECURE === 'true' : port === 465,
+      auth: e.SMTP_USER ? { user: e.SMTP_USER, pass: e.SMTP_PASSWORD } : undefined,
+      tls: { rejectUnauthorized: e.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false' },
+    });
+    try {
+      await t.verify();
+      const info = await t.sendMail({ from: e.SMTP_FROM_EMAIL, to: e.TEST_TO,
+        subject: 'Kourti SMTP test', text: 'SMTP is configured correctly for ' + e.APP_URL });
+      console.log('sent:', info.messageId, info.response);
+    } catch (err) { console.error('SMTP test FAILED:', err.message); process.exit(1); }
+  "
+}
+
+cmd_backup() {
+  local dir="/var/backups/kourti"
+  while [[ $# -gt 0 ]]; do case "$1" in --dir) dir="$2"; shift 2;; *) die "unknown option $1";; esac; done
+  local ts; ts=$(date +%Y%m%d-%H%M%S)
+  local out="$dir/$ts"
+  install -d -m 700 "$out"
+  info "database -> $out/db.sql.gz"
+  dc exec -T postgres pg_dump -U "$(envval POSTGRES_USER)" -d "$(envval POSTGRES_DB)" --no-owner | gzip >"$out/db.sql.gz"
+  info "uploaded files -> $out/storage.tar.gz"
+  docker run --rm -v kourti_backend-storage:/data:ro -v "$out":/backup alpine tar czf /backup/storage.tar.gz -C /data .
+  info "configuration + secrets -> $out/config.tar.gz"
+  tar czf "$out/config.tar.gz" -C "$KOURTI_HOME" .env Caddyfile certs
+  chmod 600 "$out"/*
+  echo "Backup written to $out (contains secrets — keep it safe)."
+}
+
+cmd_update() {
+  local ref=""
+  while [[ $# -gt 0 ]]; do case "$1" in --ref) ref="$2"; shift 2;; *) die "unknown option $1";; esac; done
+  [[ -d "$KOURTI_HOME/src/.git" ]] || die "$KOURTI_HOME/src is not a git checkout (installed from a local source); re-run install.sh --source instead"
+  cmd_backup
+  ref="${ref:-$(envval KOURTI_REF)}"
+  info "updating code to $ref"
+  git -C "$KOURTI_HOME/src" fetch --quiet origin
+  git -C "$KOURTI_HOME/src" checkout --quiet "$ref"
+  git -C "$KOURTI_HOME/src" pull --quiet --ff-only origin "$ref" 2>/dev/null || true
+  sed -i "s|^KOURTI_REF=.*|KOURTI_REF=$ref|" "$KOURTI_HOME/.env"
+  install -m 755 "$KOURTI_HOME/src/deploy/kourtictl" /usr/local/bin/kourtictl
+  dc up -d --build
+  cmd_status
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  status) cmd_status ;;
+  logs) dc logs -f --tail 200 "$@" ;;
+  compose) dc "$@" ;;
+  restart) dc restart ;;
+  update) cmd_update "$@" ;;
+  backup) cmd_backup "$@" ;;
+  psql) dc exec postgres psql -U "$(envval POSTGRES_USER)" -d "$(envval POSTGRES_DB)" ;;
+  orgs) list_orgs ;;
+  users) cmd_users "$@" ;;
+  create-user) cmd_create_user "$@" ;;
+  reset-password) cmd_reset_password "$@" ;;
+  email-otp) cmd_email_otp "$@" ;;
+  disable-user) cmd_disable_user "$@" ;;
+  delete-user) cmd_delete_user "$@" ;;
+  set-seats) cmd_set_seats "$@" ;;
+  init-firm) cmd_init_firm "$@" ;;
+  test-email) cmd_test_email "$@" ;;
+  smtp) cmd_smtp "$@" ;;
+  email-2fa-all) cmd_email_2fa_all "$@" ;;
+  ai) cmd_ai "$@" ;;
+  config) cmd_config "$@" ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 1 ;;
+esac

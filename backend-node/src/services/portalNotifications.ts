@@ -83,6 +83,10 @@ export async function fanOutCaseEvent(input: FanOutInput): Promise<void> {
                 and not coalesce(c.portal_private, false)
            )
          )
+         -- $2 was passed but unused, so Postgres could not type it and every
+         -- fan-out failed ("could not determine data type of parameter $2").
+         -- Use it as a tenancy guard: the matter must belong to this firm.
+         and exists (select 1 from public.cases c2 where c2.id = $1 and c2.organization_id = $2::uuid)
          and ($3::uuid is null or cu.id <> $3::uuid)
       `,
       [input.caseId, input.organizationId, input.actorType === 'client' ? input.actorId : null]

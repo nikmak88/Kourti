@@ -533,16 +533,17 @@ miscRouter.post(
       .object({
         title: z.string().trim().min(1),
         transcript: z.string(),
-        summary: z.string().optional(),
-        case_id: uuidLike.optional(),
-        duration_seconds: z.number().optional(),
+        summary: z.string().nullish(),
+        case_id: uuidLike.nullish(),
+        duration_seconds: z.number().nullish(),
         status: z.string().default('completed'),
+        audio_file_path: z.string().max(1024).nullish(),
       })
       .parse(req.body);
 
     const result = await db.query(
-      `insert into public.voice_transcriptions (title, transcript, summary, case_id, duration_seconds, status, organization_id, created_by, created_at, updated_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,now(),now()) returning *`,
+      `insert into public.voice_transcriptions (title, transcript, summary, case_id, duration_seconds, status, audio_file_path, organization_id, created_by, created_at, updated_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),now()) returning *`,
       [
         body.title,
         body.transcript,
@@ -550,6 +551,7 @@ miscRouter.post(
         body.case_id || null,
         body.duration_seconds || null,
         body.status,
+        body.audio_file_path || null,
         auth.organizationId,
         auth.userId,
       ]
@@ -569,7 +571,7 @@ miscRouter.patch(
         title: z.string().optional(),
         transcript: z.string().optional(),
         summary: z.string().optional(),
-        case_id: uuidLike.optional(),
+        case_id: uuidLike.nullable().optional(),
         status: z.string().optional(),
       })
       .parse(req.body);
@@ -1427,24 +1429,21 @@ miscRouter.get(
   '/case-issues',
   asyncHandler(async (req, res) => {
     const auth = req.auth!;
-    const caseId = typeof req.query.caseId === 'string' ? req.query.caseId : undefined;
     const caseTypeId = typeof req.query.caseTypeId === 'string' ? req.query.caseTypeId : undefined;
-    const clauses = ['organization_id = $1'];
+    // Global issues (shared by every firm) plus this firm's own. Issues belong
+    // to a matter type; there is no per-matter issue list.
+    const clauses = ['(organization_id = $1 or organization_id is null or is_global = true)'];
     const values: unknown[] = [auth.organizationId];
-    if (caseId) {
-      values.push(caseId);
-      clauses.push(`case_id = $${values.length}`);
-    }
     if (caseTypeId) {
+      uuidLike.parse(caseTypeId);
       values.push(caseTypeId);
       clauses.push(`case_type_id = $${values.length}`);
     }
-    const result = await db
-      .query(
-        `SELECT * FROM public.case_issues WHERE ${clauses.join(' AND ')} ORDER BY created_at DESC`,
-        values
-      )
-      .catch(() => ({ rows: [] }));
+    const result = await db.query(
+      `SELECT * FROM public.case_issues WHERE ${clauses.join(' AND ')}
+        ORDER BY (lower(name) = 'other'), name`,
+      values
+    );
     res.status(200).json(result.rows);
   })
 );

@@ -18,6 +18,7 @@ import { uploadDocument } from '@/lib/fileApi';
 import { useCases } from '@/hooks/useCases';
 import { Case } from '@/types';
 import { useCreateActivity } from '@/features/activities/api/useCreateActivity';
+import TranscriptActions from '@/components/voice/TranscriptActions';
 import { Mic, Play, Pause, Square, Save, FileText, Loader2, List } from 'lucide-react';
 
 // Maximum file size for Whisper API (25MB)
@@ -222,7 +223,12 @@ const VoiceTranscriptionModule: React.FC = () => {
         }
       };
 
-      audioRef.current.play();
+      audioRef.current.play().catch((err: unknown) => {
+        setIsPlaying(false);
+        toast.error('Playback Error', {
+          description: err instanceof Error ? err.message : 'Failed to play audio recording',
+        });
+      });
       setIsPlaying(true);
     }
   };
@@ -320,59 +326,8 @@ const VoiceTranscriptionModule: React.FC = () => {
       toast.error('No Recording', { description: 'Please record audio first' });
       return;
     }
-
-    // Validate file size before transcription
-    if (audioBlob.size > MAX_RECORDING_SIZE) {
-      toast.error('File Too Large', {
-        description: `Audio file (${(audioBlob.size / (1024 * 1024)).toFixed(2)}MB) exceeds Whisper API limit of ${(MAX_RECORDING_SIZE / (1024 * 1024)).toFixed(0)}MB. Please record a shorter audio.`,
-      });
-      return;
-    }
-
-    setIsTranscribing(true);
-
-    try {
-      // Convert blob to base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(',')[1];
-
-        if (!base64Audio) {
-          throw new Error('Failed to process audio');
-        }
-
-        const data = await invokeNodeApi<{
-          error?: string;
-          transcript?: string;
-        }>('/api/v1/ai/voice-transcription', {
-          method: 'POST',
-          body: {
-            audio: base64Audio,
-            action: 'transcribe',
-          },
-        });
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
-        if (data?.transcript) {
-          setTranscript(data.transcript);
-        }
-
-        toast.success('Transcription Complete', {
-          description: 'Audio has been transcribed successfully',
-        });
-      };
-
-      reader.readAsDataURL(audioBlob);
-    } catch (error: unknown) {
-      console.error('Transcription error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to transcribe audio';
-      toast.error('Transcription Failed', { description: errorMessage });
-    } finally {
-      setIsTranscribing(false);
-    }
+    // Same path as the automatic transcription (size check, errors, spinner).
+    await autoTranscribe(audioBlob);
   };
 
   const generateSummary = async () => {
@@ -460,7 +415,7 @@ const VoiceTranscriptionModule: React.FC = () => {
       }
 
       // Save to voice_transcriptions table via Node backend
-      await invokeNodeApi('/api/v1/voice-transcriptions', {
+      await invokeNodeApi('/api/v1/misc/voice-transcriptions', {
         method: 'POST',
         body: {
           title,
@@ -694,6 +649,12 @@ const VoiceTranscriptionModule: React.FC = () => {
                   )}
                   <span>{isSummarizing ? 'Summarizing...' : 'Generate Summary'}</span>
                 </Button>
+
+                <TranscriptActions
+                  transcript={transcript}
+                  initialCaseId={selectedCaseId}
+                  sourceTitle={title || undefined}
+                />
               </div>
             )}
 

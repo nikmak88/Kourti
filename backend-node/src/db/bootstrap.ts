@@ -1,6 +1,7 @@
 import { db } from './pool.js';
 import { DEFAULT_PLAN_FEATURES } from '../services/entitlements.js';
 import { DEFAULT_PLAN_LIMITS } from '../services/limits.js';
+import { schemaCompletionStatements } from './schemaCompletion.js';
 
 // Seed rows for plan_features, generated from the code default matrix. Values
 // are code constants (no user input), safe to inline. ON CONFLICT DO NOTHING
@@ -345,6 +346,33 @@ const bootstrapStatements = [
     updated_at timestamptz not null default now()
   )
   `,
+  // docker/postgres/init creates an older, minimal invitations table before the
+  // backend first boots, so the CREATE above is skipped on Docker installs and
+  // inviting fails with 'column "first_name" does not exist'. Backfill it.
+  `alter table public.invitations add column if not exists first_name text`,
+  `alter table public.invitations add column if not exists last_name text`,
+  `alter table public.invitations add column if not exists token text`,
+  `alter table public.invitations add column if not exists expires_at timestamptz`,
+  `create unique index if not exists idx_invitations_token on public.invitations (token)`,
+  // Used by /api/v1/misc/voice-transcriptions (Voice & Transcriptions page) but
+  // never created upstream: the page failed with 'relation does not exist'.
+  `
+  create table if not exists public.voice_transcriptions (
+    id uuid primary key default gen_random_uuid(),
+    organization_id uuid not null,
+    created_by uuid,
+    title text not null,
+    transcript text not null default '',
+    summary text,
+    case_id uuid,
+    duration_seconds numeric,
+    status text not null default 'completed',
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  )
+  `,
+  `alter table public.voice_transcriptions add column if not exists audio_file_path text`,
+  `create index if not exists idx_voice_transcriptions_org on public.voice_transcriptions (organization_id, created_at desc)`,
   `
   create table if not exists public.global_roles (
     role text not null,
@@ -557,7 +585,6 @@ const bootstrapStatements = [
   // unlinks the underlying Garage objects) anything past that window.
   // Indexed because every list query filters by `deleted_at is null`.
   `alter table public.documents add column if not exists deleted_at timestamptz`,
-  `alter table public.document_versions add column if not exists deleted_at timestamptz`,
   `create index if not exists idx_documents_deleted_at on public.documents(deleted_at) where deleted_at is not null`,
 
   // SHA-256 of the stored bytes, captured at upload time. Used as a
@@ -566,7 +593,6 @@ const bootstrapStatements = [
   // out-of-band, and the read is refused. Hex string, 64 chars, NULL on
   // legacy rows that pre-date this column.
   `alter table public.documents add column if not exists sha256 text`,
-  `alter table public.document_versions add column if not exists sha256 text`,
 
   // Storage status. 'present' (default) means file_path is expected to
   // resolve in the active storage driver. 'missing' is for legacy rows
@@ -575,7 +601,6 @@ const bootstrapStatements = [
   // "Unavailable — please re-upload" instead of a generic 404. The
   // admin endpoint POST /api/v1/admin/storage/scan flips this column.
   `alter table public.documents add column if not exists storage_status text not null default 'present'`,
-  `alter table public.document_versions add column if not exists storage_status text not null default 'present'`,
   `create index if not exists idx_documents_storage_status on public.documents(storage_status) where storage_status <> 'present'`,
 
   `create index if not exists idx_conversations_org on public.conversations(organization_id)`,
@@ -1149,6 +1174,11 @@ const bootstrapStatements = [
   `,
   `create index if not exists idx_document_versions_document on public.document_versions(document_id)`,
   `create index if not exists idx_document_versions_org on public.document_versions(organization_id)`,
+  // Added after the table exists (they used to run before the create, so a
+  // fresh install only got them on the second boot).
+  `alter table public.document_versions add column if not exists deleted_at timestamptz`,
+  `alter table public.document_versions add column if not exists sha256 text`,
+  `alter table public.document_versions add column if not exists storage_status text not null default 'present'`,
   `alter table public.documents add column if not exists current_version_id uuid references public.document_versions(id)`,
   `create index if not exists idx_documents_current_version on public.documents(current_version_id)`,
 
@@ -1834,6 +1864,10 @@ const bootstrapStatements = [
   `,
   `create index if not exists idx_email_log_to on public.email_delivery_log(to_email, created_at desc)`,
   `create index if not exists idx_email_log_status on public.email_delivery_log(status, created_at desc)`,
+  // Self-hosted installs deliver over SMTP; widen the provider check for DBs
+  // created with the original ('resend','brevo') constraint.
+  `alter table public.email_delivery_log drop constraint if exists email_delivery_log_provider_check`,
+  `alter table public.email_delivery_log add constraint email_delivery_log_provider_check check (provider in ('resend','brevo','smtp'))`,
 
   // ── Billing: manual credits + subscription adjustments ────────────────────
   // Comp credits and manual billing adjustments applied by platform-billing
@@ -2076,6 +2110,7 @@ export async function ensureDatabaseSchema() {
   // remediation statements that remove that backdoor if it was ever seeded.
   const statements = [
     ...bootstrapStatements,
+    ...schemaCompletionStatements,
     ...(isProd ? prodCleanupStatements : devSeedStatements),
   ];
 

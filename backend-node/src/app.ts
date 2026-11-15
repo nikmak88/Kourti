@@ -42,6 +42,7 @@ import { documentsRouter } from './routes/api/documents.js';
 import { filesRouter } from './routes/api/files.js';
 import { invoicesRouter } from './routes/api/invoices.js';
 import { miscRouter } from './routes/api/misc.js';
+import { transcriptActionsRouter } from './routes/api/transcriptActions.js';
 import { paystackWebhookRouter } from './routes/api/paystackWebhook.js';
 import { onboardingRouter } from './routes/api/onboarding.js';
 import { billingRouter } from './routes/api/billing.js';
@@ -339,6 +340,12 @@ export function createApp() {
   app.use('/api/v1/cases', requireAuth, requireActiveSubscription, casesRouter);
   app.use('/api/v1/documents', requireAuth, requireActiveSubscription, documentsRouter);
   app.use('/api/v1/search', requireAuth, requireActiveSubscription, searchRouter);
+  app.use(
+    '/api/v1/ai/transcript-actions',
+    requireAuth,
+    requireActiveSubscription,
+    transcriptActionsRouter
+  );
   app.use('/api/v1/ai', requireAuth, requireActiveSubscription, aiRouter);
   app.use('/api/v1/calendar', requireAuth, requireActiveSubscription, calendarRouter);
   app.use('/api/v1/chat', requireAuth, requireActiveSubscription, chatRouter);

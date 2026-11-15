@@ -24,8 +24,9 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/scripts ./scripts
 COPY package*.json ./
 
-# Change ownership and switch to non-root
-RUN chown -R appuser:appgroup /app
+# Change ownership and switch to non-root. /app/storage is created here so a
+# named volume mounted on it inherits appuser ownership on first start.
+RUN mkdir -p /app/storage && chown -R appuser:appgroup /app
 USER appuser
 
 EXPOSE 4000

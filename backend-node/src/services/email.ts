@@ -1,39 +1,73 @@
+import nodemailer, { type Transporter } from 'nodemailer';
 import { Resend } from 'resend';
-import { env } from '../config/env.js';
+import { emailProvider, env } from '../config/env.js';
 import { logEmailDelivery } from './emailLog.js';
 
 type ResendSendPayload = Parameters<Resend['emails']['send']>[0];
 
+let smtpTransport: Transporter | null = null;
+
+function getSmtpTransport(): Transporter {
+  if (!smtpTransport) {
+    smtpTransport = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE ?? env.SMTP_PORT === 465,
+      auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
+      tls: { rejectUnauthorized: env.SMTP_TLS_REJECT_UNAUTHORIZED },
+    });
+  }
+  return smtpTransport;
+}
+
+/** Deliver one message over the configured transport; returns the provider message id. */
+async function deliver(payload: ResendSendPayload): Promise<string | undefined> {
+  if (emailProvider === 'smtp') {
+    // Every template in this file builds from/to/subject/html (+ optional replyTo).
+    const p = payload as ResendSendPayload & { html?: string; text?: string; replyTo?: string | string[] };
+    const info = await getSmtpTransport().sendMail({
+      from: p.from,
+      to: p.to,
+      subject: p.subject,
+      html: p.html,
+      text: p.text,
+      replyTo: p.replyTo,
+    });
+    return info.messageId;
+  }
+  const { data, error } = await getResend().emails.send(payload);
+  if (error) throw new Error(error.message);
+  return data?.id;
+}
+
 /**
- * Send a transactional email via Resend and record the attempt in the email
- * deliverability log. Centralises the send + best-effort logging so every
- * template captures provider message id on success and the error on failure.
- * Preserves the existing behaviour: throws on provider error, returns messageId.
+ * Send a transactional email via the configured transport (Resend or SMTP)
+ * and record the attempt in the email deliverability log. Centralises the
+ * send + best-effort logging so every template captures provider message id
+ * on success and the error on failure. Throws on provider error.
  */
 async function sendResendEmail(
   payload: ResendSendPayload,
   template: string
 ): Promise<{ messageId?: string }> {
-  const r = getResend();
   const recipients = Array.isArray(payload.to) ? payload.to : [payload.to];
   const primaryTo = String(recipients[0] ?? '');
 
   try {
-    const { data, error } = await r.emails.send(payload);
-    if (error) throw new Error(error.message);
+    const messageId = await deliver(payload);
     void logEmailDelivery({
-      provider: 'resend',
+      provider: emailProvider,
       toEmail: primaryTo,
       subject: typeof payload.subject === 'string' ? payload.subject : undefined,
       template,
-      providerMessageId: data?.id ?? null,
+      providerMessageId: messageId ?? null,
       status: 'sent',
       metadata: recipients.length > 1 ? { recipients } : {},
     });
-    return { messageId: data?.id };
+    return { messageId };
   } catch (err) {
     void logEmailDelivery({
-      provider: 'resend',
+      provider: emailProvider,
       toEmail: primaryTo,
       subject: typeof payload.subject === 'string' ? payload.subject : undefined,
       template,
@@ -254,7 +288,10 @@ export async function sendInvitationEmail(
     token?: string;
   }
 ): Promise<{ messageId?: string }> {
-  const baseUrl = options?.invitationUrl || `${APP_URL}/auth`;
+  // A tokenised invite must land on the set-password page; /auth is only the
+  // sign-in form and would treat the chosen password as a login attempt.
+  const baseUrl =
+    options?.invitationUrl || (options?.token ? `${APP_URL}/auth/set-password` : `${APP_URL}/auth`);
   const separator = baseUrl.includes('?') ? '&' : '?';
   const joinUrl = options?.token
     ? `${baseUrl}${separator}token=${encodeURIComponent(options.token)}&type=invite&email=${encodeURIComponent(email)}&invited=true`

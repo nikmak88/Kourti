@@ -1,0 +1,7 @@
+# Shell scripts run inside Linux containers/VMs: never convert to CRLF,
+# even on Windows checkouts with core.autocrlf=true.
+*.sh text eol=lf
+deploy/kourtictl text eol=lf
+nginx.conf.template text eol=lf
+deploy/docker-compose.yml text eol=lf
+deploy/postgres/Dockerfile text eol=lf

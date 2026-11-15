@@ -32,7 +32,7 @@ registerAgentHandler(QUEUE_NAME, async (_job: Job) => {
           and p.user_id is null
         order by au.created_at asc
         limit $2
-        for update skip locked
+        for update of au skip locked
      )
      delete from public.auth_users au
       using stale

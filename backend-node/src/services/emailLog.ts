@@ -11,7 +11,7 @@
  */
 import { db } from '../db/pool.js';
 
-export type EmailProvider = 'resend' | 'brevo';
+export type EmailProvider = 'resend' | 'brevo' | 'smtp';
 export type EmailDeliveryStatus =
   | 'queued'
   | 'sent'

@@ -23,17 +23,28 @@ type OpenAICompatibleConfig = {
   apiKey: string | undefined;
   models: string[];
   extraHeaders?: Record<string, string>;
+  /** Body field carrying the output-token limit. */
+  tokenParam: 'max_completion_tokens' | 'max_tokens';
   configMissingCode: string;
   upstreamErrorCode: string;
   emptyResponseCode: string;
 };
 
+/** Output-length parameter for the "openai" provider (see OPENAI_TOKEN_PARAM). */
+export function openAITokenParam(): 'max_completion_tokens' | 'max_tokens' {
+  if (env.OPENAI_TOKEN_PARAM) return env.OPENAI_TOKEN_PARAM;
+  return /^https:\/\/api\.openai\.com\//.test(env.OPENAI_BASE_URL + '/')
+    ? 'max_completion_tokens'
+    : 'max_tokens';
+}
+
 function openAIConfig(): OpenAICompatibleConfig {
   return {
     label: 'OpenAI',
-    baseUrl: 'https://api.openai.com/v1',
+    baseUrl: env.OPENAI_BASE_URL,
     apiKey: env.OPENAI_API_KEY,
     models: getOpenAIModelCandidates(),
+    tokenParam: openAITokenParam(),
     configMissingCode: 'OPENAI_CONFIG_MISSING',
     upstreamErrorCode: 'OPENAI_UPSTREAM_ERROR',
     emptyResponseCode: 'OPENAI_EMPTY_RESPONSE',
@@ -46,6 +57,7 @@ function openRouterConfig(): OpenAICompatibleConfig {
     baseUrl: 'https://openrouter.ai/api/v1',
     apiKey: env.OPENROUTER_API_KEY,
     models: getOpenRouterModelCandidates(),
+    tokenParam: 'max_completion_tokens',
     extraHeaders: {
       // OpenRouter recommends these for app attribution / rankings.
       ...(env.APP_URL ? { 'HTTP-Referer': env.APP_URL } : {}),
@@ -142,7 +154,7 @@ async function requestOpenAICompatibleCompletion(
         'Content-Type': 'application/json',
         ...(cfg.extraHeaders ?? {}),
       },
-      body: JSON.stringify({ model, messages, max_completion_tokens: maxTokens }),
+      body: JSON.stringify({ model, messages, [cfg.tokenParam]: maxTokens }),
     });
 
     if (response.ok) {
@@ -331,7 +343,7 @@ async function streamOpenAICompatibleCompletion(
       body: JSON.stringify({
         model,
         messages,
-        max_completion_tokens: maxTokens,
+        [cfg.tokenParam]: maxTokens,
         stream: true,
         stream_options: { include_usage: true },
       }),
@@ -457,86 +469,106 @@ export async function streamChatCompletion(
 }
 
 // ---------------------------------------------------------------------------
-// Embeddings (via OpenRouter — OpenAI-compatible endpoint)
+// Embeddings (document search) — OpenRouter or the "openai" provider
 // ---------------------------------------------------------------------------
 
-export async function generateEmbedding(
-  text: string,
-  model = env.OPENROUTER_EMBEDDING_MODEL
-): Promise<number[]> {
-  if (!env.OPENROUTER_API_KEY) {
-    throw new ApiError('OpenRouter API key not configured', 503, 'OPENROUTER_CONFIG_MISSING');
-  }
+type ServiceTarget = {
+  label: 'OpenAI' | 'OpenRouter';
+  url: string;
+  apiKey: string | undefined;
+  headers: Record<string, string>;
+  missingCode: string;
+  upstreamCode: string;
+};
 
-  const response = await fetch('https://openrouter.ai/api/v1/embeddings', {
+function resolveService(explicit: 'openai' | 'openrouter' | undefined): 'openai' | 'openrouter' {
+  return explicit ?? (env.OPENROUTER_API_KEY ? 'openrouter' : 'openai');
+}
+
+/** Provider that serves embeddings (AI_EMBEDDINGS_PROVIDER, else auto). */
+export function embeddingsProvider(): 'openai' | 'openrouter' {
+  return resolveService(env.AI_EMBEDDINGS_PROVIDER);
+}
+
+/** Provider that serves voice transcription (AI_TRANSCRIPTION_PROVIDER, else auto). */
+export function transcriptionProvider(): 'openai' | 'openrouter' {
+  return resolveService(env.AI_TRANSCRIPTION_PROVIDER);
+}
+
+export function serviceTarget(provider: 'openai' | 'openrouter', path: string): ServiceTarget {
+  if (provider === 'openrouter') {
+    return {
+      label: 'OpenRouter',
+      url: `https://openrouter.ai/api/v1${path}`,
+      apiKey: env.OPENROUTER_API_KEY,
+      headers: {
+        ...(env.APP_URL ? { 'HTTP-Referer': env.APP_URL } : {}),
+        'X-Title': env.OPENROUTER_APP_NAME,
+      },
+      missingCode: 'OPENROUTER_CONFIG_MISSING',
+      upstreamCode: 'OPENROUTER_UPSTREAM_ERROR',
+    };
+  }
+  return {
+    label: 'OpenAI',
+    url: `${env.OPENAI_BASE_URL}${path}`,
+    apiKey: env.OPENAI_API_KEY,
+    headers: {},
+    missingCode: 'OPENAI_CONFIG_MISSING',
+    upstreamCode: 'OPENAI_UPSTREAM_ERROR',
+  };
+}
+
+async function requestEmbeddings(input: string | string[], model?: string): Promise<number[][]> {
+  const provider = embeddingsProvider();
+  const target = serviceTarget(provider, '/embeddings');
+  if (!target.apiKey) {
+    throw new ApiError(
+      `${target.label} API key not configured (needed for document search)`,
+      503,
+      target.missingCode
+    );
+  }
+  const useModel =
+    model ?? (provider === 'openrouter' ? env.OPENROUTER_EMBEDDING_MODEL : env.OPENAI_EMBEDDING_MODEL);
+
+  const response = await fetch(target.url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${target.apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': env.OPENROUTER_APP_NAME,
-      'X-Title': env.OPENROUTER_APP_NAME,
+      ...target.headers,
     },
-    body: JSON.stringify({ model, input: text }),
+    body: JSON.stringify({ model: useModel, input }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new ApiError(
-      `Embedding request failed: ${response.status}: ${errorText}`,
+      `Embedding request failed (${target.label}): ${response.status}: ${errorText}`,
       502,
-      'OPENROUTER_UPSTREAM_ERROR'
+      target.upstreamCode
     );
   }
 
   const data = (await response.json()) as {
-    data?: Array<{ embedding?: number[] }>;
+    data?: Array<{ embedding?: number[]; index?: number }>;
   };
-
-  const embedding = data.data?.[0]?.embedding;
-  if (!embedding) {
-    throw new ApiError('No embedding returned from OpenRouter', 502, 'OPENROUTER_EMPTY_RESPONSE');
+  if (!data.data?.length || data.data.some((d) => !d.embedding)) {
+    throw new ApiError(`No embeddings returned from ${target.label}`, 502, target.upstreamCode);
   }
+  return data.data
+    .slice()
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((d) => d.embedding!);
+}
 
+export async function generateEmbedding(text: string, model?: string): Promise<number[]> {
+  const [embedding] = await requestEmbeddings(text, model);
   return embedding;
 }
 
-export async function generateEmbeddingsBatch(
-  texts: string[],
-  model = env.OPENROUTER_EMBEDDING_MODEL
-): Promise<number[][]> {
-  if (!env.OPENROUTER_API_KEY) {
-    throw new ApiError('OpenRouter API key not configured', 503, 'OPENROUTER_CONFIG_MISSING');
-  }
-
+export async function generateEmbeddingsBatch(texts: string[], model?: string): Promise<number[][]> {
   if (texts.length === 0) return [];
-
-  const response = await fetch('https://openrouter.ai/api/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': env.OPENROUTER_APP_NAME,
-      'X-Title': env.OPENROUTER_APP_NAME,
-    },
-    body: JSON.stringify({ model, input: texts }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new ApiError(
-      `Batch embedding request failed: ${response.status}: ${errorText}`,
-      502,
-      'OPENROUTER_UPSTREAM_ERROR'
-    );
-  }
-
-  const data = (await response.json()) as {
-    data?: Array<{ embedding?: number[]; index: number }>;
-  };
-
-  if (!data.data?.length) {
-    throw new ApiError('No embeddings returned from OpenRouter', 502, 'OPENROUTER_EMPTY_RESPONSE');
-  }
-
-  return data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding!);
+  return requestEmbeddings(texts, model);
 }

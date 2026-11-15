@@ -21,6 +21,7 @@
 
 import { env } from '../config/env.js';
 import { ApiError } from './http.js';
+import { openAITokenParam } from './openai.js';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ interface OpenAICompatibleToolConfig {
   apiKey: string | undefined;
   candidates: string[];
   extraHeaders?: Record<string, string>;
+  tokenParam?: 'max_completion_tokens' | 'max_tokens';
   configMissingCode: string;
   upstreamErrorCode: string;
 }
@@ -152,7 +154,7 @@ async function runWithToolsOpenAICompatible(
     const body: Record<string, unknown> = {
       model,
       messages,
-      max_completion_tokens: opts.maxTokens ?? 4000,
+      [cfg.tokenParam ?? 'max_completion_tokens']: opts.maxTokens ?? 4000,
       tools: tools.map((t) => ({
         type: 'function',
         function: { name: t.name, description: t.description, parameters: t.parameters },
@@ -232,8 +234,9 @@ function runWithToolsOpenAI(messages: Message[], tools: ToolDef[], opts: RunOpti
   return runWithToolsOpenAICompatible(
     {
       label: 'OpenAI',
-      baseUrl: 'https://api.openai.com/v1',
+      baseUrl: env.OPENAI_BASE_URL,
       apiKey: env.OPENAI_API_KEY,
+      tokenParam: openAITokenParam(),
       candidates: Array.from(new Set([env.OPENAI_CHAT_MODEL, env.OPENAI_FALLBACK_CHAT_MODEL])),
       configMissingCode: 'OPENAI_CONFIG_MISSING',
       upstreamErrorCode: 'OPENAI_UPSTREAM_ERROR',

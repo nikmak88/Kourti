@@ -43,7 +43,7 @@ export function useRAGSearch(query: string, enabled: boolean = true) {
           method: 'POST',
           body: {
             query,
-            matchThreshold: 0.6,
+            // Similarity cut-off comes from the server (RAG_MATCH_THRESHOLD).
             matchCount: 15,
           },
         });

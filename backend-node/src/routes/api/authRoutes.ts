@@ -196,6 +196,13 @@ authRouter.post(
 authRouter.post(
   '/sign-up',
   asyncHandler(async (req, res) => {
+    if (!env.SIGNUP_ENABLED) {
+      throw new ApiError(
+        'Self-service sign-up is disabled. Ask your firm administrator for an invitation.',
+        403,
+        'SIGNUP_DISABLED'
+      );
+    }
     const ip = clientIp(req);
     enforceRateLimit(`auth:sign-up:ip:${ip}`, 5, 60_000); // 5 sign-ups per minute per IP
 
@@ -494,6 +501,15 @@ authRouter.post(
     await db.query(
       `UPDATE public.auth_users SET encrypted_password = $1, refresh_token = NULL, refresh_token_expires_at = NULL, updated_at = now() WHERE id = $2`,
       [hashedPassword, auth.userId]
+    );
+
+    // Clear the forced-change flags here, in the same request. The token
+    // revocation below invalidates the caller's access token, so a follow-up
+    // /mark-password-changed call from the client would be rejected (401) and
+    // leave the user stuck on the force-change screen at every login.
+    await db.query(
+      `UPDATE public.profiles SET must_change_password = false, password_reset_required = false, updated_at = now() WHERE user_id = $1`,
+      [auth.userId]
     );
 
     // Revoke outstanding access tokens (emits 'access_revoked'), then record

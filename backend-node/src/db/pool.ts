@@ -8,7 +8,13 @@ import { env } from '../config/env.js';
 // transit"), set DB_SSL_CA to the PEM of the Railway/Postgres CA — the
 // connection then validates the server certificate. Without a CA we fall back
 // to encrypted-but-unvalidated TLS and warn in production.
-const needsSsl = env.NODE_ENV === 'production' || env.DATABASE_URL.includes('railway.app');
+//
+// DB_SSL=false turns TLS off for a database on a private network that does not
+// offer it — e.g. the self-hosted Docker stack (deploy/), where Postgres is only
+// reachable on the internal compose network and never published.
+const needsSsl =
+  process.env.DB_SSL !== 'false' &&
+  (env.NODE_ENV === 'production' || env.DATABASE_URL.includes('railway.app'));
 
 function sslConfig(): PoolConfig['ssl'] {
   if (!needsSsl) return false;
